@@ -38,7 +38,24 @@ Default editor is Neovim 0.12.5. The repo is mounted as ~/.config/nvim.
 USAGE
 }
 
+ensure_env_from_examples() {
+  local f target
+  [ -d "$COMPOSE_DIR" ] || return 0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    target="${f%.example}"
+    if [ ! -f "$target" ]; then
+      if ! (umask 077 && : > "$target"); then
+        die "could not create $target"
+      fi
+      cat "$f" > "$target"
+      printf 'created %s from %s (0600)\n' "${target#"$ROOT"/}" "${f#"$ROOT"/}"
+    fi
+  done < <(find "$COMPOSE_DIR" -type f -name '.env*.example' 2>/dev/null | sort)
+}
+
 compose() {
+  ensure_env_from_examples
   local env_file="${COMPOSE_DIR}/dwpvim/.env"
   if [ -f "$env_file" ]; then
     set -a
