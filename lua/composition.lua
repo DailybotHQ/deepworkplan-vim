@@ -1,0 +1,18 @@
+-- Plugin setups. Each require is optional so a first launch without
+-- :Pckr sync still opens an editor instead of aborting.
+
+local function try(mod)
+  pcall(require, mod)
+end
+
+try("lsp")
+try("setUp.greeter")
+try("scheme.theme")
+try("setUp.diff")
+try("setUp.statusLine")
+try("setUp.highligth")
+try("setUp.identation")
+try("setUp.fileManager")
+try("setUp.buffer")
+try("setUp.finder")
+try("setUp.autosave")

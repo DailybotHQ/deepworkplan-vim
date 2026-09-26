@@ -1,0 +1,40 @@
+./coc-settings.json
+*node_modules/*
+utilities/node_modules/
+*package-lock.json
+.netrwhist
+plugged
+plugin
+spell
+pack
+.env
+
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# Neovim session and log files written into the config tree
+Session.vim
+.shada
+*.log
+.nvimlog
+
+# Local-dev / agent harness
+.devcontainer/
+.dwp/
+.review/
+docker/local/.env
+docker/local/dwpvim/.env

@@ -1,0 +1,34 @@
+snippet log "Simple console.log()"
+	console.log(${1})
+
+snippet comp "React component"
+	const $1 = () => {
+		return (
+      <>
+			  $2
+      </>
+		);
+	}
+
+	export default $1;
+
+snippet reducer "Reducer boilerplate"
+  const initialState = {
+    error: false,
+  };
+
+  const actionTypes = {
+    error: 'ERROR',
+  };
+
+  const reducerObject = (state, payload) => ({
+    [actionTypes.error]: {
+      ...state,
+      error: true,
+    },
+  });
+
+  const reducer = (state, action) =>
+    reducerObject(state, action.payload)[action.type] || state;
+
+  export { reducer, actionTypes, reducerObject, initialState };

@@ -1,0 +1,62 @@
+name: dwpvimlocal
+
+volumes:
+  claude_data: {}
+  codex_data: {}
+  cursor_data: {}
+  gh_data: {}
+  chelper_data: {}
+  cline_data: {}
+  opencode_data: {}
+  pi_data: {}
+  dwpvim_herdr_data: {}
+  grok_data: {}
+
+services:
+  dwpvim:
+    container_name: deepworkplan-vim
+    init: true
+    build:
+      context: .
+      dockerfile: ./dwpvim/Dockerfile
+      args:
+        INSTALL_CLAUDE_CLI: ${INSTALL_CLAUDE_CLI:-false}
+        INSTALL_CURSOR_CLI: ${INSTALL_CURSOR_CLI:-false}
+        INSTALL_CODEX_CLI: ${INSTALL_CODEX_CLI:-false}
+        INSTALL_PI_CLI: ${INSTALL_PI_CLI:-false}
+        INSTALL_OPENCODE_CLI: ${INSTALL_OPENCODE_CLI:-false}
+        INSTALL_CLINE_CLI: ${INSTALL_CLINE_CLI:-false}
+        INSTALL_GROK_CLI: ${INSTALL_GROK_CLI:-false}
+    working_dir: /workspace
+    user: "1000:1000"
+    environment:
+      DOCKER_DEV_ENV: vscode
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: "*"
+    volumes:
+      - ../..:/workspace
+      - claude_data:/home/dev/.claude_data
+      - codex_data:/home/dev/.codex_data
+      - cursor_data:/home/dev/.cursor_data
+      - gh_data:/home/dev/.gh_data
+      - chelper_data:/home/dev/.chelper_data
+      - cline_data:/home/dev/.cline
+      - opencode_data:/home/dev/.opencode_data
+      - pi_data:/home/dev/.pi_data
+      - dwpvim_herdr_data:/home/dev/.herdr_data
+      - grok_data:/home/dev/.grok_data
+      - ${HOME}/.ssh:/home/dev/.ssh_host:ro
+      - ${HOME}/.local/state/herdr/client:/home/dev/.herdr_client_host:ro
+      - ${HOME}/.gitconfig:/home/dev/.gitconfig:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - '127.0.0.1:${HERDR_SSH_HOST_PORT:-22035}:22'
+    env_file:
+      - dwpvim/.env
+    command:
+      - /bin/sh
+      - -c
+      - |
+        sleep infinity

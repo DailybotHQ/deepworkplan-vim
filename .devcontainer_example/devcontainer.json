@@ -1,0 +1,8 @@
+{
+  "name": "deepworkplan-vim",
+  "dockerComposeFile": ["../docker/local/docker-compose.yaml"],
+  "service": "dwpvim",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "none"
+}
