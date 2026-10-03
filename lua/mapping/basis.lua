@@ -32,3 +32,10 @@ map("n", "<Leader>>", ':exe "resize " . (winheight(0) * 2/3)<CR>', { desc = "Mak
 map("v", "f", "zf<CR>", { desc = "Fold the selection" })
 map("n", "f", "za<CR>", { desc = "Fold or unfold this block" })
 map("n", "fd", "zd<CR>", { desc = "Delete this fold" })
+-- VS Code gestures. <C-a> selects the whole file like cmd+a; plain y (or
+-- <leader>y) then copies it — clipboard is already system-wide
+-- (clipboard=unnamedplus in settings.lua). Normal-mode <C-a> replaces
+-- native number increment; visual <C-a> and g<C-a> stay native for that.
+map("n", "<C-a>", "ggVG", { desc = "Select the whole file, then y or SPC y copies it" })
+map("n", "<Leader>y", '"+y', { desc = "Copy to the system clipboard (then a motion: yy takes this line)" })
+map("v", "<Leader>y", '"+y', { desc = "Copy the selection to the system clipboard" })

@@ -34,6 +34,8 @@ end
 -- viewer).
 local GROUP_RULES = {
 	{ prefix = "SPC hh", title = "Start here" },
+	{ prefix = "Ctrl-a", title = "Select and copy" },
+	{ prefix = "SPC y", title = "Select and copy" },
 	{ prefix = "SPC g", title = "Git" },
 	{ prefix = "SPC p", title = "Plugins" },
 	{ prefix = "SPC ff", title = "Files and search" },

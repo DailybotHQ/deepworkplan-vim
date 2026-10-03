@@ -56,6 +56,8 @@ var currentOnly = []item{
 	{"<leader>ts", "telescope grep_string"},
 	{"<leader>mk", "bufferline next"},
 	{"<leader>mj", "bufferline prev"},
+	{"<c-a>", "select all"},
+	{"<leader>y", "clipboard yank"},
 	{"<leader>gap", "git add patch"},
 	{"<leader>gpx", "git push -u"},
 	{"j", "half page down"},
