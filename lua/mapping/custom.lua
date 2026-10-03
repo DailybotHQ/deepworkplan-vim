@@ -24,7 +24,7 @@ end, { desc = "Pick a color theme" })
 
 map("n", "<Leader>x", function()
 	custom.OpenFileServer()
-end, { desc = "Run or preview the current file" })
+end, { desc = "Run or preview the current file (markdown: browser preview)" })
 
 -- Terminal
 map("n", "<C-t>", function()

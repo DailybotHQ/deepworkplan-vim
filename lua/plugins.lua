@@ -96,6 +96,17 @@ require("pckr").add({
     end,
   },
   {
+    "MeanderingProgrammer/render-markdown.nvim",
+    requires = {
+      "nvim-treesitter/nvim-treesitter",
+      "nvim-tree/nvim-web-devicons",
+    },
+    ft = { "markdown" },
+    config = function()
+      require("setUp.markdown")
+    end,
+  },
+  {
     "turbio/bracey.vim",
     run = "pnpm install --prefix server",
     cmd = "Bracey",

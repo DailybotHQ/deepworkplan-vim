@@ -61,6 +61,8 @@ local GROUP_RULES = {
 	{ prefix = "SPC H", title = "Buffers, windows, tabs" },
 	{ prefix = "SPC l", title = "Buffers, windows, tabs" },
 	{ prefix = "SPC v", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC mp", title = "Markdown" },
+	{ prefix = "SPC mr", title = "Markdown" },
 	{ prefix = "SPC m", title = "Tabs and panels" },
 	{ prefix = "SPC <", title = "Buffers, windows, tabs" },
 	{ prefix = "SPC >", title = "Buffers, windows, tabs" },

@@ -13,7 +13,8 @@ composition); concerns live in the sub-modules below. Full picture:
 | `autocommand.lua` | autocommands |
 | `mapping/` | **keybindings — a contract surface** (see below) |
 | `dwp/` | plan browser: `.dwp/plans` discovery (`plans`), defensive state derivation (`state`), two-level panel (`view`, `SPC P`) — lazy |
-| `setUp/` | per-plugin set-up: greeter, finder, statusline, file manager, autosave, buffer, diff, highlight, indentation |
+| `mapping/markdown.lua` | markdown viewer: `SPC m p` browser preview, `SPC m r` in-buffer render; `SPC x` markdown branch shares it |
+| `setUp/` | per-plugin set-up: greeter, finder, statusline, file manager, autosave, buffer, diff, highlight, indentation, markdown render |
 | `lsp/` | lspconfig/mason servers, formatters, linters, completion, capabilities |
 | `scheme/` | theme apply/picker + `palettes/` (declarative color tables) |
 

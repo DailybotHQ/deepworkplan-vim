@@ -38,10 +38,10 @@ Neovim becomes the DeepWorkPlan editor.
 5. **Tuned-for-agents editing stack** — LSP, completion, linting, formatting,
    fuzzy finding, file management, and a theme system with curated palettes,
    composed through pckr.nvim with lazy startup.
-6. **Contributor dev container** — Docker environment with Neovim pinned,
+7. **Contributor dev container** — Docker environment with Neovim pinned,
    Herdr mesh connectivity, opt-in coding CLIs, and persistence volumes for
    CLI auth (`dev.sh`, `docker/local/`).
-7. **Automated releases** — merging to `main` publishes a versioned GitHub
+8. **Automated releases** — merging to `main` publishes a versioned GitHub
    Release driven by conventional-commit prefixes.
 
 ## Success criteria

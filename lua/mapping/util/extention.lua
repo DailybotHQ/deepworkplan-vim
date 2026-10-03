@@ -24,8 +24,8 @@ end
 
 local serviceActions = {
   markdown = function()
-    print("Check your browser")
-    execute(":MarkdownPreviewToggle")
+    -- Same implementation as SPC m p (mapping/markdown.lua).
+    require("mapping.markdown").preview()
   end,
   html = function()
     execute(":Bracey")
