@@ -85,12 +85,15 @@ end
 
 -- Ask for sudo while the terminal is still in cooked mode, before any
 -- stty raw prompts. Later sudo calls reuse the cached credentials.
+-- Root (containers) and DWP_VIM_SKIP_PACKAGES=1 (deps baked into an
+-- image) both skip this gate.
+local skip_packages = (os.getenv("DWP_VIM_SKIP_PACKAGES") or "") ~= ""
 local manager, manager_err = util.get_package_manager()
 if manager == nil then
   io.stderr:write((manager_err or "No package manager") .. "\n")
 end
 
-if manager and util.needs_sudo(manager) then
+if not skip_packages and manager and util.needs_sudo(manager) and not util.is_root() then
   io.write("Administrator privileges are required to install system packages.\n")
   if not exec_ok("sudo -v") then
     io.stderr:write("Could not validate sudo credentials. Aborting.\n")
@@ -140,7 +143,12 @@ else
   end
 end
 
-if manager == nil then
+if skip_packages then
+  io.write("DWP_VIM_SKIP_PACKAGES is set: system packages are assumed present (container image, CI). Installing pckr and the font only.\n")
+  if not installer.install_pckr() then
+    log_fail("Could not clone pckr.nvim")
+  end
+elseif manager == nil then
   log_fail(manager_err or "Could not detect a package manager")
 else
   io.write("Detected package manager: " .. manager .. "\n")

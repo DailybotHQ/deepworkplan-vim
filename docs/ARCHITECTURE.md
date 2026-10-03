@@ -35,6 +35,8 @@ docker/              contributor container (docker/local/) + image custom comman
 tests/               Go mapping-contract suite (parses Lua/VimScript; no Neovim)
 snippets/ dicts/     data: snippet sources, spell dictionaries
 dev.sh               launcher: compose up/down/shell/build/rebuild + herdr agents/ask
+install.sh           curl-able entry: preflight, consent, clone/update, then lua
+                     install.lua + headless plugin bootstrap (thin wrapper)
 install.lua          multi-distro installer (runs on user machines, sudo for packages)
 delete.lua           uninstaller
 ```

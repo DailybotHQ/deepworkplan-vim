@@ -125,14 +125,31 @@ if not pcall(require, "mason") then
   vim.api.nvim_create_autocmd("VimEnter", {
     once = true,
     callback = function()
+      -- require('pckr') exports only add/setup; the operations live in
+      -- pckr.actions (async.sync-wrapped: the third argument is the
+      -- completion callback).
+      local ok, actions = pcall(require, "pckr.actions")
+      if not ok then
+        return
+      end
+      -- Headless (install.sh bootstrap): run a full sync and exit on its
+      -- completion callback — no quit-and-reopen dance. The defer lets any
+      -- installs the spec-processing autoinstall already started finish
+      -- before we quit.
+      if #vim.api.nvim_list_uis() == 0 then
+        actions.sync(nil, nil, function()
+          vim.defer_fn(function()
+            print("pckr: plugins installed")
+            vim.cmd("qa!")
+          end, 1000)
+        end)
+        return
+      end
       vim.notify(
         "Installing plugins. Quit Neovim when it finishes, then open it again.",
         vim.log.levels.INFO
       )
-      local ok, pckr = pcall(require, "pckr")
-      if ok and type(pckr.sync) == "function" then
-        pckr.sync()
-      end
+      actions.sync()
     end,
   })
 end

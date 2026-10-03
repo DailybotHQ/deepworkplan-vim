@@ -8,15 +8,32 @@ This repository is public, GPL-3.0. It is derived from [AndresMpa/mu-vim](https:
 
 ## Install (host)
 
-Needs [Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+ and Lua (`lua`, `lua5.4`, or `luajit`).
+One line — macOS, Linux, or WSL (installs git, curl, and Lua first if they are missing):
 
 ```bash
-git clone https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
-cd ~/.config/nvim && lua install.lua
-nvim
+curl -fsSL https://deepworkplan.com/vim/install.sh | bash
 ```
 
-Windows: clone into `%LOCALAPPDATA%\nvim` and run `lua install.lua`.
+That is the whole install: preflight, clone into `~/.config/nvim`, the system
+setup (`lua install.lua`), and a headless plugin install — no quit-and-reopen
+dance. An existing Neovim config is **never overwritten**: interactively you
+are asked before it is moved to `~/.config/previous-deepworkplan-vim`; piped
+without a terminal the script aborts instead of touching anything.
+
+Advanced / offline:
+
+```bash
+curl -fsSL https://deepworkplan.com/vim/install.sh | DWP_VIM_REF=v0.3.1 bash   # pin a tag
+git clone https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim    # manual (advanced)
+cd ~/.config/nvim && lua install.lua
+DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh                       # local/offline source
+DWP_VIM_SKIP_PACKAGES=1 lua install.lua                                        # image already has the deps
+```
+
+Windows: `curl | bash` is not the Windows gesture — install Neovim with
+`winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements`,
+clone into `%LOCALAPPDATA%\nvim`, run `lua install.lua` (Git Bash), or use WSL
+where the one-liner works as-is. Requires [Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
 
 ## What you get
 

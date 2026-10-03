@@ -241,6 +241,21 @@ function M.needs_sudo(manager)
   return manager == "pacman" or manager == "apt-get" or manager == "dnf"
 end
 
+-- Root (the usual case inside containers) has no sudo binary and needs
+-- none; package commands must then run bare. Windows never gets here.
+function M.is_root()
+  if M.is_windows() then
+    return false
+  end
+  local handle = io.popen("id -u 2>/dev/null")
+  if not handle then
+    return false
+  end
+  local uid = handle:read("*l")
+  handle:close()
+  return uid == "0"
+end
+
 function M.replace_old(target, backup_dir)
   if not M.path_exists(target) then
     return true

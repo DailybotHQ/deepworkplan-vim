@@ -151,10 +151,12 @@ end
 
 local function install_unix_packages(manager, packages)
   local pkg_list = table.concat(packages, " ")
+  -- Root (common in containers) has no sudo binary and needs none.
+  local sudo = util.is_root() and "" or "sudo "
   local commands = {
-    ["apt-get"] = "sudo apt-get update && sudo apt-get install -y " .. pkg_list,
-    pacman = "sudo pacman -Sy --noconfirm " .. pkg_list,
-    dnf = "sudo dnf install -y " .. pkg_list,
+    ["apt-get"] = sudo .. "apt-get update && " .. sudo .. "apt-get install -y " .. pkg_list,
+    pacman = sudo .. "pacman -Sy --noconfirm " .. pkg_list,
+    dnf = sudo .. "dnf install -y " .. pkg_list,
     -- brew exits non-zero when a keg is already present but not linked
     -- (node@22 leaves a corepack pnpm symlink). The packages are installed.
     brew = "brew install " .. pkg_list .. " || brew list --formula " .. pkg_list .. " >/dev/null",
