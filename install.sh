@@ -239,7 +239,6 @@ fi
 # the mason.nvim check below track the install they belong to.
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 BOOTSTRAP_APPNAME="$(basename "$DEST")"
-BOOTSTRAP_ENV="XDG_CONFIG_HOME=$(dirname "$DEST") NVIM_APPNAME=$BOOTSTRAP_APPNAME"
 PCKR_OPT="$DATA_HOME/$BOOTSTRAP_APPNAME/site/pack/pckr/opt"
 MARKER="$DATA_HOME/$BOOTSTRAP_APPNAME/pckr/.dwp-vim-bootstrapped"
 
@@ -254,13 +253,18 @@ else
   # timeout(1) is not on macOS by default; the sync callback exits nvim
   # on its own, the timeout is only a guard against a stuck clone.
   bootstrap_rc=0
+  # Quoted operands (review round-2 finding 4): an unquoted word list
+  # would split a destination containing spaces into extra argv.
   if command -v timeout >/dev/null 2>&1; then
-    # BOOTSTRAP_ENV is a deliberate word list, not a quoted value:
-    # shellcheck disable=SC2086
-    timeout "$BOOTSTRAP_TIMEOUT" env $BOOTSTRAP_ENV nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
+    timeout "$BOOTSTRAP_TIMEOUT" env \
+      XDG_CONFIG_HOME="$(dirname "$DEST")" \
+      NVIM_APPNAME="$BOOTSTRAP_APPNAME" \
+      nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   else
-    # shellcheck disable=SC2086
-    env $BOOTSTRAP_ENV nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
+    env \
+      XDG_CONFIG_HOME="$(dirname "$DEST")" \
+      NVIM_APPNAME="$BOOTSTRAP_APPNAME" \
+      nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   fi
   if [ "$bootstrap_rc" -eq 0 ]; then
     touch "$MARKER" 2>/dev/null || true
