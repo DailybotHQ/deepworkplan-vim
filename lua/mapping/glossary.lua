@@ -1,6 +1,13 @@
--- Full command glossary. Space is the leader, written here as SPC.
--- Keep this list next to lua/mapping/*.lua. A mapping that is not here
--- will not show up on the start screen.
+-- Command glossary, generated from the live keymaps. Space is the leader,
+-- written here as SPC.
+--
+-- The index is never hand-listed: every row comes from runtime
+-- introspection (nvim_get_keymap / nvim_buf_get_keymap) at open time, so a
+-- mapping defined anywhere in lua/mapping/ — or by a plugin, or ad hoc at
+-- runtime — appears with zero registration. Descriptions come from each
+-- map's `desc` option; group labels come from the ordered prefix rules
+-- below (presentation metadata only: an unmatched key still shows, under
+-- "Other").
 
 local function display_len(text)
 	if utf8 and utf8.len then
@@ -20,165 +27,207 @@ local function pad(text, width)
 	return text .. string.rep(" ", gap)
 end
 
-local groups = {
-	{
-		title = "Start here",
-		rows = {
-			{ "SPC h h", "Open this glossary" },
-			{ "SPC t", "Open Telescope (every finder)" },
-			{ "SPC t h", "Pick a color theme" },
-			{ ":checkhealth", "See what is missing" },
-		},
-	},
-	{
-		title = "Files and search",
-		rows = {
-			{ "SPC f f", "Find a file by name" },
-			{ "SPC f o", "Recent files" },
-			{ "SPC f w", "Search text in the project" },
-			{ "SPC b m", "Bookmarks (marks)" },
-			{ "SPC t f", "Find files" },
-			{ "SPC t t", "Live search in the project" },
-			{ "SPC t s", "Search the word under the cursor" },
-			{ "SPC n", "File tree" },
-			{ "SPC s s", "Jump to two characters on screen" },
-		},
-	},
-	{
-		title = "File tree (cursor in the tree)",
-		rows = {
-			{ "a", "Create a file or folder. End the name with / for a folder" },
-			{ "e", "Rename, including the extension" },
-			{ "d", "Delete" },
-			{ "c", "Copy" },
-			{ "x", "Cut" },
-			{ "p", "Paste" },
-			{ "g?", "Show every tree shortcut" },
-		},
-	},
-	{
-		title = "Save, quit, edit",
-		rows = {
-			{ "SPC w", "Save the file" },
-			{ "SPC q", "Close panel, diff, window, or quit nvim" },
-			{ "SPC Q", "Quit nvim" },
-			{ "SPC f", "Format the file" },
-			{ "SPC a w", "Toggle autosave" },
-			{ "SPC R", "Replace in the whole file" },
-			{ "u", "Undo" },
-			{ "U", "Redo" },
-			{ "SPC r", "Insert a color" },
-			{ "SPC x", "Run or preview the current file" },
-		},
-	},
-	{
-		title = "Buffers and windows",
-		rows = {
-			{ "SPC k", "Next buffer" },
-			{ "SPC j", "Previous buffer" },
-			{ "SPC h", "Close this buffer" },
-			{ "SPC H", "Close every other buffer" },
-			{ "SPC l", "List open buffers" },
-			{ "SPC m k", "Move this tab right" },
-			{ "SPC m j", "Move this tab left" },
-			{ "SPC v j", "Split horizontally" },
-			{ "SPC v k", "Split vertically" },
-			{ "SPC v v", "Close the other splits" },
-			{ "SPC <", "Make this window taller" },
-			{ "SPC >", "Make this window shorter" },
-			{ "Ctrl-t", "Open a terminal on the left" },
-		},
-	},
-	{
-		title = "Move and fold",
-		rows = {
-			{ "J", "Page down" },
-			{ "K", "Page up" },
-			{ "Ctrl-j", "Scroll down" },
-			{ "Ctrl-k", "Scroll up" },
-			{ "f", "Fold or unfold this block" },
-			{ "f d", "Delete this fold" },
-		},
-	},
-	{
-		title = "Code (when a language server is attached)",
-		rows = {
-			{ "g d", "Go to definition" },
-			{ "g D", "Go to declaration" },
-			{ "g i", "Go to implementation" },
-			{ "g r", "Find references" },
-			{ "K", "Hover docs, when the server provides them" },
-		},
-	},
-	{
-		title = "Git",
-		rows = {
-			{ "SPC g s t", "Status" },
-			{ "SPC g a a", "Stage everything" },
-			{ "SPC g a p", "Stage this file in hunks" },
-			{ "SPC g c", "Commit" },
-			{ "SPC g p s", "Push" },
-			{ "SPC g p l", "Pull" },
-			{ "SPC g p p", "Push the current branch" },
-			{ "SPC g p x", "Push and set upstream" },
-			{ "SPC g l l", "Pull the current branch" },
-			{ "SPC g d", "Open or close the diff view" },
-			{ "d", "In the diff file list: discard that file (asks first)" },
-			{ "X", "In the diff file list: discard that file, no prompt" },
-			{ "SPC g b l", "Blame" },
-			{ "SPC g s h", "Show the last commit" },
-			{ "SPC g s w", "Switch branch (type the name)" },
-			{ "SPC g c o", "Checkout (type the name)" },
-			{ "SPC g c b", "Create a branch (type the name)" },
-			{ "SPC g r v", "Show remotes" },
-			{ "SPC g i i", "Init a repository" },
-			{ "SPC g g g", "Type any git command" },
-		},
-	},
-	{
-		title = "Plugins",
-		rows = {
-			{ "SPC p i", "Install plugins" },
-			{ "SPC p u", "Sync plugins" },
-			{ "SPC p c", "Remove unused plugins" },
-		},
-	},
+-- Ordered rules: first match wins, so a longer prefix in the same namespace
+-- must come earlier (SPC hh before SPC h, SPC ff before SPC f). A key that
+-- matches nothing lands in "Other" — still listed. Adjust labels here when a
+-- namespace gains a new meaning (e.g. SPC m p / SPC m r in the markdown
+-- viewer).
+local GROUP_RULES = {
+	{ prefix = "SPC hh", title = "Start here" },
+	{ prefix = "SPC g", title = "Git" },
+	{ prefix = "SPC p", title = "Plugins" },
+	{ prefix = "SPC ff", title = "Files and search" },
+	{ prefix = "SPC fo", title = "Files and search" },
+	{ prefix = "SPC fw", title = "Files and search" },
+	{ prefix = "SPC f", title = "Save, quit, and file actions" },
+	{ prefix = "SPC th", title = "Appearance" },
+	{ prefix = "SPC t", title = "Files and search" },
+	{ prefix = "SPC n", title = "Files and search" },
+	{ prefix = "SPC s", title = "Files and search" },
+	{ prefix = "SPC b", title = "Files and search" },
+	{ prefix = "SPC w", title = "Save, quit, and file actions" },
+	{ prefix = "SPC q", title = "Save, quit, and file actions" },
+	{ prefix = "SPC Q", title = "Save, quit, and file actions" },
+	{ prefix = "SPC R", title = "Save, quit, and file actions" },
+	{ prefix = "SPC r", title = "Save, quit, and file actions" },
+	{ prefix = "SPC x", title = "Save, quit, and file actions" },
+	{ prefix = "SPC a", title = "Save, quit, and file actions" },
+	{ prefix = "SPC k", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC j", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC h", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC H", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC l", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC v", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC m", title = "Tabs and panels" },
+	{ prefix = "SPC <", title = "Buffers, windows, tabs" },
+	{ prefix = "SPC >", title = "Buffers, windows, tabs" },
+	{ prefix = "Ctrl-t", title = "Buffers, windows, tabs" },
+	{ prefix = "J", title = "Move and fold" },
+	{ prefix = "K", title = "Move and fold" },
+	{ prefix = "Ctrl-j", title = "Move and fold" },
+	{ prefix = "Ctrl-k", title = "Move and fold" },
+	{ prefix = "f", title = "Move and fold" },
+	{ prefix = "U", title = "Move and fold" },
+	{ prefix = "u", title = "Move and fold" },
+	{ prefix = "gd", title = "Code (language server)" },
+	{ prefix = "gD", title = "Code (language server)" },
+	{ prefix = "gi", title = "Code (language server)" },
+	{ prefix = "gr", title = "Code (language server)" },
 }
+local OTHER_TITLE = "Other"
+
+-- Turn a raw lhs into the display form used everywhere here:
+-- "<leader>x" / " x" (nvim_get_keymap returns a decoded leader byte) /
+-- "<Space>x" all become "SPC x"; "<C-t>" becomes "Ctrl-t"; "<M-t>"
+-- becomes "Alt-t"; "<lt>" becomes "<". Note the "%-" in the chord
+-- patterns: a bare "-" after a class is the lazy-repetition operator,
+-- which would wrongly turn "<lt>" into "Ctrl-lt".
+local function display_key(lhs)
+	local key = lhs:gsub("^ ", "SPC "):gsub("<[Ll]eader>%s?", "SPC "):gsub("<[Ss]pace>%s?", "SPC ")
+	key = key:gsub("<([Cc])%-([A-Za-z0-9]+)>", function(_, chord)
+		return "Ctrl-" .. chord:lower()
+	end)
+	key = key:gsub("<([Mm])%-([A-Za-z0-9]+)>", function(_, chord)
+		return "Alt-" .. chord:lower()
+	end)
+	return (key:gsub("<lt>", "<"))
+end
+
+-- Plain prefix: display keys spell the leader once and then the whole
+-- chord ("SPC gaa"), so there is no separator to anchor a word boundary on.
+local function in_group(key, prefix)
+	return key:sub(1, #prefix) == prefix
+end
+
+local function group_of(key)
+	for _, rule in ipairs(GROUP_RULES) do
+		if in_group(key, rule.prefix) then
+			return rule.title
+		end
+	end
+	return OTHER_TITLE
+end
+
+-- Order groups by their first rule's position; "Other" always last.
+local function group_order()
+	local order, seen = {}, {}
+	for _, rule in ipairs(GROUP_RULES) do
+		if not seen[rule.title] then
+			seen[rule.title] = true
+			table.insert(order, rule.title)
+		end
+	end
+	table.insert(order, OTHER_TITLE)
+	return order
+end
+
+-- A readable fallback when a map carries no desc: show a cleaned rhs.
+local function rhs_summary(rhs)
+	if type(rhs) ~= "string" or rhs == "" then
+		return nil
+	end
+	local text = rhs:gsub("^<cmd>", ""):gsub("^:", ""):gsub("<[Cc][Rr]>$", ""):gsub("^%s+", "")
+	if text == "" or #text > 60 then
+		return nil
+	end
+	return text
+end
+
+local function interesting(lhs)
+	if lhs == nil or lhs == "" then
+		return false
+	end
+	if lhs:find("<SNR", 1, true) or lhs:find("<Plug>", 1, true) then
+		return false
+	end
+	if lhs:find("Mouse", 1, true) or lhs:find("Scroll", 1, true) then
+		return false
+	end
+	return true
+end
+
+-- Introspect the live keymaps. Global maps for normal and visual mode, plus
+-- the current buffer's local maps (LSP after attach, the file tree when
+-- focused) marked with a bullet.
+local ITEMS = {}
+
+local function collect_mode(maps, mode, tag)
+	for _, m in ipairs(maps) do
+		if interesting(m.lhs) then
+			local desc = m.desc and m.desc ~= "" and m.desc or rhs_summary(m.rhs) or "(no description)"
+			if tag then
+				desc = desc .. "  · this buffer"
+			end
+			table.insert(ITEMS, {
+				mode = mode,
+				key = display_key(m.lhs),
+				desc = desc,
+			})
+		end
+	end
+end
 
 local M = {}
 
-local KEY_WIDTH = 14
-
-local function row_text(row)
-	return "  " .. pad(row[1], KEY_WIDTH) .. "  " .. row[2]
+function M.collect()
+	ITEMS = {}
+	collect_mode(vim.api.nvim_get_keymap("n"), "n", false)
+	collect_mode(vim.api.nvim_get_keymap("v"), "v", false)
+	collect_mode(vim.api.nvim_buf_get_keymap(0, "n"), "n", true)
+	return ITEMS
 end
 
-local function matches(query, row, title)
+local KEY_WIDTH = 16
+
+local function row_text(item)
+	local key = item.key
+	if item.mode == "v" then
+		key = key .. " (v)"
+	end
+	return "  " .. pad(key, KEY_WIDTH) .. "  " .. item.desc
+end
+
+local function matches(query, item, title)
 	if query == "" then
 		return true
 	end
-	local hay = (row[1] .. " " .. row[2] .. " " .. title):lower()
+	local hay = (item.key .. " " .. item.desc .. " " .. title):lower()
 	return hay:find(query, 1, true) ~= nil
 end
 
 function M.filtered(query)
 	query = (query or ""):lower()
-	local out = {}
-	local hits = 0
-	for _, group in ipairs(groups) do
-		local block = {}
-		for _, row in ipairs(group.rows) do
-			if matches(query, row, group.title) then
-				table.insert(block, row_text(row))
-				hits = hits + 1
+	local items = M.collect()
+	local by_group = {}
+	for _, item in ipairs(items) do
+		local title = group_of(item.key)
+		by_group[title] = by_group[title] or {}
+		table.insert(by_group[title], item)
+	end
+	local out, hits = {}, 0
+	for _, title in ipairs(group_order()) do
+		local group_items = by_group[title]
+		if group_items then
+			table.sort(group_items, function(a, b)
+				if a.key == b.key then
+					return a.mode < b.mode
+				end
+				return a.key < b.key
+			end)
+			local block = {}
+			for _, item in ipairs(group_items) do
+				if matches(query, item, title) then
+					table.insert(block, row_text(item))
+					hits = hits + 1
+				end
 			end
-		end
-		if #block > 0 then
-			table.insert(out, "  " .. group.title)
-			for _, line in ipairs(block) do
-				table.insert(out, line)
+			if #block > 0 then
+				table.insert(out, "  " .. title)
+				for _, line in ipairs(block) do
+					table.insert(out, line)
+				end
+				table.insert(out, "")
 			end
-			table.insert(out, "")
 		end
 	end
 	if hits == 0 then
@@ -191,8 +240,9 @@ end
 function M.lines()
 	local body = M.filtered("")
 	local out = {
-		"  Command glossary",
+		"  Command glossary — generated from the live mappings",
 		"  Type to search. Esc clears the search, then closes. Space q closes from anywhere.",
+		"  :checkhealth  See what is missing.",
 		"",
 	}
 	for _, line in ipairs(body) do

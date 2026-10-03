@@ -23,6 +23,12 @@ composition); concerns live in the sub-modules below. Full picture:
 mu-vim flavor, `current` is Lua-only, `vim-family` covers mini/VimScript.
 **Any change here updates `tests/mappings_test.go` in the same change.**
 
+Give every mapping a `{ desc = "…" }` option: `SPC h h`
+(`mapping/glossary.lua`) builds the command index live from
+`nvim_get_keymap` at open time, so the index never drifts — a mapping
+defined anywhere (mapping files, a plugin, ad hoc at runtime) appears with
+zero registration, and `desc` is the text it shows.
+
 ## Conventions
 
 - New plugins: list in `plugins.lua`, wire in `composition.lua` (or comment

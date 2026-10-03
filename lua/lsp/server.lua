@@ -148,16 +148,16 @@ vim.api.nvim_create_autocmd("LspAttach", {
     local opts = { buffer = ev.buf, silent = true, noremap = true }
     vim.keymap.set("n", "gd", function()
       vim.lsp.buf.definition()
-    end, opts)
+    end, vim.tbl_extend("keep", { desc = "Go to definition" }, opts))
     vim.keymap.set("n", "gD", function()
       vim.lsp.buf.declaration()
-    end, opts)
+    end, vim.tbl_extend("keep", { desc = "Go to declaration" }, opts))
     vim.keymap.set("n", "gi", function()
       vim.lsp.buf.implementation()
-    end, opts)
+    end, vim.tbl_extend("keep", { desc = "Go to implementation" }, opts))
     vim.keymap.set("n", "gr", function()
       vim.lsp.buf.references()
-    end, opts)
+    end, vim.tbl_extend("keep", { desc = "Find references" }, opts))
   end,
 })
 

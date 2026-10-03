@@ -6,27 +6,27 @@ local map = vim.keymap.set
 local opts = { noremap = true, silent = true }
 
 -- vCoolor
-map("n", "<Leader>r", ":VCoolIns ra<CR>", {})
+map("n", "<Leader>r", ":VCoolIns ra<CR>", { desc = "Insert a color" })
 
 -- Auto save
-map("n", "<leader>aw", ":ASToggle<CR>", {})
+map("n", "<leader>aw", ":ASToggle<CR>", { desc = "Toggle autosave" })
 
 -- Formatter
-map("n", "<leader>f", ":Format<CR>", {})
+map("n", "<leader>f", ":Format<CR>", { desc = "Format the file" })
 
 -- Extentions
 map("n", "<Leader>hh", function()
 	require("mapping.glossary").open()
-end, {})
+end, { desc = "Open the command glossary" })
 map("n", "<Leader>th", function()
 	require("scheme.picker").open()
-end, {})
+end, { desc = "Pick a color theme" })
 
 map("n", "<Leader>x", function()
 	custom.OpenFileServer()
-end, {})
+end, { desc = "Run or preview the current file" })
 
 -- Terminal
 map("n", "<C-t>", function()
 	custom.OpenTerminal()
-end, opts)
+end, { noremap = true, silent = true, desc = "Open a terminal on the left" })
