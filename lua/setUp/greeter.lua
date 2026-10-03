@@ -69,6 +69,7 @@ default.header = {
 default.buttons = {
 	type = "group",
 	val = {
+		button("SPC P", "  Plans  ", ":lua require('dwp.view').open()<CR>"),
 		button("SPC h h", "  Commands  ", ":lua require('mapping.glossary').open()<CR>"),
 		button("SPC f f", "  Find File  ", ":Telescope find_files<CR>"),
 		button("SPC f o", "  Recent File  ", ":Telescope oldfiles<CR>"),
