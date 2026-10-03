@@ -1,0 +1,32 @@
+# lua/ — the editor config
+
+The Neovim configuration itself. Boot chain lives in
+[init.lua](../init.lua) (settings → mapping → autocommand → plugins →
+composition); concerns live in the sub-modules below. Full picture:
+[docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+
+| Module | Responsibility |
+|---|---|
+| `settings.lua` | `vim.opt` basics and performance flags (`lazyredraw`, no swap/backup) |
+| `plugins.lua` | pckr.nvim bootstrap + the curated plugin list |
+| `composition.lua` | wires every plugin's set-up (setUp, LSP, scheme) |
+| `autocommand.lua` | autocommands |
+| `mapping/` | **keybindings — a contract surface** (see below) |
+| `setUp/` | per-plugin set-up: greeter, finder, statusline, file manager, autosave, buffer, diff, highlight, indentation |
+| `lsp/` | lspconfig/mason servers, formatters, linters, completion, capabilities |
+| `scheme/` | theme apply/picker + `palettes/` (declarative color tables) |
+
+## The mapping contract
+
+`mapping/*.lua` is pinned by the Go contract suite in
+[../tests/](../tests/README.md): the `shared` group must exist in every
+mu-vim flavor, `current` is Lua-only, `vim-family` covers mini/VimScript.
+**Any change here updates `tests/mappings_test.go` in the same change.**
+
+## Conventions
+
+- New plugins: list in `plugins.lua`, wire in `composition.lua` (or comment
+  why they need no wiring).
+- Palettes are data, not logic.
+- Validate edits: `luac5.4 -p <file>` (or the full-tree variant in
+  [AGENTS.md](../AGENTS.md)).

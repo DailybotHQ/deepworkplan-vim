@@ -35,6 +35,9 @@ Session.vim
 # Local-dev / agent harness
 .devcontainer/
 .dwp/
-.review/
+.review/*
+!.review/extension.md
+tmp/*
+!tmp/.gitkeep
 docker/local/.env
 docker/local/dwpvim/.env
