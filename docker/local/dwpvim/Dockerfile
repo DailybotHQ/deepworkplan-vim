@@ -25,7 +25,7 @@ RUN apt-get update -y && \
     apt-get install --no-install-recommends -y \
       less git curl gnupg ca-certificates openssh-client openssh-server \
       sudo nano python3 lua5.4 ripgrep fd-find adduser \
-      nodejs fontconfig black python3-neovim gcc make && \
+      nodejs npm fontconfig black python3-neovim gcc make && \
     mkdir -p /var/run/sshd /etc/ssh/sshd_config.d && \
     rm -f /etc/ssh/ssh_host_* && \
     printf '%s\n' \
@@ -157,23 +157,31 @@ RUN ln -sfn /home/dev/.local/bin/nvim /usr/local/bin/nvim
 # baked result matches what a host install produces.
 
 # Build-time config copy (bootstrap input; removed again below). Paths are
-# repo-relative: the compose build context is the repository root.
-COPY init.lua delete.lua CheatSheet.md /opt/dwpvim-config/
-COPY lua/ /opt/dwpvim-config/lua/
-COPY snippets/ /opt/dwpvim-config/snippets/
-COPY dicts/ /opt/dwpvim-config/dicts/
-COPY utilities/installation/ /opt/dwpvim-config/utilities/installation/
+# repo-relative: the compose build context is the repository root. Neovim
+# resolves its config as $XDG_CONFIG_HOME/nvim, so the tree must sit one
+# level inside the XDG root used for the headless bake below — copying to
+# /opt/dwpvim-config/ directly would leave init.lua where Neovim never
+# looks and the mason.nvim assert could never pass.
+COPY init.lua delete.lua CheatSheet.md /opt/dwpvim-config/nvim/
+COPY lua/ /opt/dwpvim-config/nvim/lua/
+COPY snippets/ /opt/dwpvim-config/nvim/snippets/
+COPY dicts/ /opt/dwpvim-config/nvim/dicts/
+COPY utilities/installation/ /opt/dwpvim-config/nvim/utilities/installation/
 
 USER dev
-# pnpm via the official installer, then biome — the same commands
-# installer.lua's ensure_pnpm / ensure_formatters run on a host (the
-# PNPM_HOME/bin PATH entry comes from the ENV above). The font goes to
-# ~/.local/share/fonts + fc-cache, where installer.lua install_font puts it.
+# pnpm from the npm registry (pinned to major 10), then biome — the same
+# tools installer.lua's ensure_pnpm / ensure_formatters land on a host, at
+# the same PNPM_HOME (the /bin PATH entry comes from the ENV above). The
+# registry route replaces the official install script's curl | sh: npm
+# verifies the package integrity hash before extracting, which this repo's
+# review rules require for executed downloads in image builds. The font
+# goes to ~/.local/share/fonts + fc-cache, where installer.lua install_font
+# puts it.
 RUN set -eu; \
-    curl -fsSL https://get.pnpm.io/install.sh | env SHELL=/bin/bash sh -; \
+    npm install -g --prefix "$PNPM_HOME" pnpm@10; \
     pnpm add -g @biomejs/biome; \
     mkdir -p "$HOME/.local/share/fonts"; \
-    install -m 0644 /opt/dwpvim-config/utilities/installation/iosevka_nerd_font.ttf \
+    install -m 0644 /opt/dwpvim-config/nvim/utilities/installation/iosevka_nerd_font.ttf \
       "$HOME/.local/share/fonts/iosevka_nerd_font.ttf"; \
     fc-cache -f "$HOME/.local/share/fonts" >/dev/null
 

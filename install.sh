@@ -230,10 +230,18 @@ fi
 
 # Same path pckr resolves at boot (its config sets pack_dir to
 # stdpath('data')/site): plugins install under site/pack/pckr/opt/<name>.
-# nvim uses ~/.local/share on macOS too.
+# nvim uses ~/.local/share on macOS too. The bootstrap must run Neovim
+# against THE DESTINATION, not whatever $XDG_CONFIG_HOME/nvim happens to
+# hold: XDG_CONFIG_HOME is the destination's parent and NVIM_APPNAME its
+# basename (Neovim composes the two into the config path). For the default
+# destination (~/.config/nvim) both resolve to Neovim's own defaults; for a
+# custom DWP_VIM_DIR the data dir follows the appname, so the marker and
+# the mason.nvim check below track the install they belong to.
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-PCKR_OPT="$DATA_HOME/nvim/site/pack/pckr/opt"
-MARKER="$DATA_HOME/nvim/pckr/.dwp-vim-bootstrapped"
+BOOTSTRAP_APPNAME="$(basename "$DEST")"
+BOOTSTRAP_ENV="XDG_CONFIG_HOME=$(dirname "$DEST") NVIM_APPNAME=$BOOTSTRAP_APPNAME"
+PCKR_OPT="$DATA_HOME/$BOOTSTRAP_APPNAME/site/pack/pckr/opt"
+MARKER="$DATA_HOME/$BOOTSTRAP_APPNAME/pckr/.dwp-vim-bootstrapped"
 
 if ! command -v nvim >/dev/null 2>&1; then
   say "NOTE: nvim is not on PATH in this shell yet (a new shell should find it)."
@@ -247,9 +255,12 @@ else
   # on its own, the timeout is only a guard against a stuck clone.
   bootstrap_rc=0
   if command -v timeout >/dev/null 2>&1; then
-    timeout "$BOOTSTRAP_TIMEOUT" nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
+    # BOOTSTRAP_ENV is a deliberate word list, not a quoted value:
+    # shellcheck disable=SC2086
+    timeout "$BOOTSTRAP_TIMEOUT" env $BOOTSTRAP_ENV nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   else
-    nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
+    # shellcheck disable=SC2086
+    env $BOOTSTRAP_ENV nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   fi
   if [ "$bootstrap_rc" -eq 0 ]; then
     touch "$MARKER" 2>/dev/null || true
