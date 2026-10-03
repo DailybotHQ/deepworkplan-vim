@@ -38,10 +38,16 @@ Neovim becomes the DeepWorkPlan editor.
 5. **Tuned-for-agents editing stack** — LSP, completion, linting, formatting,
    fuzzy finding, file management, and a theme system with curated palettes,
    composed through pckr.nvim with lazy startup.
-7. **Contributor dev container** — Docker environment with Neovim pinned,
+6. **VS Code gestures** — the familiar chords work where they cost one key:
+   `<C-a>` selects all (normal mode; visual keeps the native increment), and
+   `SPC y` yanks to the system clipboard in normal and visual mode.
+7. **A first-class markdown viewer** — `SPC m p` previews the buffer in a
+   browser, `SPC m r` renders it in place (render-markdown.nvim, loaded only
+   for markdown buffers); both share the implementation behind `SPC x`.
+8. **Contributor dev container** — Docker environment with Neovim pinned,
    Herdr mesh connectivity, opt-in coding CLIs, and persistence volumes for
    CLI auth (`dev.sh`, `docker/local/`).
-8. **Automated releases** — merging to `main` publishes a versioned GitHub
+9. **Automated releases** — merging to `main` publishes a versioned GitHub
    Release driven by conventional-commit prefixes.
 
 ## Success criteria

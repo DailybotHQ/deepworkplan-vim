@@ -82,10 +82,6 @@ setmetatable(serviceActions, {
   end,
 })
 
-extentions.HelpMapping = function()
-  vim.cmd("Telescope keymaps")
-end
-
 extentions.HandleGitCustomActions = function(action)
   local branch = vim.fn.system("git branch --show-current | tr -d '\n'")
 

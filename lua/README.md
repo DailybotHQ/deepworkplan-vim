@@ -31,6 +31,11 @@ Give every mapping a `{ desc = "…" }` option: `SPC h h`
 defined anywhere (mapping files, a plugin, ad hoc at runtime) appears with
 zero registration, and `desc` is the text it shows.
 
+The VS Code gestures (`<C-a>` select all, `SPC y` system-clipboard yank)
+and the two panels also have terminal-independent entry points —
+`:DwpCommands` and `:DwpPlans` — for setups where a leader chord misfires;
+both are user commands with `desc`, defined next to their mappings.
+
 ## Conventions
 
 - New plugins: list in `plugins.lua`, wire in `composition.lua` (or comment

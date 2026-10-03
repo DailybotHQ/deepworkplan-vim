@@ -1,6 +1,6 @@
 # DeepWorkPlan Vim
 
-The official **terminal editor** for [Deep Work Plan](https://deepworkplan.com). A Neovim configuration for humans and for coding agents that live in a terminal — including Herdr panes.
+The official **terminal editor** for [Deep Work Plan](https://deepworkplan.com): a Neovim configuration with a VS Code feel — lightweight, fast to start, built for humans and for coding agents that live in a terminal, including Herdr panes.
 
 This repository is public, GPL-3.0. It is derived from [AndresMpa/mu-vim](https://github.com/AndresMpa/mu-vim) (see [CREDITS.md](./CREDITS.md)). New work lands here under the DeepWorkPlan name.
 
@@ -37,9 +37,26 @@ where the one-liner works as-is. Requires [Neovim](https://github.com/neovim/neo
 
 ## What you get
 
-- A batteries-included Neovim config (Lua) tuned for long agent sessions
-- `lua install.lua` / `lua delete.lua` for install and uninstall
-- Optional **dev container** with Herdr mesh so agents in this repo can list and talk to agents on other machines
+Five features, each one keystroke away:
+
+| Feature | Key | What it does |
+|---|---|---|
+| Command index | `SPC h h` | Every mapping in this config, generated live from the actual keymaps — always accurate, grouped, searchable. This is the product tour. |
+| VS Code gestures | `<C-a>` · `SPC y` | Select all in one key (`<C-a>`); yank to the system clipboard (`SPC y`, works in visual mode too). |
+| Plan browser | `SPC P` | Browse every Deep Work Plan under the current repo or config — status, tasks, evidence — and jump into its files. |
+| Markdown viewer | `SPC m p` · `SPC m r` | Preview in the browser (`p`) or render in the buffer (`r`) — the same implementation `SPC x` uses to run files. |
+| One-line installer | — | The `curl` above. Preflight, clone, system setup, plugins — headless, consent-first. |
+
+`SPC` is the leader (`Space` by default). The index (`SPC h h`) lists all of
+this and everything else; `:DwpCommands` and `:DwpPlans` are the
+terminal-independent entry points for the same two panels.
+
+**Quickstart:** run the one-liner, launch `nvim`, press `Space h h`. The index
+is the tour — every row names its key and what it does.
+
+Also included: `lua install.lua` / `lua delete.lua` for install and uninstall,
+and an optional **dev container** with Herdr mesh so agents in this repo can
+list and talk to agents on other machines.
 
 ## Contributor environment (Docker)
 
