@@ -27,13 +27,21 @@ Neovim becomes the DeepWorkPlan editor.
 2. **A stable mapping contract** — the keybindings are pinned by Go contract
    tests (`tests/`), shared across the mu-vim flavor family, so muscle memory
    and agent expectations both survive updates.
-3. **Tuned-for-agents editing stack** — LSP, completion, linting, formatting,
+3. **A self-generated command index** — `SPC h h` renders every live
+   mapping from `nvim_get_keymap` with human descriptions, so it can never
+   drift: a mapping defined anywhere appears with zero registration.
+4. **DWP-aware navigation** — `SPC P` opens a plan browser over every
+   `.dwp/plans/` root (working directory and config directory): each plan
+   with its derived state (draft / approved / in-flight / completed), task
+   progress, and a drill-down into its README, tasks, ledger records, and
+   evidence (`lua/dwp/`).
+5. **Tuned-for-agents editing stack** — LSP, completion, linting, formatting,
    fuzzy finding, file management, and a theme system with curated palettes,
    composed through pckr.nvim with lazy startup.
-4. **Contributor dev container** — Docker environment with Neovim pinned,
+6. **Contributor dev container** — Docker environment with Neovim pinned,
    Herdr mesh connectivity, opt-in coding CLIs, and persistence volumes for
    CLI auth (`dev.sh`, `docker/local/`).
-5. **Automated releases** — merging to `main` publishes a versioned GitHub
+7. **Automated releases** — merging to `main` publishes a versioned GitHub
    Release driven by conventional-commit prefixes.
 
 ## Success criteria

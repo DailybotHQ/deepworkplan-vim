@@ -28,6 +28,8 @@ updates flow through pckr, not through this repo's git.
 
 ```
 lua/                 the editor config (see lua/README.md)
+lua/dwp/             plan browser: .dwp/plans discovery + state derivation
+                     (lazy — loaded on first SPC P, never at boot)
 utilities/           installer modules + snippet getters + spelling helpers
 docker/              contributor container (docker/local/) + image custom commands
 tests/               Go mapping-contract suite (parses Lua/VimScript; no Neovim)

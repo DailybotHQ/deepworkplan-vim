@@ -10,6 +10,11 @@ map("n", "<Leader>mj", ":BufferLineMovePrev<CR>", { desc = "Move this tab left" 
 -- NvimTree
 map("n", "<leader>n", ":NvimTreeToggle<CR>", { desc = "File tree" })
 
+-- DWP plan browser (lazy: the module loads on first use, never at boot)
+map("n", "<Leader>P", function()
+	require("dwp.view").open()
+end, { desc = "Browse Deep Work Plans" })
+
 -- Telescope
 map("n", "<Leader>t", ":Telescope<CR>", { desc = "Open Telescope (every finder)" })
 map("n", "<Leader>tf", ":Telescope fd<CR>", { desc = "Find files" })

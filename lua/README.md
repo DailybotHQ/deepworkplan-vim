@@ -12,6 +12,7 @@ composition); concerns live in the sub-modules below. Full picture:
 | `composition.lua` | wires every plugin's set-up (setUp, LSP, scheme) |
 | `autocommand.lua` | autocommands |
 | `mapping/` | **keybindings — a contract surface** (see below) |
+| `dwp/` | plan browser: `.dwp/plans` discovery (`plans`), defensive state derivation (`state`), two-level panel (`view`, `SPC P`) — lazy |
 | `setUp/` | per-plugin set-up: greeter, finder, statusline, file manager, autosave, buffer, diff, highlight, indentation |
 | `lsp/` | lspconfig/mason servers, formatters, linters, completion, capabilities |
 | `scheme/` | theme apply/picker + `palettes/` (declarative color tables) |

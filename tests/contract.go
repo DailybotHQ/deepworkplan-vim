@@ -58,6 +58,7 @@ var currentOnly = []item{
 	{"<leader>mj", "bufferline prev"},
 	{"<c-a>", "select all"},
 	{"<leader>y", "clipboard yank"},
+	{"<leader>P", "plan browser"},
 	{"<leader>gap", "git add patch"},
 	{"<leader>gpx", "git push -u"},
 	{"j", "half page down"},
