@@ -20,6 +20,15 @@ local function button(sc, txt, keybind)
 		type = "button",
 		val = txt,
 		on_press = function()
+			-- Enter runs the button's own Ex command directly. Feeding the
+			-- leader chord instead relies on pending-map resolution, which
+			-- can swallow the space on dashboard buffers in some terminals;
+			-- the chord stays available as its normal-mode mapping anyway.
+			if keybind then
+				local cmd = vim.api.nvim_replace_termcodes(keybind, true, false, true)
+				vim.api.nvim_feedkeys(cmd, "m", false)
+				return
+			end
 			local key = vim.api.nvim_replace_termcodes(sc_, true, false, true)
 			vim.api.nvim_feedkeys(key, "normal", false)
 		end,

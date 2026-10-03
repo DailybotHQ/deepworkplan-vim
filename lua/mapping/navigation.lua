@@ -14,6 +14,11 @@ map("n", "<leader>n", ":NvimTreeToggle<CR>", { desc = "File tree" })
 map("n", "<Leader>P", function()
 	require("dwp.view").open()
 end, { desc = "Browse Deep Work Plans" })
+-- Terminal-independent entry point: :DwpPlans always works, even where a
+-- leader chord misfires (exotic terminals, dashboard buffers).
+vim.api.nvim_create_user_command("DwpPlans", function()
+	require("dwp.view").open()
+end, { desc = "Browse Deep Work Plans" })
 
 -- Telescope
 map("n", "<Leader>t", ":Telescope<CR>", { desc = "Open Telescope (every finder)" })

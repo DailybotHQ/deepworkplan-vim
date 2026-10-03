@@ -18,6 +18,11 @@ map("n", "<leader>f", ":Format<CR>", { desc = "Format the file" })
 map("n", "<Leader>hh", function()
 	require("mapping.glossary").open()
 end, { desc = "Open the command glossary" })
+-- Terminal-independent entry point: :DwpCommands works even where a leader
+-- chord misfires (exotic terminals, pending-map edge cases).
+vim.api.nvim_create_user_command("DwpCommands", function()
+	require("mapping.glossary").open()
+end, { desc = "Open the command glossary" })
 map("n", "<Leader>th", function()
 	require("scheme.picker").open()
 end, { desc = "Pick a color theme" })

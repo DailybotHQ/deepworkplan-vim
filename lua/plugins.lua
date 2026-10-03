@@ -119,9 +119,13 @@ require("pckr").add({
 
 })
 
--- First launch: mason is missing until plugins are cloned.
--- Call pckr.sync() in Lua; :Pckr is not always registered yet on VimEnter.
-if not pcall(require, "mason") then
+-- First launch: no plugins cloned yet. Detected on the filesystem — the
+-- same check install.sh uses — because `require('mason')` cannot work
+-- here: plugins only reach the runtimepath once pckr loads them, so a
+-- require-based probe would be false on EVERY launch and re-sync (with
+-- its input-stealing display window) on every start.
+local pckr_opt = vim.fn.stdpath("data") .. "/site/pack/pckr/opt"
+if vim.fn.isdirectory(pckr_opt .. "/mason.nvim") == 0 then
   vim.api.nvim_create_autocmd("VimEnter", {
     once = true,
     callback = function()
