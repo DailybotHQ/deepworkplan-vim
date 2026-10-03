@@ -14,12 +14,18 @@ ARG INSTALL_OPENCODE_CLI=false
 ARG INSTALL_CLINE_CLI=false
 ARG INSTALL_GROK_CLI=false
 
-# One apt layer. lua/rg/fd for the installer. Do not apt-install neovim:
-# nvim is the 0.12.5 tarball in /home/dev/.local. Do not bake SSH host keys.
+# One apt layer. lua/rg/fd for the installer; node for the config's kit
+# (markdown-preview, bracey) and pnpm; fontconfig so the baked font is
+# indexed (fc-cache); black + python3-neovim mirror installer.lua's own
+# apt-get mapping (extras: black; core: python3-neovim); gcc/make compile
+# treesitter parsers during the baked plugin sync. Do not apt-install
+# neovim: nvim is the 0.12.5 tarball in /home/dev/.local. Do not bake SSH
+# host keys. Zenity is deliberately absent (GUI dep, headless image).
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y \
       less git curl gnupg ca-certificates openssh-client openssh-server \
-      sudo nano python3 lua5.4 ripgrep fd-find adduser && \
+      sudo nano python3 lua5.4 ripgrep fd-find adduser \
+      nodejs fontconfig black python3-neovim gcc make && \
     mkdir -p /var/run/sshd /etc/ssh/sshd_config.d && \
     rm -f /etc/ssh/ssh_host_* && \
     printf '%s\n' \
@@ -51,6 +57,11 @@ ENV PATH="/home/dev/.local/bin:/home/dev/.cursor/bin:/home/dev/.opencode/bin:/ho
 ENV EDITOR=nvim
 ENV VISUAL=nvim
 ENV GIT_EDITOR=nvim
+# pnpm lives under the user prefix, same path utilities/installation
+# (installer.lua pnpm_home) resolves to. pnpm 10+ refuses `pnpm add -g`
+# unless PNPM_HOME/bin is on PATH (installer.lua pnpm_env).
+ENV PNPM_HOME="/home/dev/.local/share/pnpm"
+ENV PATH="${PNPM_HOME}/bin:${PATH}"
 
 RUN printf '%s\n' \
     'for d in "$HOME/.local/bin" "$HOME/.cursor/bin" "$HOME/.opencode/bin" "$HOME/.grok/bin"; do' \
@@ -136,6 +147,50 @@ RUN set -eu; \
 USER root
 RUN ln -sfn /home/dev/.local/bin/nvim /usr/local/bin/nvim
 
-COPY dwpvim/entrypoint.sh /usr/local/bin/entrypoint.sh
+# --- Baked editor surface ----------------------------------------------------
+# The image ships a first-launch-ready editor: plugins, pnpm + biome, and the
+# Iosevka Nerd Font are installed at build time, so `bash dev.sh shell` lands
+# in a working nvim with no first-launch install. The config itself is NOT
+# baked — at start the entrypoint symlinks ~/.config/nvim to /workspace (this
+# repo IS the config). install.sh is the HOST installer and stays out of the
+# image; the steps below mirror utilities/installation/installer.lua so the
+# baked result matches what a host install produces.
+
+# Build-time config copy (bootstrap input; removed again below). Paths are
+# repo-relative: the compose build context is the repository root.
+COPY init.lua delete.lua CheatSheet.md /opt/dwpvim-config/
+COPY lua/ /opt/dwpvim-config/lua/
+COPY snippets/ /opt/dwpvim-config/snippets/
+COPY dicts/ /opt/dwpvim-config/dicts/
+COPY utilities/installation/ /opt/dwpvim-config/utilities/installation/
+
+USER dev
+# pnpm via the official installer, then biome — the same commands
+# installer.lua's ensure_pnpm / ensure_formatters run on a host (the
+# PNPM_HOME/bin PATH entry comes from the ENV above). The font goes to
+# ~/.local/share/fonts + fc-cache, where installer.lua install_font puts it.
+RUN set -eu; \
+    curl -fsSL https://get.pnpm.io/install.sh | env SHELL=/bin/bash sh -; \
+    pnpm add -g @biomejs/biome; \
+    mkdir -p "$HOME/.local/share/fonts"; \
+    install -m 0644 /opt/dwpvim-config/utilities/installation/iosevka_nerd_font.ttf \
+      "$HOME/.local/share/fonts/iosevka_nerd_font.ttf"; \
+    fc-cache -f "$HOME/.local/share/fonts" >/dev/null
+
+# One headless bootstrap in one cache-able layer: plugins.lua's VimEnter
+# autocmd syncs the pckr plugins and self-exits when the sync completes (the
+# headless branch reserved for the install.sh bootstrap). XDG_CONFIG_HOME is
+# set for this RUN only — at runtime the entrypoint links ~/.config/nvim to
+# /workspace, and a persistent override would shadow that link. Success is
+# the same check install.sh uses: mason.nvim present under pckr's opt pack.
+RUN set -eu; \
+    XDG_CONFIG_HOME=/opt/dwpvim-config timeout 900 nvim --headless; \
+    test -d "$HOME/.local/share/nvim/site/pack/pckr/opt/mason.nvim"
+
+USER root
+# The bootstrap config copy was scaffolding; the runtime config is /workspace.
+RUN rm -rf /opt/dwpvim-config
+
+COPY docker/local/dwpvim/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

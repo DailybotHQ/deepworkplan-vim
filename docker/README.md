@@ -7,8 +7,9 @@ no second clone). Operational detail lives in
 
 | Piece | Responsibility |
 |---|---|
-| `local/docker-compose.yaml` | the `dwpvim` service: Neovim 0.12.5 + Herdr, `/workspace` mount, loopback SSH publish, `.env` loading |
-| `local/dwpvim/Dockerfile` | image build; coding-CLI build args, **all default false** |
+| `local/docker-compose.yaml` | the `dwpvim` service: Neovim 0.12.5 + Herdr, `/workspace` mount, loopback SSH publish, `.env` loading. Build context is the repo root, slimmed by [`.dockerignore`](../.dockerignore) |
+| `local/dwpvim/Dockerfile` | image build; coding-CLI build args, **all default false**; bakes a first-launch-ready editor (headless pckr sync, pnpm + biome, Iosevka font — mirroring `utilities/installation/installer.lua`; the config itself stays `/workspace`-linked and `install.sh` never enters the image) |
+| [`../.dockerignore`](../.dockerignore) | keeps the repo-root build context lean; excludes `.git`, plans, docs, tests, and every `.env` |
 | `local/dwpvim/entrypoint.sh` | CLI-auth persistence: guarded symlink surgery onto `~/.claude*` (and peers) backed by volumes |
 | `local/.env.example`, `local/dwpvim/.env.example` | **placeholder-only** env templates; real copies are created 0600 by `dev.sh` |
 | `custom_commands.sh` | extra image commands |
