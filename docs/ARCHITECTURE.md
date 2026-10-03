@@ -45,12 +45,20 @@ delete.lua           uninstaller
 
 `docker/local/docker-compose.yaml` builds the `dwpvim` image: Neovim 0.12.5,
 Herdr, user `dev` (uid 1000), workdir `/workspace` mounted over
-`~/.config/nvim`. Host `~/.ssh` is mounted **read-only** at `.ssh_host` and
-Herdr SSH publishes on `127.0.0.1:22035`. Coding CLIs (Claude, Codex, Cursor,
-Grok, …) are **opt-in build args, default false**. `entrypoint.sh` performs
-symlink surgery so CLI auth (`~/.claude*`, etc.) survives container
-recreations via persistent volumes. `.env` files are created 0600 from
-committed `.env.example` placeholders by `dev.sh` (`ensure_env_from_examples`).
+`~/.config/nvim`. The build context is the repository root (kept lean by
+`.dockerignore`), and the image bakes a first-launch-ready editor: one
+headless `nvim --headless` sync installs the pckr plugins (the same
+self-exiting bootstrap install.sh uses), plus pnpm + biome (user prefix,
+`PNPM_HOME`), and the Iosevka Nerd Font — mirroring
+`utilities/installation/installer.lua`. The config itself is not baked: the
+entrypoint links `~/.config/nvim` to `/workspace`, and `install.sh` (the host
+installer) never enters the image. Host `~/.ssh` is mounted **read-only** at
+`.ssh_host` and Herdr SSH publishes on `127.0.0.1:22035`. Coding CLIs
+(Claude, Codex, Cursor, Grok, …) are **opt-in build args, default false**.
+`entrypoint.sh` performs symlink surgery so CLI auth (`~/.claude*`, etc.)
+survives container recreations via persistent volumes. `.env` files are
+created 0600 from committed `.env.example` placeholders by `dev.sh`
+(`ensure_env_from_examples`).
 
 ## Mesh
 
