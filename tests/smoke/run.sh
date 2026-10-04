@@ -28,6 +28,7 @@ run_smoke() {
 
 run_smoke model tests/smoke/dwp_model.lua
 run_smoke sidebar tests/smoke/dwp_sidebar.lua
+run_smoke reader tests/smoke/dwp_reader.lua
 
 if [ "$overall" -eq 0 ]; then
 	echo "DWP SMOKE SUITE: OK"

@@ -240,7 +240,14 @@ end
 
 function S.close()
 	if st.win and vim.api.nvim_win_is_valid(st.win) then
-		vim.api.nvim_win_close(st.win, true)
+		if #vim.api.nvim_list_wins() == 1 then
+			-- Closing would take the editor down with it (E444): swap in a
+			-- scratch buffer instead and keep the window.
+			local scratch = vim.api.nvim_create_buf(true, false)
+			vim.api.nvim_win_set_buf(st.win, scratch)
+		else
+			vim.api.nvim_win_close(st.win, true)
+		end
 	end
 	if st.buf and vim.api.nvim_buf_is_valid(st.buf) then
 		pcall(vim.api.nvim_buf_delete, st.buf, { force = true })
@@ -327,11 +334,10 @@ local function current_row()
 	return st.rows[line], line
 end
 
-local function open_plan_readme(record)
-	-- Interim target until the reader lands (Task 4 swaps this call for
-	-- dwp.reader.open(record)); chosen over a guarded require because a
-	-- dead branch in the shipped tree is worse than a one-task interim.
-	vim.cmd("edit " .. vim.fn.fnameescape(record.path .. "/README.md"))
+local function open_plan_reader(record)
+	-- The comprehension surface (Task 4): Enter on a plan explains it in
+	-- plain language instead of dropping the reader into raw markdown.
+	require("dwp.reader").open(record)
 end
 
 local function activate()
@@ -340,7 +346,7 @@ local function activate()
 		return
 	end
 	if row.kind == "plan" then
-		open_plan_readme(row.plan)
+		open_plan_reader(row.plan)
 	elseif row.kind == "task" then
 		vim.cmd("edit " .. vim.fn.fnameescape(row.plan.path .. "/README.md"))
 		pcall(vim.fn.search, "\\V" .. vim.fn.escape(row.title or "", "\\"), "w")
@@ -363,7 +369,7 @@ end
 local function on_double_click()
 	local row = current_row()
 	if row and row.kind == "plan" then
-		open_plan_readme(row.plan)
+		open_plan_reader(row.plan)
 	end
 end
 
