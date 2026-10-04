@@ -104,14 +104,18 @@ default.brand = {
 -- sidebar (the [e] button; alpha text rows carry no on_press, so each
 -- row is a button — the capability that decided the wiring). Defensive
 -- by contract: any failure building the section omits it; the dashboard
--- always boots.
-default.plans_section = { type = "group", val = {}, opts = { spacing = 1 } }
-do
+-- always boots. Built when the dashboard first DRAWS, not at require
+-- time: the plans scan costs tens of ms and must not tax boots that
+-- never open the dashboard (startup ceiling; UX_AUDIT §10, D-5).
+default.plans_section = { type = "group", val = function()
+	if default._plans_built then
+		return default._plans_built
+	end
+	local el = {}
 	local built, section = pcall(require, "dwp.greeter_plans")
 	if built and type(section) == "table" then
 		local ok, data = pcall(section.build)
 		if ok and type(data) == "table" then
-			local el = default.plans_section.val
 			if #data.plan_lines == 0 then
 				el[#el + 1] = {
 					type = "text",
@@ -158,7 +162,9 @@ do
 			end
 		end
 	end
-end
+	default._plans_built = el
+	return el
+end, opts = { spacing = 1 } }
 
 alpha.setup({
 	layout = {
@@ -173,4 +179,14 @@ alpha.setup({
 	},
 	opts = {},
 })
-alpha.start(true)
+-- The dashboard draws on VimEnter, not at require time: alpha.start(true)
+-- is designed for the VimEnter moment (it checks whether a file was
+-- opened), and starting at require made every boot — even +qa! boots
+-- that never show a dashboard — pay the alpha layout plus the plans
+-- scan (startup ceiling; UX_AUDIT §10, D-5).
+vim.api.nvim_create_autocmd("VimEnter", {
+	once = true,
+	callback = function()
+		alpha.start(true)
+	end,
+})

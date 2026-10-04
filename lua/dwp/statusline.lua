@@ -33,12 +33,29 @@ local st = {
 
 -- Display-cell-aware cut (CJK titles count two cells per character);
 -- a character-count cut overflowed the segment (render harness, F-12).
+-- Walk whole UTF-8 sequences, never single bytes: strdisplaywidth of a
+-- lone invalid byte is 4, so a byte-wise walk under-fills CJK caps (D-4,
+-- consistency harness).
+local function chars(text)
+	local i = 1
+	return function()
+		if i > #text then
+			return nil
+		end
+		local b = text:byte(i)
+		local len = b < 0x80 and 1 or b < 0xE0 and 2 or b < 0xF0 and 3 or 4
+		local ch = text:sub(i, i + len - 1)
+		i = i + len
+		return ch
+	end
+end
+
 local function truncate(text, cap)
 	if vim.fn.strdisplaywidth(text) <= cap then
 		return text
 	end
 	local out, used = "", 0
-	for _, ch in ipairs(vim.split(text, "")) do
+	for ch in chars(text) do
 		local cw = vim.fn.strdisplaywidth(ch)
 		if used + cw > cap - 1 then
 			break
