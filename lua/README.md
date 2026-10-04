@@ -12,7 +12,7 @@ composition); concerns live in the sub-modules below. Full picture:
 | `composition.lua` | wires every plugin's set-up (setUp, LSP, scheme) |
 | `autocommand.lua` | autocommands |
 | `mapping/` | **keybindings — a contract surface** (see below) |
-| `dwp/` | plan browser: `.dwp/plans` discovery (`plans`), defensive state derivation (`state`), two-level panel (`view`, `SPC P`) — lazy |
+| `dwp/` | plan browser: `.dwp/plans` discovery (`plans`), defensive state derivation — five machine states (`state.derive`) plus the rich plain-language layer (`state.derive_rich`: label, icon, progress, current task, blocked signal, friendly title) — and the two-level panel (`view`, `SPC P`); smoke: `bash tests/smoke/run.sh` — lazy |
 | `mapping/markdown.lua` | markdown viewer: `SPC m p` browser preview, `SPC m r` in-buffer render; `SPC x` markdown branch shares it |
 | `setUp/` | per-plugin set-up: greeter, finder, statusline, file manager, autosave, buffer, diff, highlight, indentation, markdown render |
 | `lsp/` | lspconfig/mason servers, formatters, linters, completion, capabilities |

@@ -25,26 +25,6 @@ local function scandir(path)
 	return names
 end
 
--- Task progress from the README's own checkboxes — the human surface, so
--- it is advisory (the journal-derived state stays authoritative).
-local function task_counts(readme_path)
-	local handle = io.open(readme_path, "r")
-	if not handle then
-		return nil, nil
-	end
-	local total, done = 0, 0
-	for line in handle:lines() do
-		if line:match("^%s*%- %[x%]") then
-			total = total + 1
-			done = done + 1
-		elseif line:match("^%s*%- %[ %]") then
-			total = total + 1
-		end
-	end
-	handle:close()
-	return done, total
-end
-
 -- Which well-known artifacts exist. The browser's second level lists
 -- exactly these plus the numbered task files.
 M.ARTIFACTS = {
@@ -79,6 +59,10 @@ end
 
 -- Scan one or more plan roots. Returns plan records sorted newest first:
 --   { name, path, state, tasks_done, tasks_total, artifacts, mtime }
+-- plus the rich fields derived once per plan (label, icon, highlight,
+-- percent, blocked, blocker_reason, current_task, title) so every
+-- surface renders without re-deriving per row. `state` and the counts
+-- keep their v1 names and semantics for existing consumers.
 function M.scan(roots)
 	roots = roots or M.default_roots()
 	local seen, out = {}, {}
@@ -88,15 +72,23 @@ function M.scan(roots)
 			local stat = vim.uv.fs_stat(path)
 			if name:match("^PLAN_") and stat and stat.type == "directory" and not seen[path] then
 				seen[path] = true
-				local done, total = task_counts(path .. "/README.md")
+				local rich = state.derive_rich(path)
 				out[#out + 1] = {
 					name = name,
 					path = path,
-					state = state.derive(path),
-					tasks_done = done,
-					tasks_total = total,
+					state = rich.machine,
+					tasks_done = rich.tasks_done,
+					tasks_total = rich.tasks_total,
 					artifacts = artifact_set(path),
 					mtime = os.date("%Y-%m-%d", stat.mtime.sec),
+					label = rich.label,
+					icon = rich.icon,
+					highlight = rich.highlight,
+					percent = rich.percent,
+					blocked = rich.blocked,
+					blocker_reason = rich.blocker_reason,
+					current_task = rich.current_task,
+					title = rich.title,
 				}
 			end
 		end

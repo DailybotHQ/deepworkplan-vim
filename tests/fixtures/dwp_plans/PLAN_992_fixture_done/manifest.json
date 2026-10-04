@@ -1,0 +1,8 @@
+{
+  "contract": {
+    "id": "fixture0000000000000000000000000000000000000000000000000000000002",
+    "path": "contract.json"
+  },
+  "plan": "PLAN_992_fixture_done",
+  "schema": "https://deepworkplan.com/schema/plan-manifest/v6.json"
+}
