@@ -1,7 +1,6 @@
 {
-  "schema": "https://deepworkplan.com/schema/plan-contract/v6.json",
-  "spec_version": "6.0.0",
-  "plan": "PLAN_992_fixture_done",
-  "revision": 1,
-  "title": "Fixture done plan"
+  "title": "Fixture done plan",
+  "outcome": {
+    "statement": "Prove the contract-statement goal fallback end to end."
+  }
 }

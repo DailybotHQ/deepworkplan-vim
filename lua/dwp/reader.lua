@@ -82,19 +82,16 @@ local function goal_sentence(record)
 			return table.concat(lines, " ")
 		end
 	end
-	local ok, decoded = pcall(vim.json.decode, function()
-		local h = io.open(record.path .. "/contract.json", "r")
-		if not h then
-			return ""
-		end
-		local c = h:read("*a")
+	local h = io.open(record.path .. "/contract.json", "r")
+	if h then
+		local content = h:read("*a")
 		h:close()
-		return c
-	end)
-	if ok and type(decoded) == "table" and type(decoded.outcome) == "table" then
-		local statement = decoded.outcome.statement
-		if type(statement) == "string" and statement ~= "" then
-			return truncate(statement, 400)
+		local ok, decoded = pcall(vim.json.decode, content)
+		if ok and type(decoded) == "table" and type(decoded.outcome) == "table" then
+			local statement = decoded.outcome.statement
+			if type(statement) == "string" and statement ~= "" then
+				return truncate(statement, 400)
+			end
 		end
 	end
 	return "No goal recorded in this plan."

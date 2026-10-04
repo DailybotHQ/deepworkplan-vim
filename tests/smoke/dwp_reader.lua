@@ -91,19 +91,29 @@ ok(text:find("Not started", 1, true) ~= nil, "draft status word renders")
 ok(text:find("README.md", 1, true) ~= nil, "draft still offers its README")
 ok(not text:find("journal%.ndjson", 1), "draft offers no journal (it has none)")
 
--- 5. The corrupt fixture renders as Unknown without erroring.
+-- 5. The contract fallback: a plan whose README has no Goal heading
+--    renders the contract's outcome statement as the goal sentence
+--    (the branch the final review found dead and fixed — asserted live
+--    now, not by trust).
+local done_rec = record_for("PLAN_992_fixture_done")
+reader.open(done_rec)
+text = reader_text()
+ok(text:find("Prove the contract%-statement goal fallback", 1) ~= nil, "goal falls back to the contract outcome statement")
+ok(text:find("No goal recorded", 1, true) == nil, "the fallback fired, not the not-stated line")
+
+-- 6. The corrupt fixture renders as Unknown without erroring.
 local corrupt = record_for("PLAN_994_fixture_corrupt")
 reader.open(corrupt)
 text = reader_text()
 ok(text:find("Unknown", 1, true) ~= nil, "corrupt renders Unknown")
 ok(text:find("Fixture corrupt plan", 1, true) ~= nil, "corrupt title still renders")
 
--- 6. Close: bdelete leaves no reader buffer behind.
+-- 7. Close: bdelete leaves no reader buffer behind.
 reader.open(running)
 vim.cmd("bdelete")
 ok(reader_buf() == -1, "bdelete removes the reader buffer (bufhidden=wipe)")
 
--- 7. Sidebar Enter is wired to the reader (the Task-3 interim is gone).
+-- 8. Sidebar Enter is wired to the reader (the Task-3 interim is gone).
 local sidebar = require("dwp.sidebar")
 sidebar.open({ FIXTURES })
 -- Put the cursor on the running plan's row, then press Enter.
