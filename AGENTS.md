@@ -85,7 +85,7 @@ Install Herdr on the host: https://herdr.dev/docs/install/ — show the command;
 | Syntax-check launcher | `bash -n dev.sh` | full |
 | Syntax-check entrypoint | `bash -n docker/local/dwpvim/entrypoint.sh` | full |
 | Parse-check all Lua | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | full (scoped: `luac5.4 -p <file>`) |
-| dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter over fixtures |
+| dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter/render over fixtures (render proves screen-grid output) |
 | Mapping-contract tests | `bash tests/run.sh` | full — needs Podman or Docker |
 | Mapping tests, Go host | `cd tests && go test -count=1 -parallel 8 .` | full — needs Go (not on this host; unverified here) |
 

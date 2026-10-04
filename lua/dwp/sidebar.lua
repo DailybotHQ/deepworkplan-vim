@@ -14,8 +14,10 @@ local plans = require("dwp.plans")
 
 local S = {}
 
-local WIDTH = 46
-local TITLE_CAP = 28 -- frozen in DESIGN_SPEC § Information architecture
+local MAX_WIDTH = 48 -- full row = cap + ~19 cells; 46 clipped the counts at
+-- the default width (render harness, UX_AUDIT F-03)
+local MIN_WIDTH = 34
+local TITLE_CAP = 28 -- frozen in DESIGN_SPEC § Information architecture (the cap at full width)
 local BAR_CELLS = 8
 local NS = vim.api.nvim_create_namespace("dwp-sidebar")
 
@@ -42,11 +44,43 @@ local function display_width(text)
 	return vim.fn.strdisplaywidth(text)
 end
 
+-- Cut by display cells, not characters: CJK counts two cells per
+-- character, and a character-count cut let a 60-cell title overflow the
+-- window (render harness, UX_AUDIT F-12).
 local function truncate(text, cap)
 	if display_width(text) <= cap then
 		return text
 	end
-	return vim.fn.strcharpart(text, 0, math.max(1, cap - 1)) .. "…"
+	local out, used = "", 0
+	for _, ch in ipairs(vim.split(text, "")) do
+		local cw = display_width(ch)
+		if used + cw > cap - 1 then
+			break
+		end
+		out = out .. ch
+		used = used + cw
+	end
+	return out .. "…"
+end
+
+-- Sidebar width: the full 48 columns on comfortable terminals, and a
+-- proportional share (never below the readable floor) once the terminal
+-- is too narrow to spare it — at the old fixed width a 60-column
+-- terminal gave the sidebar 77% of the screen (UX_AUDIT F-03).
+local function layout_width()
+	local cols = vim.o.columns
+	local w = MAX_WIDTH
+	if cols < MAX_WIDTH * 2 - 14 then
+		w = math.max(MIN_WIDTH, math.floor(cols * 0.55))
+	end
+	return math.min(w, math.max(20, cols - 2))
+end
+
+-- Title cap follows the actual window so a plan row always fits on one
+-- screen line: counts may never clip (F-03), so the cap gives up cells
+-- before anything else does. Cap rule recorded in UX_AUDIT F-03/F-07.
+local function title_cap(win_width)
+	return math.min(TITLE_CAP, math.max(10, win_width - 20))
 end
 
 local function progress_bar(done, total)
@@ -133,15 +167,15 @@ local function file_rows(record)
 	return rows
 end
 
-local function plan_row(record)
-	local title = truncate(record.title or record.name, TITLE_CAP)
+local function plan_row(record, cap)
+	local title = truncate(record.title or record.name, cap)
 	local counts = string.format("%d/%d", record.tasks_done or 0, record.tasks_total or 0)
 	local marker = st.expanded[record.name] and "▾" or "▸"
 	return {
 		text = string.format(
 			"%s %s  %s %s",
 			record.icon or "·",
-			title .. string.rep(" ", math.max(1, TITLE_CAP - display_width(title) + 2)),
+			title .. string.rep(" ", math.max(1, cap - display_width(title) + 2)),
 			marker .. progress_bar(record.tasks_done or 0, record.tasks_total or 0),
 			counts
 		),
@@ -151,7 +185,7 @@ local function plan_row(record)
 	}
 end
 
-local function build_rows(records)
+local function build_rows(records, cap)
 	local by_section = {}
 	for _, record in ipairs(records) do
 		local label = record.label or "Unknown"
@@ -180,7 +214,7 @@ local function build_rows(records)
 			}
 			if not collapsed then
 				for _, record in ipairs(group) do
-					rows[#rows + 1] = plan_row(record)
+					rows[#rows + 1] = plan_row(record, cap)
 					if st.expanded[record.name] then
 						local sub = task_rows(record)
 						for _, row in ipairs(sub) do
@@ -240,12 +274,14 @@ function S.is_open()
 end
 
 --- Rescan the roots and redraw. Safe to call when closed (no-op).
+--- Rows re-fit the current window width, so a resize followed by a
+--- refresh never leaves stale-width (clipped or over-padded) rows.
 function S.refresh()
 	if not S.is_open() then
 		return
 	end
 	local records = plans.scan(st.roots)
-	st.rows = build_rows(records)
+	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
 	render()
 end
 
@@ -295,7 +331,7 @@ function S.open(roots)
 	vim.bo[st.buf].filetype = "dwp-plans"
 	vim.bo[st.buf].swapfile = false
 
-	vim.cmd("topleft vertical " .. WIDTH .. "split")
+	vim.cmd("topleft vertical " .. layout_width() .. "split")
 	st.win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(st.win, st.buf)
 	vim.wo[st.win].wrap = false
@@ -306,14 +342,16 @@ function S.open(roots)
 	vim.wo[st.win].fillchars = "eob: "
 
 	local records = plans.scan(st.roots)
-	st.rows = build_rows(records)
+	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
 	render()
 	set_keys()
 
 	-- Plans appear as agent sessions work: refresh on focus, debounced
 	-- cancel-and-rearm (the pending timer is stopped, not just dropped —
 	-- the statusline module's pattern) so a burst of events costs one scan.
-	vim.api.nvim_create_autocmd({ "FocusGained" }, {
+	-- A terminal resize re-fits the rows the same way (F-03: the cap
+	-- follows the actual window, so stale-width rows are a defect).
+	vim.api.nvim_create_autocmd({ "FocusGained", "VimResized" }, {
 		group = vim.api.nvim_create_augroup("DwpSidebar", { clear = true }),
 		callback = function()
 			if not S.is_open() then

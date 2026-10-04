@@ -39,11 +39,70 @@ local GROUP_PURPOSE = {
 	Evidence = "the evidence files",
 }
 
+-- Display-cell-aware cut (CJK titles count two cells per character);
+-- a character-count cut overflowed the window (render harness, F-12).
 local function truncate(text, cap)
 	if vim.fn.strdisplaywidth(text) <= cap then
 		return text
 	end
-	return vim.fn.strcharpart(text, 0, math.max(1, cap - 1)) .. "…"
+	local out, used = "", 0
+	for _, ch in ipairs(vim.split(text, "")) do
+		local cw = vim.fn.strdisplaywidth(ch)
+		if used + cw > cap - 1 then
+			break
+		end
+		out = out .. ch
+		used = used + cw
+	end
+	return out .. "…"
+end
+
+-- Wrap prose to `limit` display cells (width-aware, so double-width
+-- CJK wraps honestly): words stay whole when they fit, a word wider
+-- than a line hard-splits, continuation lines take `indent`. Prose
+-- wraps instead of clipping — a clipped sentence hides the plan's own
+-- words (UX_AUDIT F-06). Width is still capped at the frozen 90.
+local function wrap_text(text, limit, indent)
+	indent = indent or ""
+	local out, line, room = {}, nil, limit
+	local function push(word)
+		local w = vim.fn.strdisplaywidth(word)
+		if line and room >= w + 1 then
+			line = line .. " " .. word
+			room = room - w - 1
+			return
+		end
+		if line then
+			out[#out + 1] = line
+		end
+		-- Hard-split any single word wider than a full line.
+		while w > limit do
+			local part, used = "", 0
+			for _, ch in ipairs(vim.split(word, "")) do
+				local cw = vim.fn.strdisplaywidth(ch)
+				if used + cw > limit then
+					break
+				end
+				part = part .. ch
+				used = used + cw
+			end
+			out[#out + 1] = part
+			word = word:sub(vim.fn.strcharlen(part) + 1)
+			w = vim.fn.strdisplaywidth(word)
+		end
+		line = word
+		room = limit - vim.fn.strdisplaywidth(indent) - w
+	end
+	for _, word in ipairs(vim.split(text, "%s+", { trimempty = true })) do
+		push(word)
+	end
+	if line then
+		out[#out + 1] = line
+	end
+	for i = 2, #out do
+		out[i] = indent .. out[i]
+	end
+	return out
 end
 
 local function progress_bar(done, total)
@@ -185,7 +244,8 @@ local function jump_rows(record)
 	return rows
 end
 
-local function build_rows(record)
+local function build_rows(record, width)
+	width = math.max(20, math.min(90, width or 90))
 	local rows = {
 		{ text = truncate(record.title or record.name, 60), hl = "Title", kind = "header" },
 		{
@@ -204,10 +264,12 @@ local function build_rows(record)
 		},
 		{ text = "", kind = "blank" },
 		{ text = "What this plan is about", hl = "Underlined", kind = "label" },
-		{ text = truncate(goal_sentence(record), 90), kind = "goal" },
-		{ text = "", kind = "blank" },
-		{ text = "Tasks", hl = "Underlined", kind = "label" },
 	}
+	for _, line in ipairs(wrap_text(goal_sentence(record), width, "  ")) do
+		rows[#rows + 1] = { text = line, kind = "goal" }
+	end
+	rows[#rows + 1] = { text = "", kind = "blank" }
+	rows[#rows + 1] = { text = "Tasks", hl = "Underlined", kind = "label" }
 	local tasks = task_rows(record)
 	if #tasks == 0 then
 		rows[#rows + 1] = { text = "  No task list recorded yet.", hl = "Comment", kind = "info" }
@@ -217,11 +279,13 @@ local function build_rows(record)
 	end
 	if record.blocked then
 		rows[#rows + 1] = { text = "", kind = "blank" }
-		rows[#rows + 1] = {
-			text = "⚠ Needs attention — " .. (record.blocker_reason or "a human decision is waiting"),
-			hl = "WarningMsg",
-			kind = "info",
-		}
+		local first = true
+		for _, line in
+			ipairs(wrap_text("⚠ Needs attention — " .. (record.blocker_reason or "a human decision is waiting"), width, "  "))
+		do
+			rows[#rows + 1] = { text = line, hl = first and "WarningMsg" or nil, kind = "info" }
+			first = false
+		end
 	end
 	rows[#rows + 1] = { text = "", kind = "blank" }
 	rows[#rows + 1] = { text = "Open", hl = "Underlined", kind = "label" }
@@ -244,8 +308,8 @@ local function build_rows(record)
 	return rows
 end
 
-local function render(record)
-	st.rows = build_rows(record)
+local function render(record, width)
+	st.rows = build_rows(record, width)
 	local lines = {}
 	for _, row in ipairs(st.rows) do
 		lines[#lines + 1] = row.text
@@ -321,9 +385,11 @@ function R.open(record)
 	vim.bo[st.buf].buflisted = false
 	vim.bo[st.buf].filetype = "dwp-plan"
 	vim.bo[st.buf].swapfile = false
-	render(record)
 
+	-- Prose wraps to the window the reader will actually occupy, so the
+	-- goal and the blocked reason render whole (wrap, not clip: F-06).
 	local win = target_window()
+	render(record, vim.api.nvim_win_get_width(win) - 2)
 	vim.api.nvim_set_current_win(win)
 	vim.api.nvim_win_set_buf(win, st.buf)
 	vim.wo[win].wrap = true

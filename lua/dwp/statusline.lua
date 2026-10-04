@@ -31,11 +31,22 @@ local st = {
 	events = nil, -- augroup id, so setup is idempotent
 }
 
+-- Display-cell-aware cut (CJK titles count two cells per character);
+-- a character-count cut overflowed the segment (render harness, F-12).
 local function truncate(text, cap)
 	if vim.fn.strdisplaywidth(text) <= cap then
 		return text
 	end
-	return vim.fn.strcharpart(text, 0, math.max(1, cap - 1)) .. "…"
+	local out, used = "", 0
+	for _, ch in ipairs(vim.split(text, "")) do
+		local cw = vim.fn.strdisplaywidth(ch)
+		if used + cw > cap - 1 then
+			break
+		end
+		out = out .. ch
+		used = used + cw
+	end
+	return out .. "…"
 end
 
 local function progress_bar(done, total)

@@ -24,10 +24,15 @@ when every section passes.
 | `dwp_reader.lua` (34) | The reader: full render for a v6-shaped running plan (title, goal sentence, badge word, bar + counts + percent, checklist with the current task phrasing, jump lines resolving to real files, resume one-liner), blocked attention line with reason, graceful draft and corrupt renders, nomodifiable, clean close, and the sidebar Enter wiring. |
 | `dwp_statusline.lua` (29) | The segment: click-expression shape, icon/title/bar/counts, active-plan choice (in-flight first), the empty case, the cache proof (repeated renders add **zero** scans, counter-asserted), event-driven refresh after fixtures change on disk, and the click handler toggling the sidebar. |
 | `dwp_greeter.lua` (15) | The overview builder: header phrasing, top-3 bound, per-row icon/title/8-cell bar/counts/status word, 26-char title truncation, hint line, empty-state phrasing. No alpha session is loaded. |
+| `dwp_render.lua` (71) | What the user **sees**, proven on the screen grid (`vim.fn.screenstring`), not buffer text: sidebar at 60/80/120 columns (responsive width, counts never clipped, bar block display-column aligned, CJK and unheaded titles truncate with `…`, last row lands where the row count says — no wrap/bleed), empty state at 60, 11-plan stress, reader goal and blocked prose wrapping to the real window width at 80 and 60, greeter bar-column alignment, statusline left-`<` degradation at 60/30/12/8, and resize re-fit (cap follows the window, `VimResized` wired). |
 
 Fixtures live in `tests/fixtures/dwp_plans/` (five synthetic plans:
-draft, running, done, blocked, corrupt). They are harness-authored and
-never written by editor UI code at runtime.
+draft, running, done, blocked, corrupt) plus `tests/fixtures/dwp_render/`
+(two hostile-content plans: a 60-cell CJK title with a long goal, and an
+unheaded README exercising the humanized folder-name title). They are
+harness-authored and never written by editor UI code at runtime; the
+many-plans and empty-state cases synthesize temporary roots under
+`vim.fn.tempname()` inside the smoke.
 
 ## What this suite does not cover (manual checks)
 
