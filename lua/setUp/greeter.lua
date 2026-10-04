@@ -99,6 +99,60 @@ default.brand = {
 	},
 }
 
+-- Plans overview (Phase 2): the top plans at a glance above the buttons,
+-- one gesture from the reader (Enter on a plan row) and one from the
+-- sidebar (the [e] button; alpha text rows carry no on_press, so each
+-- row is a button — the capability that decided the wiring). Defensive
+-- by contract: any failure building the section omits it; the dashboard
+-- always boots.
+default.plans_section = { type = "group", val = {}, opts = { spacing = 1 } }
+do
+	local built, section = pcall(require, "dwp.greeter_plans")
+	if built and type(section) == "table" then
+		local ok, data = pcall(section.build)
+		if ok and type(data) == "table" then
+			local el = default.plans_section.val
+			if #data.plan_lines == 0 then
+				el[#el + 1] = {
+					type = "text",
+					val = data.empty_line,
+					opts = { position = "center", hl = "Comment" },
+				}
+			else
+				el[#el + 1] = {
+					type = "text",
+					val = data.header,
+					opts = { position = "center", hl = "AlphaHeader" },
+				}
+				for _, row in ipairs(data.plan_lines) do
+					el[#el + 1] = {
+						type = "button",
+						val = row.text,
+						-- Reader and sidebar load on first use only — the
+						-- dashboard build stays free of their requires.
+						on_press = function()
+							require("dwp.reader").open(row.record)
+						end,
+						opts = {
+							position = "center",
+							hl = "AlphaButtons",
+							cursor = 3,
+							width = 60,
+							align_shortcut = "right",
+						},
+					}
+				end
+				el[#el + 1] = {
+					type = "text",
+					val = data.hint,
+					opts = { position = "center", hl = "Comment" },
+				}
+				el[#el + 1] = button("e", "  Open plans sidebar  ", ":lua require('dwp.sidebar').toggle()<CR>")
+			end
+		end
+	end
+end
+
 alpha.setup({
 	layout = {
 		{ type = "padding", val = 2 },
@@ -106,6 +160,8 @@ alpha.setup({
 		{ type = "padding", val = 1 },
 		default.brand,
 		{ type = "padding", val = 2 },
+		default.plans_section,
+		{ type = "padding", val = 1 },
 		default.buttons,
 	},
 	opts = {},
