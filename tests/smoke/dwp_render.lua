@@ -261,6 +261,80 @@ do
 	end
 	ok(narrow_ok, "reader at 60: every goal row fits the narrower window (wrap, not clip)")
 
+	-- Hard-split integrity at a width that forces it: the fixture goal
+	-- carries an unspaced CJK sentence and a long URL. Wrap must keep
+	-- every byte (byte-resume, not char-resume — a char-count sub lands
+	-- mid-codepoint), cap continuations at width minus indent, and
+	-- spend exactly the goal's own cells plus the indent per line.
+	vim.o.columns = 44
+	vim.cmd("redraw")
+	reader.open(cjk_rec)
+	vim.cmd("redraw")
+	rows = reader.rows()
+	goal_rows = {}
+	for _, row in ipairs(rows) do
+		if row.kind == "goal" then
+			goal_rows[#goal_rows + 1] = row.text
+		end
+	end
+	local hard_split = false
+	for _, line in ipairs(goal_rows) do
+		if vim.fn.strdisplaywidth(line) == 42 and line ~= goal_rows[1] then
+			hard_split = true
+		end
+	end
+	ok(hard_split, "reader at 44: narrow width actually exercises the hard-split path")
+	local cap_ok = true
+	local bad_start = 0
+	local total_cells = 0
+	for _, line in ipairs(goal_rows) do
+		local w = vim.fn.strdisplaywidth(line)
+		total_cells = total_cells + w
+		if w > 42 then
+			cap_ok = false
+		end
+		local b = line:byte(1)
+		if b and b >= 128 and b <= 191 then
+			bad_start = bad_start + 1
+		end
+	end
+	ok(cap_ok, "reader at 44: hard-split rows fit cap (width minus indent, not width)")
+	ok(bad_start == 0, "reader at 44: no row begins mid-codepoint (byte-resume, got " .. bad_start .. ")")
+	local goal_text = ""
+	local readme_lines = vim.fn.readfile(HOSTILE .. "/PLAN_995_fixture_cjk/README.md")
+	local in_goal = false
+	for _, l in ipairs(readme_lines) do
+		if l:find("^## ") then
+			in_goal = l:find("Goal", 1, true) ~= nil
+		elseif in_goal and l ~= "" then
+			goal_text = goal_text == "" and l or (goal_text .. " " .. l)
+		end
+	end
+	local function squash(s)
+		return (s:gsub("%s", ""))
+	end
+	local wrapped_squashed = squash(table.concat(goal_rows, ""))
+	ok(wrapped_squashed == squash(goal_text), "reader at 44: wrap keeps every goal byte (round-trip equal)")
+	-- Exact bounds: every break adds the 2-cell indent; a soft break also
+	-- consumes the 1-cell space it replaces, a hard-split break consumes
+	-- nothing. So the budget sits in [goal + (n-1), goal + 2*(n-1)].
+	-- Phantom cells (mid-codepoint resume rendering lone bytes at width
+	-- 4) blow the ceiling; dropped bytes sink under the floor.
+	local goal_cells = vim.fn.strdisplaywidth(goal_text)
+	local breaks = #goal_rows - 1
+	local floor_cells = goal_cells + breaks
+	local ceil_cells = goal_cells + 2 * breaks
+	ok(
+		total_cells >= floor_cells and total_cells <= ceil_cells,
+		"reader at 44: cell budget within exact bounds (got "
+			.. total_cells
+			.. ", bounds ["
+			.. floor_cells
+			.. ", "
+			.. ceil_cells
+			.. "])"
+	)
+
 	local shared_records = plans.scan({ SHARED })
 	local blocked_rec = nil
 	for _, r in ipairs(shared_records) do

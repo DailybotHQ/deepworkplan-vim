@@ -35,13 +35,18 @@ lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
                      greeter_plans (dashboard top-3 overview)
                      (sidebar/reader/statusline lazy — mapping and click
                      callbacks require them on first use; plans/state/
-                     greeter_plans load once at dashboard setup for the
-                     top-3 overview, a bounded scan within the measured
-                     startup budget — see PLAN_002's probe: +6 ms plain,
-                     +3 ms VimEnter)
+                     greeter_plans load when the dashboard first DRAWS,
+                     not at boot — alpha starts on VimEnter and the
+                     overview builds on first draw, so non-dashboard
+                     boots never pay the scan: PLAN_003's probe reads
+                     −12.7 ms vs the pre-Phase-2 baseline, i.e. faster
+                     than before the UI existed)
 utilities/           installer modules + snippet getters + spelling helpers
 docker/              contributor container (docker/local/) + image custom commands
 tests/               Go mapping-contract suite (parses Lua/VimScript; no Neovim)
+                     + smoke suite (tests/smoke/: host-runnable headless
+                     nvim over fixtures — model, sidebar, reader,
+                     statusline, greeter, render/consistency proofs)
 snippets/ dicts/     data: snippet sources, spell dictionaries
 dev.sh               launcher: compose up/down/shell/build/rebuild + herdr agents/ask
 install.sh           curl-able entry: preflight, consent, clone/update, then lua
@@ -83,6 +88,13 @@ asserts a three-flavor contract: `shared` mappings must exist in every flavor;
 `current` adds Lua-only expectations; `vim-family` covers mini/VimScript. It
 never starts Neovim — fast, deterministic, container-friendly. The root
 `compose.yml` runs multi-distro installer smokes.
+
+`tests/smoke/` is the complementary **runtime** suite: headless Neovim
+(`bash tests/smoke/run.sh`, bash + nvim only, no container) over
+committed synthetic plans — the model, each surface, what actually
+lands on the **screen grid** (`dwp_render.lua`, `vim.fn.screenstring`),
+and cross-surface consistency (`dwp_consistency.lua`: one record must
+tell the same story in sidebar, reader, statusline and greeter).
 
 ## Release flow
 

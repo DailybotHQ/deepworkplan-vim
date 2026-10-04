@@ -81,6 +81,7 @@ end
 -- words (UX_AUDIT F-06). Width is still capped at the frozen 90.
 local function wrap_text(text, limit, indent)
 	indent = indent or ""
+	local indent_w = vim.fn.strdisplaywidth(indent)
 	local out, line, room = {}, nil, limit
 	local function push(word)
 		local w = vim.fn.strdisplaywidth(word)
@@ -91,24 +92,31 @@ local function wrap_text(text, limit, indent)
 		end
 		if line then
 			out[#out + 1] = line
+			line = nil
 		end
-		-- Hard-split any single word wider than a full line.
-		while w > limit do
+		-- Cells available on the line being built: line 1 gets the full
+		-- limit, every later line loses the indent it carries.
+		local a = (#out == 0) and limit or (limit - indent_w)
+		-- Hard-split any single word wider than that line. Chunks resume
+		-- by BYTE length (#part) — sub is byte-indexed, and a char-count
+		-- resume lands mid-codepoint and garbles CJK.
+		while w > a do
 			local part, used = "", 0
 			for ch in chars(word) do
 				local cw = vim.fn.strdisplaywidth(ch)
-				if used + cw > limit then
+				if part ~= "" and used + cw > a then
 					break
 				end
 				part = part .. ch
 				used = used + cw
 			end
 			out[#out + 1] = part
-			word = word:sub(vim.fn.strcharlen(part) + 1)
+			word = word:sub(#part + 1)
 			w = vim.fn.strdisplaywidth(word)
+			a = limit - indent_w
 		end
 		line = word
-		room = limit - vim.fn.strdisplaywidth(indent) - w
+		room = a - w
 	end
 	for _, word in ipairs(vim.split(text, "%s+", { trimempty = true })) do
 		push(word)
