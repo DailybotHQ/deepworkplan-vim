@@ -126,6 +126,12 @@ function M.segment(record)
 		record.tasks_done or 0,
 		record.tasks_total or 0
 	)
+	-- The one state that demands a human decision says so in words: a
+	-- lone ⚠ is a symbol the reader must decode (UX_AUDIT F-08). Working
+	-- plans stay compact.
+	if record.blocked then
+		text = text .. " · needs attention"
+	end
 	-- Click region: `%@fn@…%X` is the complete form — a bare trailing @
 	-- renders as a stray character. The display text is statusline
 	-- format input, so every literal % is doubled or a plan title like

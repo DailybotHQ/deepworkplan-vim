@@ -55,9 +55,11 @@ ok(text:find("Done", 1, true) ~= nil, "Done section renders")
 ok(text:find("Fixture running plan", 1, true) ~= nil, "running plan title renders")
 ok(text:find("Fixture draft plan", 1, true) ~= nil, "draft plan title renders")
 ok(text:find("Fixture corrupt plan", 1, true) ~= nil, "corrupt plan still listed")
-ok(text:find("▰▰▰▱▱▱▱▱ 2/5", 1, true) ~= nil, "running progress bar renders (2/5)")
-ok(text:find("1/3", 1, true) ~= nil, "draft counts render (1/3)")
-ok(text:find("5/5", 1, true) ~= nil, "done counts render (5/5)")
+ok(text:find("▰▰▰▱▱▱▱▱ 40%", 1, true) ~= nil, "running row carries the bar and percent (F-01)")
+ok(text:find("33%", 1, true) ~= nil, "draft percent renders (33%)")
+ok(text:find("100%", 1, true) ~= nil, "done percent renders (100%)")
+ok(text:find("couldn't read this plan", 1, true) ~= nil, "corrupt plan explains itself (F-05)")
+ok(text:find("ask your agent to check it", 1, true) ~= nil, "corrupt plan points at the action (F-05)")
 
 -- 3. Expand: task checklist (with current marker) and file groups.
 sidebar.toggle_expand("PLAN_991_fixture_running")
@@ -166,6 +168,18 @@ ok(after_restore == before, "Enter again restores the group (round trip)")
 
 sidebar.close()
 ok(not sidebar.is_open(), "close() closes the sidebar")
+
+-- 10. Empty state teaches where plans are searched (F-02), fitting the
+--     narrowest sidebar width.
+local empty_root = vim.fn.tempname()
+vim.fn.mkdir(empty_root, "p")
+sidebar.open({ empty_root })
+text = buf_text()
+ok(text:find("No plans yet.", 1, true) ~= nil, "empty state: headline")
+ok(text:find("Ask your agent to plan work.", 1, true) ~= nil, "empty state: action line")
+ok(text:find(".dwp/plans", 1, true) ~= nil, "empty state: names where it searched")
+ok(text:find("config folder", 1, true) ~= nil, "empty state: names the second root")
+sidebar.close()
 
 if fails > 0 then
 	print(("SIDEBAR SMOKE: %d FAILED of %d assertions"):format(fails, count))

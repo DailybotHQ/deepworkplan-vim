@@ -167,17 +167,21 @@ local function file_rows(record)
 	return rows
 end
 
+-- The plan row shows bar + PERCENT (not raw counts): percent is the
+-- number a non-technical reader parses without dividing, and it is what
+-- fits beside a full-width title (UX_AUDIT F-01 amendment, §9). Counts
+-- stay one Enter away — the expanded checklist, the reader header, the
+-- statusline and the greeter line all carry them.
 local function plan_row(record, cap)
 	local title = truncate(record.title or record.name, cap)
-	local counts = string.format("%d/%d", record.tasks_done or 0, record.tasks_total or 0)
 	local marker = st.expanded[record.name] and "▾" or "▸"
 	return {
 		text = string.format(
-			"%s %s  %s %s",
+			"%s %s  %s %d%%",
 			record.icon or "·",
 			title .. string.rep(" ", math.max(1, cap - display_width(title) + 2)),
 			marker .. progress_bar(record.tasks_done or 0, record.tasks_total or 0),
-			counts
+			record.percent or 0
 		),
 		hl = record.highlight or "Comment",
 		kind = "plan",
@@ -215,6 +219,12 @@ local function build_rows(records, cap)
 			if not collapsed then
 				for _, record in ipairs(group) do
 					rows[#rows + 1] = plan_row(record, cap)
+					-- An unreadable plan explains itself instead of
+					-- sitting mute under "Unknown" (UX_AUDIT F-05).
+					if record.state == "unknown" then
+						rows[#rows + 1] = { text = "  couldn't read this plan —", hl = "Comment", kind = "info" }
+						rows[#rows + 1] = { text = "  ask your agent to check it", hl = "Comment", kind = "info" }
+					end
 					if st.expanded[record.name] then
 						local sub = task_rows(record)
 						for _, row in ipairs(sub) do
@@ -229,7 +239,14 @@ local function build_rows(records, cap)
 		end
 	end
 	if not any then
-		rows[#rows + 1] = { text = "No plans yet — ask your agent to plan work.", hl = "Comment", kind = "blank" }
+		-- The empty state teaches action AND location, and every line
+		-- fits the narrowest sidebar width so nothing clips (UX_AUDIT
+		-- F-02: the old one-line version both hid where plans are
+		-- searched and overflowed the floor width).
+		rows[#rows + 1] = { text = "No plans yet.", hl = "Comment", kind = "blank" }
+		rows[#rows + 1] = { text = "Ask your agent to plan work.", hl = "Comment", kind = "blank" }
+		rows[#rows + 1] = { text = "Plans are searched in .dwp/plans", hl = "Comment", kind = "blank" }
+		rows[#rows + 1] = { text = "and the editor's config folder.", hl = "Comment", kind = "blank" }
 	end
 	rows[#rows + 1] = { text = "", kind = "blank" }
 	rows[#rows + 1] = { text = "? help · r refresh · Enter open · Tab expand", hl = "Comment", kind = "footer" }

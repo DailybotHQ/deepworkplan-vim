@@ -48,19 +48,22 @@ local function progress_bar(done, total)
 	return string.rep("▰", filled) .. string.rep("▱", BAR_CELLS - filled)
 end
 
---- One overview row: `icon title bar done/total  status-word` — always
---- status-worded (the greeter has no section headers to carry meaning).
+--- One overview row: `icon title bar done/total · percent  status-word`
+--- — always status-worded (the greeter has no section headers to carry
+--- meaning). The percent is the number a non-technical reader parses
+--- without dividing (UX_AUDIT F-01).
 function M.plan_line(record)
 	local title = truncate(record.title or record.name, TITLE_CAP)
 	local pad = string.rep(" ", math.max(1, TITLE_CAP + 2 - vim.fn.strdisplaywidth(title)))
 	return string.format(
-		"%s %s%s%s %d/%d  %s",
+		"%s %s%s%s %d/%d · %d%%  %s",
 		record.icon or "·",
 		title,
 		pad,
 		progress_bar(record.tasks_done or 0, record.tasks_total or 0),
 		record.tasks_done or 0,
 		record.tasks_total or 0,
+		record.percent or 0,
 		record.label or "Unknown"
 	)
 end
@@ -75,7 +78,13 @@ function M.build(roots)
 		header = "Your plans",
 		plan_lines = {},
 		hint = "Press  SPC P  to browse all plans",
-		empty_line = "No plans yet — ask your agent to plan work.",
+		-- Terminals have no hover: the click affordance of the statusline
+		-- segment is taught once, here (UX_AUDIT F-04).
+		hint_click = "The bar at the bottom shows your active plan — click it anytime",
+		-- The empty state says WHERE plans are searched, so opening the
+		-- editor outside a project reads as a location fact, not as
+		-- "my plans vanished" (UX_AUDIT F-02).
+		empty_line = "No plans yet — ask your agent to plan work (open the editor in your project folder).",
 	}
 	for i, record in ipairs(records) do
 		if i > TOP_N then

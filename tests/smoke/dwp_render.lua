@@ -114,16 +114,16 @@ for _, case in ipairs(widths) do
 	ok(got == want, string.format("columns %d: sidebar width %d (want %d)", cols, got, want))
 	local lines = screen_lines(win)
 
-	-- Counts-complete at the row's end, whatever the title cap truncated
-	-- at this width: the running plan is the 2/5 row.
+	-- Percent-complete at the row's end, whatever the title cap
+	-- truncated at this width: the running plan is the 40% row.
 	local running = nil
 	for _, line in ipairs(lines) do
-		if line:find("2/5%s*$") then
+		if line:find("40%%%s*$") then
 			running = line
 			break
 		end
 	end
-	ok(running ~= nil, string.format("columns %d: a plan row ends in complete counts 2/5", cols))
+	ok(running ~= nil, string.format("columns %d: a plan row ends in its complete percent 40%%", cols))
 
 	local cols_marker = marker_columns(lines)
 	ok(#cols_marker >= 4, string.format("columns %d: plan rows carry the expand marker (%d)", cols, #cols_marker))
@@ -169,6 +169,14 @@ do
 		end
 	end
 	ok(found, "empty root: 'No plans yet' renders at 60 columns")
+	local teaching = false
+	for _, line in ipairs(lines) do
+		if line:find("Plans are searched", 1, true) then
+			teaching = true
+			break
+		end
+	end
+	ok(teaching, "empty root: the teaching line naming the searched places renders (F-02)")
 end
 
 -- 3. Many plans: eleven synthetic plans all render, block stays aligned,
@@ -343,12 +351,12 @@ do
 	end
 	local running = nil
 	for _, line in ipairs(after) do
-		if line:find("2/5%s*$") then
+		if line:find("40%%%s*$") then
 			running = line
 			break
 		end
 	end
-	ok(running ~= nil, "resize: counts still complete after re-fit")
+	ok(running ~= nil, "resize: percent still complete after re-fit")
 	local good, _ = footer_on_expected_row(win, after)
 	ok(good, "resize: footer on its expected row after re-fit")
 	local autocmds = vim.api.nvim_get_autocmds({ group = "DwpSidebar", event = "VimResized" })

@@ -116,6 +116,29 @@ ok(sidebar_open(), "click handler opens the sidebar")
 _G.DwpPlansClick()
 ok(not sidebar_open(), "click handler toggles it closed")
 
+-- 8. Blocked plans say so in words: a lone ⚠ is a symbol the reader
+--    must decode; the one state that demands a decision spells itself.
+local blocked_seg = statusline.segment({
+	title = "Blocked plan",
+	name = "PLAN_fixture_blocked",
+	icon = "⚠",
+	label = "Needs attention",
+	tasks_done = 1,
+	tasks_total = 2,
+	blocked = true,
+	blocker_reason = "a human decision is waiting",
+})
+ok(blocked_seg:find("needs attention", 1, true) ~= nil, "blocked segment says so in words (F-08)")
+local working_seg = statusline.segment({
+	title = "Working plan",
+	name = "PLAN_fixture_running",
+	icon = "◉",
+	label = "Working",
+	tasks_done = 1,
+	tasks_total = 2,
+})
+ok(working_seg:find("needs attention", 1, true) == nil, "working segment stays compact (no blocked word)")
+
 if fails > 0 then
 	print(("STATUSLINE SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")

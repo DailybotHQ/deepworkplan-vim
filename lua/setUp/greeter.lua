@@ -147,6 +147,13 @@ do
 					val = data.hint,
 					opts = { position = "center", hl = "Comment" },
 				}
+				if data.hint_click then
+					el[#el + 1] = {
+						type = "text",
+						val = data.hint_click,
+						opts = { position = "center", hl = "Comment" },
+					}
+				end
 				el[#el + 1] = button("e", "  Open plans sidebar  ", ":lua require('dwp.sidebar').toggle()<CR>")
 			end
 		end

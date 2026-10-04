@@ -33,6 +33,7 @@ ok(first.text:find("Not started", 1, true) ~= nil, "rows are status-worded (draf
 ok(second.text:find("Fixture running plan", 1, true) ~= nil, "second row is the running plan")
 ok(second.text:find("◉", 1, true) ~= nil, "running row carries its icon")
 ok(second.text:find("▰▰▰▱▱▱▱▱ 2/5", 1, true) ~= nil, "running row carries the 8-cell bar and counts")
+ok(second.text:find("2/5 · 40%", 1, true) ~= nil, "running row carries the percent beside the counts (F-01)")
 ok(second.text:find("Working", 1, true) ~= nil, "rows are status-worded (working)")
 ok(section.plan_lines[3].text:find("Done", 1, true) ~= nil, "third row is status-worded (done)")
 ok(first.record ~= nil and first.record.name ~= nil, "rows carry their records for the reader gesture")
@@ -50,12 +51,17 @@ ok(long:find("A very long plan title th…", 1, true) ~= nil, "titles truncate w
 
 -- 3. Hint line names the gesture.
 ok(section.hint:find("SPC P", 1, true) ~= nil, "hint names SPC P")
+ok(section.hint_click and section.hint_click:find("click", 1, true) ~= nil, "hint teaches the statusline click (F-04)")
 
 -- 4. Empty state: the friendly line, zero rows, and (per the spec) the
 --    wiring omits the [e] button when there are no rows.
 local empty = greeter_plans.build({ NO_PLANS })
 ok(#empty.plan_lines == 0, "planless roots render no rows")
-ok(empty.empty_line == "No plans yet — ask your agent to plan work.", "empty-state phrasing is the frozen one")
+ok(
+	empty.empty_line
+		== "No plans yet — ask your agent to plan work (open the editor in your project folder).",
+	"empty-state teaches the project folder (F-02)"
+)
 
 if fails > 0 then
 	print(("GREETER SMOKE: %d FAILED of %d assertions"):format(fails, count))
