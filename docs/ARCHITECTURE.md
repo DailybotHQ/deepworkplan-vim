@@ -33,7 +33,12 @@ lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
                      sidebar (SPC P), reader (Enter on a plan),
                      statusline (clickable active-plan segment),
                      greeter_plans (dashboard top-3 overview)
-                     (lazy — loaded on first SPC P, never at boot)
+                     (sidebar/reader/statusline lazy — mapping and click
+                     callbacks require them on first use; plans/state/
+                     greeter_plans load once at dashboard setup for the
+                     top-3 overview, a bounded scan within the measured
+                     startup budget — see PLAN_002's probe: +6 ms plain,
+                     +3 ms VimEnter)
 utilities/           installer modules + snippet getters + spelling helpers
 docker/              contributor container (docker/local/) + image custom commands
 tests/               Go mapping-contract suite (parses Lua/VimScript; no Neovim)

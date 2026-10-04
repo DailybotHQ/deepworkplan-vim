@@ -61,6 +61,20 @@ Status of each gate on a bare dev host (bash + lua only): the first four run;
 the last two need a container or Go. See [TESTING_GUIDE.md](TESTING_GUIDE.md)
 for the evidence and the fallback.
 
+## dwp runtime smokes (host)
+
+```bash
+bash tests/smoke/run.sh
+```
+
+Headless Neovim over the repo's `lua/` tree with a minimal runtime — no
+container, no plugin sync, no network. Five sections (model, sidebar,
+reader, statusline, greeter; 186 assertions) over the committed fixtures
+in `tests/fixtures/dwp_plans/`. Required for any change under `lua/dwp/`;
+per-section scope and honest non-coverage: `tests/smoke/README.md`. Read
+the output for the `assertions OK` sentinel — nvim exits 0 even after a
+mid-script crash, so the exit code alone is not a pass.
+
 ## Installer smokes (multi-distro)
 
 ```bash

@@ -112,6 +112,58 @@ ok(type(arg) == "table" and arg.callback ~= nil, "<leader>P is mapped to a callb
 ok(arg.desc == "Plan browser (sidebar)", "<leader>P desc carries the plan browser phrase")
 ok(vim.fn.exists(":DwpPlans") == 2, ":DwpPlans command exists")
 
+-- 8. Section collapse is a round trip, not a one-way trap: Enter on a
+-- section header keeps the header (with a hidden count) so the group
+-- can come back (final-review finding 1).
+sidebar.open({ FIXTURES })
+buf = nil
+for _, w in ipairs(vim.api.nvim_list_wins()) do
+	local b = vim.api.nvim_win_get_buf(w)
+	if vim.bo[b].filetype == "dwp-plans" then
+		buf = b
+	end
+end
+local enter_map
+for _, m in ipairs(vim.api.nvim_buf_get_keymap(buf, "n")) do
+	if m.lhs == "<CR>" then
+		enter_map = m
+	end
+end
+ok(enter_map ~= nil and enter_map.callback ~= nil, "sidebar Enter resolves for the collapse round trip")
+local function sidebar_lines()
+	return table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n")
+end
+local function cursor_to(pattern)
+	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+	for i, line in ipairs(lines) do
+		if line:find(pattern, 1, true) then
+			for _, w in ipairs(vim.api.nvim_list_wins()) do
+				if vim.api.nvim_win_get_buf(w) == buf then
+					vim.api.nvim_win_set_cursor(w, { i, 0 })
+				end
+			end
+			return i
+		end
+	end
+	return 0
+end
+ok(cursor_to("Working") > 0, "Working header present before collapse")
+-- The blocked sibling (Needs attention) shares this title, so count
+-- occurrences: two plan rows before, one after collapsing Working.
+local _, before = sidebar_lines():gsub("Fixture running plan", "")
+local working_line = cursor_to("Working")
+enter_map.callback()
+local collapsed = sidebar_lines()
+local _, after = collapsed:gsub("Fixture running plan", "")
+ok(collapsed:find("Working ▸ 1 hidden", 1, true) ~= nil, "collapsed header stays with a hidden count")
+ok(after == before - 1, "collapsed section hides its plan rows (one fewer row)")
+ok(vim.api.nvim_buf_get_lines(buf, working_line - 1, working_line, false)[1]:find("Working", 1, true) ~= nil, "the header row itself survives Enter")
+cursor_to("Working ▸ 1 hidden")
+enter_map.callback()
+local restored = sidebar_lines()
+local _, after_restore = restored:gsub("Fixture running plan", "")
+ok(after_restore == before, "Enter again restores the group (round trip)")
+
 sidebar.close()
 ok(not sidebar.is_open(), "close() closes the sidebar")
 

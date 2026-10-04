@@ -44,10 +44,31 @@ ok(cached ~= nil and cached.name == "PLAN_991_fixture_running", "active plan is 
 -- 3. The segment renders icon, title, bar, counts, click wrapper.
 local seg = statusline.segment()
 ok(seg:find("^%%@v:lua%.DwpPlansClick@", 1) ~= nil, "segment is wrapped in the click expression")
-ok(seg:sub(-1) == "@", "click expression is closed")
+ok(seg:sub(-2) == "%X", "click region closes with %X (no stray @)")
 ok(seg:find("Fixture running plan", 1, true) ~= nil, "segment carries the friendly title")
 ok(seg:find("◉", 1, true) ~= nil, "segment carries the working icon")
 ok(seg:find("▰▰▱▱▱▱ 2/5", 1, true) ~= nil, "segment carries the 6-cell bar and counts")
+
+-- 3b. The display text is statusline-format input, so literal % is
+-- doubled: a title carrying %{expr} would otherwise EVALUATE on every
+-- draw (final-review finding 2). Proven through nvim_eval_statusline,
+-- the same renderer the real statusline uses.
+local hostile = statusline.segment({
+	title = "Evil 50% %{1+1} plan",
+	name = "PLAN_x",
+	icon = "◉",
+	label = "Working",
+	tasks_done = 1,
+	tasks_total = 2,
+})
+ok(hostile:find("%%", 1, true) ~= nil, "literal percents are doubled in the segment text")
+local body = hostile:match("@v:lua%.DwpPlansClick@(.*)%%X$")
+local singles = (body or ""):gsub("%%%%", "")
+ok(singles:find("%%", 1, true) == nil, "no unescaped percent remains in the display text")
+local rendered = vim.api.nvim_eval_statusline(hostile, { maxwidth = 0 }).str
+ok(rendered:find("%{1+1}", 1, true) ~= nil, "percent expressions render literally")
+ok(rendered:find("50%% 2", 1, true) == nil, "no expression evaluation at draw time")
+ok(rendered:sub(-1) ~= "@", "rendered segment carries no stray trailing @")
 
 -- 4. The hot-path proof: repeated renders add no scans.
 for _ = 1, 3 do

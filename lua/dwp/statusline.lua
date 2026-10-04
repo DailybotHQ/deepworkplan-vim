@@ -96,12 +96,14 @@ end
 --- The display string for the statusline: click-wrapped
 --- `icon title bar done/total`, or "" when no plan is active (lualine's
 --- cond hides the component entirely). Zero filesystem work in here.
-function M.segment()
+--- An explicit `record` overrides the cache (the smoke's hostile-title
+--- proof uses it); the lualine wiring passes nothing.
+function M.segment(record)
 	if not st.initialized then
 		M.refresh()
 		ensure_events()
 	end
-	local record = st.record
+	record = record or st.record
 	if not record then
 		return ""
 	end
@@ -113,7 +115,15 @@ function M.segment()
 		record.tasks_done or 0,
 		record.tasks_total or 0
 	)
-	return "%@" .. CLICK_FN .. "@" .. text .. "@"
+	-- Click region: `%@fn@…%X` is the complete form — a bare trailing @
+	-- renders as a stray character. The display text is statusline
+	-- format input, so every literal % is doubled or a plan title like
+	-- "50% done" would break the line and "%{expr}" would *evaluate* on
+	-- every draw. (Known cosmetic bound: a literal @ in a title ends the
+	-- click region early; titles are truncated to 20 chars and render
+	-- fine, only the clickable span shortens.)
+	local safe = text:gsub("%%", "%%%%")
+	return "%@" .. CLICK_FN .. "@" .. safe .. "%X"
 end
 
 --- Cache predicate for lualine's cond (also pure): true when there is

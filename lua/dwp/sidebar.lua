@@ -166,18 +166,29 @@ local function build_rows(records)
 	local any = false
 	for _, label in ipairs(SECTION_ORDER) do
 		local group = by_section[label]
-		if group and not st.collapsed_sections[label] then
+		if group then
 			any = true
-			rows[#rows + 1] = { text = label, hl = "Comment", kind = "section", label = label }
-			for _, record in ipairs(group) do
-				rows[#rows + 1] = plan_row(record)
-				if st.expanded[record.name] then
-					local sub = task_rows(record)
-					for _, row in ipairs(sub) do
-						rows[#rows + 1] = row
-					end
-					for _, row in ipairs(file_rows(record)) do
-						rows[#rows + 1] = row
+			-- Collapsed sections keep their header (with a count marker):
+			-- the header row is the only way back, so removing it made
+			-- collapse a one-way trap (final-review finding 1).
+			local collapsed = st.collapsed_sections[label]
+			rows[#rows + 1] = {
+				text = collapsed and string.format("%s ▸ %d hidden", label, #group) or label,
+				hl = "Comment",
+				kind = "section",
+				label = label,
+			}
+			if not collapsed then
+				for _, record in ipairs(group) do
+					rows[#rows + 1] = plan_row(record)
+					if st.expanded[record.name] then
+						local sub = task_rows(record)
+						for _, row in ipairs(sub) do
+							rows[#rows + 1] = row
+						end
+						for _, row in ipairs(file_rows(record)) do
+							rows[#rows + 1] = row
+						end
 					end
 				end
 			end
@@ -254,6 +265,7 @@ function S.close()
 	end
 	pcall(vim.api.nvim_del_augroup_by_name, "DwpSidebar")
 	if refresh_timer then
+		refresh_timer:stop()
 		refresh_timer = nil
 	end
 	S.close_help()
@@ -299,12 +311,16 @@ function S.open(roots)
 	set_keys()
 
 	-- Plans appear as agent sessions work: refresh on focus, debounced
-	-- (cancel-and-rearm) so a burst of FocusGained events costs one scan.
+	-- cancel-and-rearm (the pending timer is stopped, not just dropped —
+	-- the statusline module's pattern) so a burst of events costs one scan.
 	vim.api.nvim_create_autocmd({ "FocusGained" }, {
 		group = vim.api.nvim_create_augroup("DwpSidebar", { clear = true }),
 		callback = function()
 			if not S.is_open() then
 				return true
+			end
+			if refresh_timer then
+				refresh_timer:stop()
 			end
 			refresh_timer = vim.defer_fn(function()
 				refresh_timer = nil
@@ -377,6 +393,7 @@ local HELP_LINES = {
 	"Plans sidebar — keys",
 	"",
 	"Enter    open the plan under the cursor",
+	"         (on a section name: show or hide that group)",
 	"Tab      show or hide a plan's tasks and files",
 	"j / k    move up and down (or the arrow keys)",
 	"r        refresh the list",
