@@ -30,11 +30,17 @@ Neovim becomes the DeepWorkPlan editor.
 3. **A self-generated command index** — `SPC h h` renders every live
    mapping from `nvim_get_keymap` with human descriptions, so it can never
    drift: a mapping defined anywhere appears with zero registration.
-4. **DWP-aware navigation** — `SPC P` opens a plan browser over every
-   `.dwp/plans/` root (working directory and config directory): each plan
-   with its derived state (draft / approved / in-flight / completed), task
-   progress, and a drill-down into its README, tasks, ledger records, and
-   evidence (`lua/dwp/`).
+4. **DWP-aware navigation, in plain language** — `SPC P` opens a plans
+   sidebar over every `.dwp/plans/` root (working directory and config
+   directory), grouped most-attention-first (Working, Needs attention,
+   Ready, Not started, Done) with progress bars; Enter on a plan opens a
+   one-page reader (goal in one sentence, status, progress, the task
+   checklist with the current task marked, plain-language jumps into the
+   plan's own files); the statusline carries the live active plan as a
+   clickable segment; the dashboard lists the top three plans and opens
+   any of them in the reader. Phase-2 scope: read-only navigation — the
+   surfaces explain plans, they never write under `.dwp/`
+   (`lua/dwp/`, smoke-covered in `tests/smoke/`).
 5. **Tuned-for-agents editing stack** — LSP, completion, linting, formatting,
    fuzzy finding, file management, and a theme system with curated palettes,
    composed through pckr.nvim with lazy startup.

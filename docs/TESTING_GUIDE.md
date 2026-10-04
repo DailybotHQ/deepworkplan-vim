@@ -2,13 +2,16 @@
 
 ## Posture
 
-This repo's automated layer is **contract-first, parse-only**: the Go suite in
-`tests/` parses mapping files and asserts keybinding contracts across flavors
-without ever starting Neovim. Runtime behavior (LSP sessions, plugin loading,
-UI) has no automated layer today — that is a known, accepted gap, covered
-manually and by the installer smokes. The unit-first behavioral base here is
-the contract suite; the real seams it guards are the mapping files and the
-installer contract across distros.
+This repo's automated layer has two legs. The **contract suite** (Go, in
+`tests/`) parses mapping files and asserts keybinding contracts across flavors
+without ever starting Neovim. The **smoke suite** (`bash tests/smoke/run.sh`)
+boots headless Neovim and exercises the `lua/dwp/` plan surfaces for real —
+model, sidebar, reader, statusline segment, greeter builder — against
+committed fixtures. Runtime behavior beyond `lua/dwp/` (LSP sessions, plugin
+loading, the alpha draw) has no automated layer today — that is a known,
+accepted gap, covered manually and by the installer smokes. The contract
+suite guards the mapping files and the installer contract across distros;
+the smoke suite guards the dwp UI's behavior contracts.
 
 ## Commands (current, verified)
 
@@ -20,11 +23,13 @@ Full suite and lint/type-check commands, with the working directory and status:
 | `bash -n docker/local/dwpvim/entrypoint.sh` | repo root | full — entrypoint syntax | **verified on host** |
 | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | repo root | full — every Lua file parses | **verified on host** |
 | `luac5.4 -p lua/mapping/git.lua` | repo root | scoped — one file | **verified on host** (non-empty: parses that file; the full-run variant above is the cheap default) |
+| `bash tests/smoke/run.sh` | repo root | full — dwp runtime smokes (model, sidebar, reader, statusline, greeter) over committed fixtures; 186 assertions | **verified on host** |
 | `bash tests/run.sh` | repo root | full — mapping contracts via Podman/Docker | **container-required** — no Podman/Docker on the dev host; verified shape, not run here |
 | `cd tests && go test -count=1 -parallel 8 .` | `tests/` | full — mapping contracts on a Go host | **unverified on this host** (no Go installed); same suite `tests/run.sh` runs in compose |
 
 Tool versions where behavior depends on them: `luac5.4` (Lua 5.4 parse-only
-mode); Neovim itself is **not** needed by any automated gate.
+mode); Neovim 0.12+ on PATH is needed by the smoke suite (and by nothing
+else among the automated gates).
 
 Expected evidence of a correct contract run: Go reports
 `TestMappingContract/current`, `/mini`, `/vimscript` subtests (flavors whose
@@ -41,6 +46,11 @@ config is not mounted are skipped, not failed) with `ok` per package.
   fallback: `bash tests/run.sh` in the container.
 - Shell syntax checks are inherently per-file (`bash -n <file>`); there is no
   cheaper project-wide option, and that is fine — run it per touched script.
+- **dwp smoke, one section (verified):** the suite runs every section by
+  design; to iterate on one, run it directly —
+  `nvim --headless -u tests/smoke/minimal_init.lua -c "luafile tests/smoke/dwp_model.lua" +qa!`
+  — and read the output for the `assertions OK` sentinel (nvim exits 0 even
+  after a mid-script crash, so the exit code alone is not a pass).
 
 ## Source-to-test mapping
 
@@ -49,6 +59,12 @@ config is not mounted are skipped, not failed) with `ok` per package.
 `currentOnly` in the Lua flavor, `vimFamily` in mini/VimScript. A change to
 any mapping file requires updating the contract expectations in the same
 change.
+
+`lua/dwp/*.lua` ⇄ `tests/smoke/dwp_*.lua` (fixtures in
+`tests/fixtures/dwp_plans/`, runner `tests/smoke/run.sh`, per-smoke docs in
+`tests/smoke/README.md`): a change to any dwp module requires its smoke to
+stay green in the same change; new behavior ships with assertions in the
+same change.
 
 ## Consumer policy
 
@@ -59,7 +75,12 @@ the whole contract suite — it is the full-fallback anyway.
 
 ## Blind spots
 
-- Runtime Neovim behavior (LSP, completion, plugins, UI) — no automated layer.
+- Runtime Neovim behavior outside `lua/dwp/` (LSP, completion, plugin
+  loading, the alpha draw) — no automated layer. The dwp surfaces are
+  smoke-covered headlessly; what the smokes still leave manual there: real
+  mouse rendering (statusline click under lualine, sidebar clicks), the
+  alpha dashboard actually drawing, and the lualine component in a live
+  statusline. Those are recorded as manual checks in the plan logs.
 - The installer's platform branches are exercised only by the multi-distro
   smokes (root `compose.yml`), not unit-tested.
 - Palettes, snippets, and dicts are data exercised by use, not by tests.
@@ -83,4 +104,5 @@ no Go), run the **full Quick Commands set** from
 - Adopt `stylua` for Lua formatting checks (config: 2-space, 100 cols) —
   proposed, not verified here; install is a maintainer decision.
 - A startup smoke (`nvim --headless "+LazyHealth" +qa` style) inside the dev
-  container would close the biggest runtime blind spot — proposed only.
+  container would close the plugin-loading blind spot — proposed only (the
+  dwp surfaces already have runtime coverage via `tests/smoke/`).

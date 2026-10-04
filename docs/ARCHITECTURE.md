@@ -28,7 +28,11 @@ updates flow through pckr, not through this repo's git.
 
 ```
 lua/                 the editor config (see lua/README.md)
-lua/dwp/             plan browser: .dwp/plans discovery + state derivation
+lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
+                     state (machine states + rich plain-language model),
+                     sidebar (SPC P), reader (Enter on a plan),
+                     statusline (clickable active-plan segment),
+                     greeter_plans (dashboard top-3 overview)
                      (lazy — loaded on first SPC P, never at boot)
 utilities/           installer modules + snippet getters + spelling helpers
 docker/              contributor container (docker/local/) + image custom commands
