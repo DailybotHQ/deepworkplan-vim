@@ -12,8 +12,13 @@ overall=0
 run_smoke() {
 	local label="$1" script="$2"
 	echo "== dwp ${label} smoke =="
-	if nvim --headless -u tests/smoke/minimal_init.lua \
-		-c "luafile ${script}" +qa!; then
+	local out
+	out=$(nvim --headless -u tests/smoke/minimal_init.lua \
+		-c "luafile ${script}" +qa! 2>&1)
+	echo "$out"
+	# The OK sentinel must appear AND no Lua error may have aborted the
+	# script (nvim can exit 0 after an E5113 crash mid-script).
+	if echo "$out" | grep -q "assertions OK" && ! echo "$out" | grep -q "^Error in command line"; then
 		echo "-- ${label}: PASS"
 	else
 		echo "-- ${label}: FAIL"
@@ -22,6 +27,7 @@ run_smoke() {
 }
 
 run_smoke model tests/smoke/dwp_model.lua
+run_smoke sidebar tests/smoke/dwp_sidebar.lua
 
 if [ "$overall" -eq 0 ]; then
 	echo "DWP SMOKE SUITE: OK"

@@ -10,15 +10,16 @@ map("n", "<Leader>mj", ":BufferLineMovePrev<CR>", { desc = "Move this tab left" 
 -- NvimTree
 map("n", "<leader>n", ":NvimTreeToggle<CR>", { desc = "File tree" })
 
--- DWP plan browser (lazy: the module loads on first use, never at boot)
+-- DWP plan browser: the plans sidebar (lazy: the module loads on first
+-- use, never at boot)
 map("n", "<Leader>P", function()
-	require("dwp.view").open()
-end, { desc = "Browse Deep Work Plans" })
+	require("dwp.sidebar").toggle()
+end, { desc = "Plan browser (sidebar)" })
 -- Terminal-independent entry point: :DwpPlans always works, even where a
 -- leader chord misfires (exotic terminals, dashboard buffers).
 vim.api.nvim_create_user_command("DwpPlans", function()
-	require("dwp.view").open()
-end, { desc = "Browse Deep Work Plans" })
+	require("dwp.sidebar").toggle()
+end, { desc = "Plan browser (sidebar)" })
 
 -- Telescope
 map("n", "<Leader>t", ":Telescope<CR>", { desc = "Open Telescope (every finder)" })
