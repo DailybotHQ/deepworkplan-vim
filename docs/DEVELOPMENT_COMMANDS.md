@@ -69,7 +69,7 @@ bash tests/smoke/run.sh
 
 Headless Neovim over the repo's `lua/` tree with a minimal runtime — no
 container, no plugin sync, no network. Five sections (model, sidebar,
-reader, statusline, greeter; 186 assertions) over the committed fixtures
+reader, statusline, greeter; 199 assertions) over the committed fixtures
 in `tests/fixtures/dwp_plans/`. Required for any change under `lua/dwp/`;
 per-section scope and honest non-coverage: `tests/smoke/README.md`. Read
 the output for the `assertions OK` sentinel — nvim exits 0 even after a
