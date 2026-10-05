@@ -9,7 +9,7 @@ and runs the **real `install.sh`** end to end in synthetic roots.
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (19 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (20 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -40,6 +40,7 @@ shim per scenario; real `git`/coreutils for everything else):
 | `bootstrap_already_installed` | Existing marker short-circuits: "Plugins already installed", no nvim invocation |
 | `lua_failure_handoff` | UX2-03: a failing system-setup leg ends with a paste-able agent handoff naming the `fails.log` path, **added** to the kept log + issues lines; rc non-zero |
 | `delete_one_liner` | UX2-04, real `lua5.4`: the advertised one-liner — `delete.lua` by absolute path from an unrelated cwd — removes a synthetic install after piped consent `y` (config + data dirs gone, rc 0) |
+| `consent_eof_safe` | R4, real `lua5.4` probes: line-mode EOF is reported as `eof` (distinct from an explicit empty line = `default`, typed `y`/`n` = `yes`/`no`); `replace_old` aborts on `eof` — nothing moved or deleted (probe simulates the Windows `can_ask=true` condition); the Unix no-tty gate stays |
 
 **Flipped pins.** Three scenarios were committed during the audit as
 KNOWN-DEFECT pins asserting the then-buggy behavior (I-1, I-2, I-19); the
@@ -72,7 +73,7 @@ breaks them is a regression, not a pin.
 
 ```
 tests/installer/
-├── run.sh                  # the harness (19 scenarios + shared setup)
+├── run.sh                  # the harness (20 scenarios + shared setup)
 └── shims/
     ├── uname id sudo       # OS/identity shims (FAKE_UNAME / FAKE_UID)
     ├── apt-get             # manager shim template (logs argv; installs a lua5.4 stub)

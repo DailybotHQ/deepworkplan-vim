@@ -418,6 +418,73 @@ scenario_delete_one_liner() {
   wx "data dir removed"        test ! -e "$T/home/.local/share/nvim"
 }
 
+scenario_consent_eof_safe() {
+  # R4 (PLAN_004 final review): absent input on a consent question must
+  # resolve to the SAFE answer on every platform path. cli.confirm now
+  # reports HOW it answered (second return: eof|default|yes|no|answered),
+  # and util.replace_old treats eof as "no answer" — neither branch of
+  # its question (Yes moves the config, No deletes it) may auto-taken.
+  # Probes run the real lua5.4 modules from the repo cwd.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  ln -s "$(command -v lua5.4)" "$T/bin/lua5.4"
+  local LUA_ENV="HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN"
+
+  # 1-2. Line-mode EOF is eof, on both defaults (pre-fix: nil source).
+  RC=0
+  env -i $LUA_ENV lua5.4 -e 'local c=require("utilities.installation.cli") local v,s=c.confirm("Q?",true) io.write(tostring(v).." "..tostring(s).."\n")' \
+    </dev/null >"$T/eof_yes.log" 2>&1 || RC=$?
+  wg "EOF default-yes => true+eof" "true eof"    "$T/eof_yes.log"
+  RC=0
+  env -i $LUA_ENV lua5.4 -e 'local c=require("utilities.installation.cli") local v,s=c.confirm("Q?",false) io.write(tostring(v).." "..tostring(s).."\n")' \
+    </dev/null >"$T/eof_no.log" 2>&1 || RC=$?
+  wg "EOF default-no => false+eof" "false eof"   "$T/eof_no.log"
+
+  # 3-4. An explicit empty line is a human accepting the default — a
+  # different source than EOF; typed y/n are their own sources.
+  RC=0
+  printf '\n' | env -i $LUA_ENV lua5.4 -e 'local c=require("utilities.installation.cli") local v,s=c.confirm("Q?",false) io.write(tostring(v).." "..tostring(s).."\n")' \
+    >"$T/empty.log" 2>&1 || RC=$?
+  wg "empty line => default" "false default"     "$T/empty.log"
+  RC=0
+  printf 'y\n' | env -i $LUA_ENV lua5.4 -e 'local c=require("utilities.installation.cli") local v,s=c.confirm("Q?",false) io.write(tostring(v).." "..tostring(s).."\n")' \
+    >"$T/yes.log" 2>&1 || RC=$?
+  wg "typed y => yes" "true yes"                 "$T/yes.log"
+  RC=0
+  printf 'n\n' | env -i $LUA_ENV lua5.4 -e 'local c=require("utilities.installation.cli") local v,s=c.confirm("Q?",true) io.write(tostring(v).." "..tostring(s).."\n")' \
+    >"$T/no.log" 2>&1 || RC=$?
+  wg "typed n => no" "false no"                  "$T/no.log"
+
+  # 5. replace_old on eof (unit probe simulating the Windows condition:
+  #    io.open("/dev/tty") succeeds — Windows sets can_ask=true — and the
+  #    cli.confirm stub returns exactly what the fixed line-mode returns
+  #    on EOF, isolating replace_old's handling of it; production reach
+  #    is a piped Windows run or Ctrl-D at a terminal): aborts, target
+  #    intact, message says so.
+  mkdir -p "$T/home/target-dir"; echo keep >"$T/home/target-dir/init.vim"
+  RC=0
+  env -i $LUA_ENV PROBE_TARGET="$T/home/target-dir" PROBE_BACKUP="$T/home/backup-dir" \
+    lua5.4 -e 'local real_open=io.open io.open=function(p,m) if p=="/dev/tty" then return {close=function() end} end return real_open(p,m) end package.preload["utilities.installation.cli"]=function() return { confirm=function(q,d) return d~=false,"eof" end } end local u=require("utilities.installation.util") local ok=u.replace_old(os.getenv("PROBE_TARGET"),os.getenv("PROBE_BACKUP")) io.write("rc= "..(ok and "true" or "false").."\ntarget-intact= "..(u.path_exists(os.getenv("PROBE_TARGET")) and "yes" or "no").."\n")' \
+    </dev/null >"$T/ro_eof.log" 2>&1 || RC=$?
+  wg "eof aborts replace" "no answer"                       "$T/ro_eof.log"
+  wg "eof leaves nothing touched" "Nothing was touched"     "$T/ro_eof.log"
+  wg "eof result false" "rc= false"               "$T/ro_eof.log"
+  wg "eof target intact" "target-intact= yes"    "$T/ro_eof.log"
+  wx "target really intact" test -f "$T/home/target-dir/init.vim"
+  wx "no backup materialized" test ! -e "$T/home/backup-dir"
+
+  # 6. Regression guard, real legs: the Unix no-tty gate in replace_old
+  #    still aborts a piped run (nothing weakened by the eof source).
+  mkdir -p "$T/home/target2"; echo keep >"$T/home/target2/init.vim"
+  RC=0
+  env -i $LUA_ENV PROBE_TARGET="$T/home/target2" PROBE_BACKUP="$T/home/backup2" \
+    lua5.4 -e 'local u=require("utilities.installation.util") local ok=u.replace_old(os.getenv("PROBE_TARGET"),os.getenv("PROBE_BACKUP")) io.write("rc= "..(ok and "true" or "false").."\n")' \
+    </dev/null >"$T/ro_notty.log" 2>&1 || RC=$?
+  wg "unix no-tty gate message" "no terminal to ask"        "$T/ro_notty.log"
+  wg "unix gate false" "rc= false"                "$T/ro_notty.log"
+  wx "unix gate target intact" test -f "$T/home/target2/init.vim"
+}
+
 # --- run them all -----------------------------------------------------------
 
 echo "== installer compatibility harness =="
@@ -440,6 +507,7 @@ run_scenario delete_foreign_config      scenario_delete_foreign_config
 run_scenario bootstrap_already_installed scenario_bootstrap_already_installed
 run_scenario lua_failure_handoff        scenario_lua_failure_handoff
 run_scenario delete_one_liner           scenario_delete_one_liner
+run_scenario consent_eof_safe           scenario_consent_eof_safe
 
 TOTAL=$((TOTAL_PASS+TOTAL_FAIL))
 if [ "$TOTAL_FAIL" -eq 0 ] && [ "$TOTAL" -ge 11 ]; then

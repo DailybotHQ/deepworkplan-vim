@@ -35,8 +35,12 @@ review severities.
   never deleted; reruns are idempotent.
 - An existing config is only ever touched with real consent: `install.sh`
   aborts when piped without a terminal, and `install.lua`'s replace-old step
-  refuses the same way (no auto-Yes headless). The confirm widget keeps its
-  default on absent input; declining requires an explicit typed answer.
+  refuses the same way (no auto-Yes headless). On a consent question whose
+  either branch can move or delete an existing config, absent input (EOF —
+  a piped run, Windows included) is not an answer: the run aborts with the
+  move-aside instructions instead of auto-taking a branch. An explicit
+  empty line still accepts the stated default; declining requires a typed
+  answer.
 - "Is this ours" is decided by the checkout's contents (`install.lua` +
   `lua/plugins.lua`, remote-URL substring as fallback), so clones from
   mirrors or renamed forks update in place instead of being treated as

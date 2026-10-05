@@ -91,16 +91,17 @@ bash tests/installer/run.sh
 
 Runs the real `install.sh` in synthetic roots against PATH shims — bash,
 git, coreutils, and util-linux `script` for the one pty scenario; no
-container, no network, no Neovim, no real Lua leg. 19 scenarios: the four
+container, no network, no Neovim, no real Lua leg. 20 scenarios: the four
 package-manager legs and their sudo policy, the consent/backup envelope
 (piped abort, pty consent, backup collision, DEST-is-file),
 clone-vs-update (including the diverged-local die), OS refusals
 (MINGW/unknown), the XDG/`NVIM_APPNAME` bootstrap composition, the
 real-Lua uninstaller guards, the failing-setup agent handoff, and the
-uninstall one-liner verification. The three former KNOWN-DEFECT pins (audit
+uninstall one-liner verification, and the consent-EOF tri-state probes
+(absent input aborts, never auto-answers). The three former KNOWN-DEFECT pins (audit
 I-1, I-2, I-19) were flipped to fixed-behavior assertions by the
 remediation; any regression there fails the suite. Success sentinel:
-`INSTALLER HARNESS: OK (19 scenarios)`. Scope and bounds:
+`INSTALLER HARNESS: OK (20 scenarios)`. Scope and bounds:
 [`tests/installer/README.md`](../tests/installer/README.md). Required for
 any change to `install.sh`, `install.lua`, `delete.lua` or
 `utilities/installation/`.
