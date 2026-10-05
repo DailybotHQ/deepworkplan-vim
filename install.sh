@@ -218,11 +218,17 @@ if is_ours "$DEST"; then
   git -C "$DEST" checkout "$REF" >/dev/null ||
     die "git checkout '$REF' failed in $DEST (ref missing, or local changes block it — see the error above)"
   # Fast-forward to the fetched tip when it is ahead. merge --ff-only
-  # refuses a dirty or diverged tree, so local edits are never reset.
-  if [ "$(git -C "$DEST" rev-parse HEAD)" != "$(git -C "$DEST" rev-parse FETCH_HEAD)" ] \
-    && git -C "$DEST" merge-base --is-ancestor HEAD FETCH_HEAD; then
-    git -C "$DEST" merge --ff-only FETCH_HEAD ||
-      die "could not fast-forward $DEST (local changes?). Resolve manually and rerun"
+  # refuses a dirty tree, so local edits are never reset. A HEAD that
+  # DIVERGED from the source is not silently skipped either: the run
+  # dies loudly so "installed" never masks "still on the old commit"
+  # (final-review finding R2).
+  if [ "$(git -C "$DEST" rev-parse HEAD)" != "$(git -C "$DEST" rev-parse FETCH_HEAD)" ]; then
+    if git -C "$DEST" merge-base --is-ancestor HEAD FETCH_HEAD; then
+      git -C "$DEST" merge --ff-only FETCH_HEAD ||
+        die "could not fast-forward $DEST (local changes?). Resolve manually and rerun"
+    else
+      die "update skipped: $DEST has local commits that diverge from '$REF' — nothing was changed. Reconcile them (git -C '$DEST' pull --rebase) or ask your agent, then rerun."
+    fi
   fi
 else
   say "==> Cloning DeepWorkPlan Vim ('$REF') into $DEST"

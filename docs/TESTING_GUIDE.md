@@ -24,7 +24,7 @@ Full suite and lint/type-check commands, with the working directory and status:
 | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | repo root | full — every Lua file parses | **verified on host** |
 | `luac5.4 -p lua/mapping/git.lua` | repo root | scoped — one file | **verified on host** (non-empty: parses that file; the full-run variant above is the cheap default) |
 | `bash tests/smoke/run.sh` | repo root | full — dwp runtime smokes (model, sidebar, reader, statusline, greeter, render, consistency) over committed fixtures; 424 assertions | **verified on host** |
-| `bash tests/installer/run.sh` | repo root | full — installer compatibility harness: 15 scenarios over the real `install.sh` (OS gate, per-manager sudo policy, consent/backup envelope, clone-vs-update, XDG/APPNAME bootstrap composition); bounds and KNOWN-DEFECT pins in `tests/installer/README.md` | **verified on host** |
+| `bash tests/installer/run.sh` | repo root | full — installer compatibility harness: 17 scenarios over the real `install.sh` (OS gate, per-manager sudo policy, consent/backup envelope, clone-vs-update incl. the diverged-local die, XDG/APPNAME bootstrap composition, real-Lua uninstaller guards); bounds in `tests/installer/README.md` | **verified on host** |
 | `bash tests/run.sh` | repo root | full — mapping contracts via Podman/Docker | **container-required** — no Podman/Docker on the dev host; verified shape, not run here |
 | `cd tests && go test -count=1 -parallel 8 .` | `tests/` | full — mapping contracts on a Go host | **unverified on this host** (no Go installed); same suite `tests/run.sh` runs in compose |
 

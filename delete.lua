@@ -61,9 +61,13 @@ local function font_file()
   return util.path_join(util.home(), ".local", "share", "fonts", "iosevka_nerd_font.ttf")
 end
 
+-- Identity requires BOTH marker files, matching install.sh's is_ours
+-- content check: a packer-style foreign config that happens to carry
+-- lua/plugins.lua (and no install.lua) must not be queued for
+-- deletion (final-review finding R1).
 local function looks_like_dwpvim(dir)
   return util.file_exists(util.path_join(dir, "install.lua"))
-    or util.file_exists(util.path_join(dir, "lua", "plugins.lua"))
+    and util.file_exists(util.path_join(dir, "lua", "plugins.lua"))
 end
 
 local HOME = util.home()

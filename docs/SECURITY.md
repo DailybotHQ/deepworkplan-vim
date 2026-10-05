@@ -43,8 +43,11 @@ review severities.
   foreign configs. Updates pull from `origin`, or from `DWP_VIM_SOURCE`
   when set (offline installs).
 - The uninstaller (`delete.lua`) removes the config directory only when it
-  is a DeepWorkPlan Vim checkout — a foreign config at the same path is
-  listed and left in place.
+  looks like a DeepWorkPlan Vim checkout — BOTH marker files
+  (`install.lua` AND `lua/plugins.lua`, the same pair `install.sh`'s
+  `is_ours` requires) — a foreign config at the same path (including a
+  packer-style one carrying only `lua/plugins.lua`) is listed and left
+  in place.
 - Any destructive path operation (`rm`, `rm -rf`, symlink replacement in
   `entrypoint.sh`) must be guarded by existence checks — a wrong path here is
   user-data loss, review-severity `critical`.

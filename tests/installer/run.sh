@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/installer/run.sh — installer compatibility harness.
 #
-# Host-runnable (bash + git + coreutils only; no Docker, no network, no
+# Host-runnable (bash + git + coreutils + util-linux script; no Docker, no network, no
 # Neovim, no real Lua leg): every scenario runs the REAL install.sh
 # against synthetic roots (mktemp -d fake $HOME) with PATH shims that
 # record package-manager invocations. The uninstaller scenario runs the
@@ -315,17 +315,47 @@ scenario_delete_foreign_config() {
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
   ln -s "$(command -v lua5.4)" "$T/bin/lua5.4"
-  mkdir -p "$T/home/.config/nvim"
+  # Review R1 (final review): the foreign config also carries a
+  # packer-style lua/plugins.lua and NO install.lua — the identity
+  # predicate must require BOTH marker files, or this exact shape gets
+  # queued for deletion.
+  mkdir -p "$T/home/.config/nvim/lua"
   echo "foreign init.vim" >"$T/home/.config/nvim/init.vim"
+  echo "return {}" >"$T/home/.config/nvim/lua/plugins.lua"
   RC=0
   env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
     lua5.4 "$REPO/delete.lua" \
     </dev/null >"$T/out.log" 2>&1 || RC=$?
   wg "foreign config left in place" "left in place"  "$T/out.log"
   wg "uninstall aborted (default No)" "Aborted"      "$T/out.log"
+  # The target-line why-text "(this repo…)" only appears when the
+  # config_dir IS queued; the left-in-place NOTE shares the phrase.
+  wng "not queued as a removal target" "DeepWorkPlan Vim config (this repo" "$T/out.log"
   wx "exit 0"          test "$RC" -eq 0
   wx "foreign intact"  test "$(cat "$T/home/.config/nvim/init.vim")" = "foreign init.vim"
+  wx "plugins.lua intact" test "$(cat "$T/home/.config/nvim/lua/plugins.lua")" = "return {}"
   wx "no data dirs removed" test ! -e "$T/home/.local/share/nvim"
+}
+
+scenario_update_diverged_local() {
+  # Review R2 (final review): a local main that diverged from the source
+  # must die loudly — never complete rc 0 with the success banner while
+  # silently staying on the old commit.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  git clone -q "$FIXTURE" "$T/home/.config/nvim"
+  git -C "$T/home/.config/nvim" -c user.email=t@example.com -c user.name=t \
+    commit -q --allow-empty -m "local edit"
+  local LOCAL_HEAD; LOCAL_HEAD="$(git -C "$T/home/.config/nvim" rev-parse HEAD)"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  wg "divergence named"  "update skipped"  "$T/out.log"
+  wng "no success banner" "System setup finished" "$T/out.log"
+  wng "setup not run"     "Running the system setup" "$T/out.log"
+  wx "rc non-zero"        test "$RC" -ne 0
+  wx "still a git repo"   test -d "$T/home/.config/nvim/.git"
+  wx "local commit intact" test "$(git -C "$T/home/.config/nvim" rev-parse HEAD)" = "$LOCAL_HEAD"
 }
 
 scenario_bootstrap_already_installed() {
@@ -360,6 +390,7 @@ run_scenario dest_is_file                scenario_dest_is_file
 run_scenario unsupported_os_mingw        scenario_unsupported_os_mingw
 run_scenario unsupported_os_unknown      scenario_unsupported_os_unknown
 run_scenario bootstrap_xdg_custom_dir    scenario_bootstrap_xdg_custom_dir
+run_scenario update_diverged_local     scenario_update_diverged_local
 run_scenario delete_foreign_config      scenario_delete_foreign_config
 run_scenario bootstrap_already_installed scenario_bootstrap_already_installed
 

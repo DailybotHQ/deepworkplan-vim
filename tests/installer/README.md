@@ -1,14 +1,15 @@
 # Installer compatibility harness
 
 Host-runnable compatibility and safety harness for `install.sh`. It needs
-only **bash, git and coreutils** — no Docker, no network, no Neovim, no real
-Lua leg — and runs the **real `install.sh`** end to end in synthetic roots.
+only **bash, git, coreutils, and util-linux `script`** (for the one pty
+consent scenario) — no Docker, no network, no Neovim, no real Lua leg —
+and runs the **real `install.sh`** end to end in synthetic roots.
 
 ```bash
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (16 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (17 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -34,7 +35,8 @@ shim per scenario; real `git`/coreutils for everything else):
 | `unsupported_os_mingw` | MINGW64 refuses with winget instructions |
 | `unsupported_os_unknown` | Unknown kernel (Haiku) dies naming the uname value |
 | `bootstrap_xdg_custom_dir` | Custom `DWP_VIM_DIR`: `XDG_CONFIG_HOME` = parent + `NVIM_APPNAME` = basename composition reaches nvim; FIXED(I-19): the idempotence marker is written after a clean bootstrap |
-| `delete_foreign_config` | FIXED(I-3)+(I-4), real `delete.lua` under the host's real `lua5.4`: a foreign config_dir is listed as "left in place", never a removal target; a piped confirm (no tty, EOF) keeps the default (No) so the uninstall aborts without deleting |
+| `update_diverged_local` | FIXED(R2, final review): a local `main` that diverged from the source dies loudly ("update skipped… local commits diverge") — rc non-zero, no success banner, no system setup, local commit intact |
+| `delete_foreign_config` | FIXED(I-3)+(I-4)+(R1, final review), real `delete.lua` under the host's real `lua5.4`: a foreign config_dir — including a packer-style one carrying `lua/plugins.lua` but no `install.lua` — is listed as "left in place", never a removal target; a piped confirm (no tty, EOF) keeps the default (No) so the uninstall aborts without deleting |
 | `bootstrap_already_installed` | Existing marker short-circuits: "Plugins already installed", no nvim invocation |
 
 **Flipped pins.** Three scenarios were committed during the audit as
@@ -68,7 +70,7 @@ breaks them is a regression, not a pin.
 
 ```
 tests/installer/
-├── run.sh                  # the harness (15 scenarios + shared setup)
+├── run.sh                  # the harness (17 scenarios + shared setup)
 └── shims/
     ├── uname id sudo       # OS/identity shims (FAKE_UNAME / FAKE_UID)
     ├── apt-get             # manager shim template (logs argv; installs a lua5.4 stub)
