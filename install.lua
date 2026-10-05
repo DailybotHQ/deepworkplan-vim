@@ -110,9 +110,10 @@ if not util.is_absolute(INSTALL_DIR) then
 end
 
 local greeted_ok = greeter.greeter()
-if greeted_ok then
-  os.execute("sleep 5")
-else
+if not greeted_ok then
+  -- (The banner used to hold the screen for 5 s here — dead time on
+  -- every install and re-run; audit I-14. The setup output that
+  -- follows keeps it on screen long enough to read.)
   log_fail("Something went wrong while greeting")
 end
 

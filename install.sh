@@ -108,6 +108,9 @@ fi
 
 if [ "${#tools_missing[@]}" -gt 0 ]; then
   if [ "$MANAGER" = "none" ]; then
+    if [ "$(uname -s)" = "Darwin" ]; then
+      die "missing: ${tools_missing[*]} — and Homebrew was not found. Install it from https://brew.sh (copy the command from that page into Terminal), then reopen Terminal and rerun."
+    fi
     die "missing: ${tools_missing[*]} — and no supported package manager found (need brew, pacman, apt, or dnf). Install them, then rerun."
   fi
   say "==> Installing missing tools with $MANAGER: ${tools_missing[*]}"
