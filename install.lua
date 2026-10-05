@@ -36,7 +36,6 @@ if util.is_windows() then
   PREVIOUS_DIR = util.path_join(util.data_home(), "previous-deepworkplan-vim")
 end
 local FONT_SOURCE = SCRIPT_DIR .. "/utilities/installation/iosevka_nerd_font.ttf"
-local MARKER = util.path_join(util.data_home(), "nvim", "deepworkplan-vim-installed")
 
 local FAIL_COUNT = 0
 
@@ -64,15 +63,6 @@ local function log_fail(msg)
     f:close()
   end
   FAIL_COUNT = FAIL_COUNT + 1
-end
-
-local function mark_as_run()
-  util.mkdir_p(util.path_join(util.data_home(), "nvim"))
-  local f = io.open(MARKER, "w")
-  if f then
-    f:write(tostring(os.time()))
-    f:close()
-  end
 end
 
 local function expand_path(path)
@@ -145,7 +135,7 @@ end
 
 if skip_packages then
   io.write("DWP_VIM_SKIP_PACKAGES is set: system packages are assumed present (container image, CI). Installing pckr and the font only.\n")
-  if not installer.install_pckr() then
+  if not installer.install_pckr(SCRIPT_DIR) then
     log_fail("Could not clone pckr.nvim")
   end
 elseif manager == nil then
@@ -159,14 +149,15 @@ else
   end
   local chosen_extras = cli.multi_select("Optional extra packages:", extra_options)
 
-  if installer.installDependencies(manager, chosen_extras) then
+  if installer.installDependencies(manager, chosen_extras, SCRIPT_DIR) then
     done.installation_success()
   else
     log_fail("installDependencies failed for manager: " .. manager)
   end
 end
 
-mark_as_run()
+-- (No install marker is written here: the appname-composed marker that
+-- install.sh maintains after the headless bootstrap is the real one.)
 
 if installer.install_font(FONT_SOURCE) then
   io.write("Font installed.\n")

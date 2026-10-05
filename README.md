@@ -26,7 +26,7 @@ Advanced / offline:
 curl -fsSL https://deepworkplan.com/vim/install.sh | DWP_VIM_REF=v0.3.1 bash   # pin a tag
 git clone https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim    # manual (advanced)
 cd ~/.config/nvim && lua install.lua
-DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh                       # local/offline source
+DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh                       # local/offline source (also redirects updates)
 DWP_VIM_SKIP_PACKAGES=1 lua install.lua                                        # image already has the deps
 ```
 

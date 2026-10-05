@@ -8,7 +8,7 @@ Lua leg — and runs the **real `install.sh`** end to end in synthetic roots.
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (15 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (16 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -25,22 +25,23 @@ shim per scenario; real `git`/coreutils for everything else):
 | `fresh_pacman` | Arch leg: `pacman -Sy --noconfirm lua`, `sudo` prefix |
 | `fresh_brew` | macOS leg: `brew install lua`, never `sudo` |
 | `update_ours` | Idempotent rerun over our own clone: update path, fetch + ff, no consent prompt, Lua leg + headless bootstrap run, rc 0, no backup |
-| `update_ours_source` | **KNOWN-DEFECT pin I-1**: dead `origin` + valid `DWP_VIM_SOURCE` still dies (update ignores the env var) |
-| `not_ours_local_path` | **KNOWN-DEFECT pin I-2**: our clone via a mirror path (URL lacks `deepworkplan-vim`) is misdetected as foreign and aborts unattended |
+| `update_ours_source` | FIXED(I-1): dead `origin` + valid `DWP_VIM_SOURCE` updates from the source and completes (the env var is honored on updates) |
+| `not_ours_local_path` | FIXED(I-2): our clone via a mirror path (URL lacks `deepworkplan-vim`) is recognized by checkout contents and updates in place |
 | `foreign_piped` | Piped/non-tty run over a foreign config: detection, "cannot ask unattended" abort, foreign file intact, no backup |
 | `foreign_interactive_yes` | Pty run, consent `y`: foreign config moved to `previous-deepworkplan-vim`, fresh clone installed, rc 0 |
 | `backup_collision` | Pre-existing `previous-deepworkplan-vim` aborts before touching anything |
 | `dest_is_file` | `~/.config/nvim` exists as a file → clean abort |
 | `unsupported_os_mingw` | MINGW64 refuses with winget instructions |
 | `unsupported_os_unknown` | Unknown kernel (Haiku) dies naming the uname value |
-| `bootstrap_xdg_custom_dir` | Custom `DWP_VIM_DIR`: `XDG_CONFIG_HOME` = parent + `NVIM_APPNAME` = basename composition reaches nvim; **KNOWN-DEFECT pin I-19**: marker not written after a clean bootstrap |
+| `bootstrap_xdg_custom_dir` | Custom `DWP_VIM_DIR`: `XDG_CONFIG_HOME` = parent + `NVIM_APPNAME` = basename composition reaches nvim; FIXED(I-19): the idempotence marker is written after a clean bootstrap |
+| `delete_foreign_config` | FIXED(I-3)+(I-4), real `delete.lua` under the host's real `lua5.4`: a foreign config_dir is listed as "left in place", never a removal target; a piped confirm (no tty, EOF) keeps the default (No) so the uninstall aborts without deleting |
 | `bootstrap_already_installed` | Existing marker short-circuits: "Plugins already installed", no nvim invocation |
 
-**KNOWN-DEFECT pins** intentionally assert the current *buggy* behavior
-(audit findings I-1, I-2, I-19 in
-`.dwp/plans/PLAN_004_installer_compat_ux_audit/analysis_results/INSTALLER_AUDIT.md`).
-A fix that changes installer behavior must flip these scenarios red→green
-consciously: update the assertion, the tag comment and this README together.
+**Flipped pins.** Three scenarios were committed during the audit as
+KNOWN-DEFECT pins asserting the then-buggy behavior (I-1, I-2, I-19); the
+remediation flipped them red→green with the red half recorded in the plan
+(`RED_HALF_pins_vs_fixed_code.txt`). Any future installer change that
+breaks them is a regression, not a pin.
 
 ## What it does NOT prove (bounds)
 
@@ -48,8 +49,12 @@ consciously: update the assertion, the tag comment and this README together.
   materialize a stub `lua5.4` when a lua package is "installed"). Real
   apt/dnf/pacman/brew behavior, sudo prompts and package-name drift belong to
   the container matrix (`docker compose -f compose.yml run --rm apt_test` …).
-- **No real Lua leg** — `install.lua` runs as a stub; the system-setup phase
-  (manager detection in Lua, pckr install, pnpm) is not exercised here.
+- **No real install.lua leg** — `install.lua` runs as a stub; the
+  system-setup phase (manager detection in Lua, package installs, pnpm) is
+  not exercised here. `delete.lua` DOES run for real (host `lua5.4`): it
+  only unlinks paths under the synthetic root. Scripts under test run LIVE
+  from the working tree; anything reached through the fixture clone carries
+  the last commit instead.
 - **No real Neovim** — the headless bootstrap runs a stub `nvim` that records
   the `XDG_CONFIG_HOME`/`NVIM_APPNAME` composition; plugin installation,
   mason and first-launch self-healing are not covered.

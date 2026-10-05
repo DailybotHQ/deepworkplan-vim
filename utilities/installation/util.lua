@@ -261,6 +261,28 @@ function M.replace_old(target, backup_dir)
     return true
   end
 
+  -- An existing config is never moved or deleted by a run that cannot
+  -- ask (piped without a terminal) — the same rule install.sh enforces.
+  -- Before this gate, a headless run auto-answered the prompt and moved
+  -- the config; declining (rm_rf) was reachable by EOF as well.
+  local can_ask = false
+  if package.config:sub(1, 1) == "\\" then
+    can_ask = true -- Windows line input has no /dev/tty convention
+  else
+    local tty = io.open("/dev/tty", "r")
+    if tty then
+      tty:close()
+      can_ask = true
+    end
+  end
+  if not can_ask then
+    io.stderr:write(
+      "A previous config exists at " .. target .. " and this run has no terminal to ask what to do.\n" ..
+      "Move it aside first (mv '" .. target .. "' '" .. backup_dir .. "') or rerun interactively. Nothing was touched.\n"
+    )
+    return false
+  end
+
   while true do
     local keep = cli.confirm(
       "A previous config exists at " .. target .. ". Keep it as a backup?",

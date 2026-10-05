@@ -33,6 +33,18 @@ review severities.
   (apt/dnf/pacman); config writes happen as the user.
 - The user's previous config is moved to `~/.config/previous-deepworkplan-vim`,
   never deleted; reruns are idempotent.
+- An existing config is only ever touched with real consent: `install.sh`
+  aborts when piped without a terminal, and `install.lua`'s replace-old step
+  refuses the same way (no auto-Yes headless). The confirm widget keeps its
+  default on absent input; declining requires an explicit typed answer.
+- "Is this ours" is decided by the checkout's contents (`install.lua` +
+  `lua/plugins.lua`, remote-URL substring as fallback), so clones from
+  mirrors or renamed forks update in place instead of being treated as
+  foreign configs. Updates pull from `origin`, or from `DWP_VIM_SOURCE`
+  when set (offline installs).
+- The uninstaller (`delete.lua`) removes the config directory only when it
+  is a DeepWorkPlan Vim checkout — a foreign config at the same path is
+  listed and left in place.
 - Any destructive path operation (`rm`, `rm -rf`, symlink replacement in
   `entrypoint.sh`) must be guarded by existence checks — a wrong path here is
   user-data loss, review-severity `critical`.

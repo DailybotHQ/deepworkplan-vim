@@ -141,6 +141,12 @@ is_ours() {
   local top
   top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || return 1
   [ "$top" = "$(cd "$1" && pwd -P)" ] || return 1
+  # Identity is what the checkout contains, not where it was cloned from:
+  # a clone from a local mirror or a renamed fork is still ours, and the
+  # remote-URL substring alone misses those. install.lua + lua/plugins.lua
+  # is the pair delete.lua's looks_like_dwpvim knows (required AND here,
+  # not or); the URL check stays as the fallback for partial checkouts.
+  [ -f "$1/install.lua" ] && [ -f "$1/lua/plugins.lua" ] && return 0
   git -C "$1" remote get-url origin 2>/dev/null | grep -q 'deepworkplan-vim'
 }
 
@@ -201,18 +207,26 @@ fi
 
 if is_ours "$DEST"; then
   say "==> Existing DeepWorkPlan Vim install at $DEST — updating to '$REF'"
-  git -C "$DEST" fetch origin || die "git fetch failed in $DEST (offline? set DWP_VIM_SOURCE to a local path)"
-  git -C "$DEST" checkout "$REF" >/dev/null 2>&1 || die "ref '$REF' not found in $DEST"
-  if git -C "$DEST" rev-parse --verify --quiet "refs/remotes/origin/$REF" >/dev/null; then
-    # A branch: fast-forward to the remote tip. Local edits are never reset.
-    git -C "$DEST" pull --ff-only origin "$REF" ||
+  # DWP_VIM_SOURCE redirects the update too (offline installs, local
+  # mirrors); unset, the update pulls from the clone's own origin.
+  FETCH_SOURCE="${DWP_VIM_SOURCE:-origin}"
+  git -C "$DEST" fetch "$FETCH_SOURCE" "$REF" ||
+    die "git fetch failed from $FETCH_SOURCE in $DEST (offline? set DWP_VIM_SOURCE to a local path)"
+  git -C "$DEST" checkout "$REF" >/dev/null ||
+    die "git checkout '$REF' failed in $DEST (ref missing, or local changes block it — see the error above)"
+  # Fast-forward to the fetched tip when it is ahead. merge --ff-only
+  # refuses a dirty or diverged tree, so local edits are never reset.
+  if [ "$(git -C "$DEST" rev-parse HEAD)" != "$(git -C "$DEST" rev-parse FETCH_HEAD)" ] \
+    && git -C "$DEST" merge-base --is-ancestor HEAD FETCH_HEAD; then
+    git -C "$DEST" merge --ff-only FETCH_HEAD ||
       die "could not fast-forward $DEST (local changes?). Resolve manually and rerun"
   fi
 else
   say "==> Cloning DeepWorkPlan Vim ('$REF') into $DEST"
   mkdir -p "$(dirname "$DEST")"
   git clone "$SOURCE" "$DEST" || die "clone from $SOURCE failed"
-  git -C "$DEST" checkout "$REF" >/dev/null 2>&1 || die "ref '$REF' not found in $SOURCE"
+  git -C "$DEST" checkout "$REF" >/dev/null ||
+    die "git checkout '$REF' failed in the clone from $SOURCE (ref missing, or local changes block it — see the error above)"
 fi
 
 [ -f "$DEST/install.lua" ] || die "$DEST has no install.lua — not a DeepWorkPlan Vim checkout"
@@ -267,7 +281,11 @@ else
       nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   fi
   if [ "$bootstrap_rc" -eq 0 ]; then
-    touch "$MARKER" 2>/dev/null || true
+    # mkdir -p first: touch cannot create the parent dir, and a silently
+    # missing marker made every rerun re-run the bootstrap (audit I-19).
+    if ! { mkdir -p "$(dirname "$MARKER")" && touch "$MARKER" 2>/dev/null; }; then
+      say "NOTE: could not write the bootstrap marker $MARKER — the next run will re-check plugins."
+    fi
     say "==> Plugins installed"
   else
     say "WARNING: the headless plugin install did not finish cleanly (rc=$bootstrap_rc)."

@@ -177,6 +177,27 @@ end
 --
 -- Returns true/false. default_yes controls which option is listed first.
 function M.confirm(question, default_yes)
+  if not can_use_raw() then
+    -- Line-mode fallback (no /dev/tty). Absent input — EOF or an empty
+    -- line — keeps the DEFAULT; only an explicit "y" affirms and only an
+    -- explicit "n" declines, so a piped run can never trip a destructive
+    -- answer by accident.
+    local hint = default_yes == false and "[y/N]" or "[Y/n]"
+    io.write(question .. " " .. hint .. ": ")
+    io.flush()
+    local answer = io.read("*l")
+    if answer == nil or not answer:match("%S") then
+      return default_yes ~= false
+    end
+    local c = answer:match("^%s*(%a)")
+    if c == "y" or c == "Y" then
+      return true
+    end
+    if c == "n" or c == "N" then
+      return false
+    end
+    return default_yes ~= false
+  end
   local options
   if default_yes == false then
     options = {

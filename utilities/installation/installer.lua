@@ -69,9 +69,14 @@ function M.resolve_extras(manager, chosen)
   return mapped
 end
 
-function M.install_pckr()
-  -- Same path plugins.lua uses: stdpath("data")/pckr/pckr.nvim
-  local pckr_dir = util.path_join(util.data_home(), "nvim", "pckr", "pckr.nvim")
+function M.install_pckr(config_dir)
+  -- Same path plugins.lua uses: stdpath("data")/pckr/pckr.nvim — where
+  -- stdpath("data") follows the ACTIVE appname, which is the checkout's
+  -- basename for a custom DWP_VIM_DIR (install.sh composes the same way
+  -- for its bootstrap). Compose it from the config dir this installer
+  -- runs from instead of hard-coding "nvim".
+  local appname = (config_dir and config_dir:match("[^/\\]+$")) or "nvim"
+  local pckr_dir = util.path_join(util.data_home(), appname, "pckr", "pckr.nvim")
 
   if util.dir_exists(pckr_dir) then
     io.write("pckr.nvim already present, skipping clone\n")
@@ -174,7 +179,7 @@ local function install_winget(id)
   )
 end
 
-function M.installDependencies(manager, extra_names)
+function M.installDependencies(manager, extra_names, config_dir)
   extra_names = extra_names or {}
   if manager == nil or manager == "" then
     io.stderr:write("installDependencies: expected a package manager name\n")
@@ -183,7 +188,7 @@ function M.installDependencies(manager, extra_names)
 
   local status = true
 
-  if not M.install_pckr() then
+  if not M.install_pckr(config_dir) then
     status = false
   end
 

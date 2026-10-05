@@ -4,10 +4,12 @@
 # Host-runnable (bash + git + coreutils only; no Docker, no network, no
 # Neovim, no real Lua leg): every scenario runs the REAL install.sh
 # against synthetic roots (mktemp -d fake $HOME) with PATH shims that
-# record package-manager invocations. Three scenarios are KNOWN-DEFECT
-# pins: they assert the CURRENT buggy behavior (audit findings I-1,
-# I-2 and I-19) so the fix that flips them must do so consciously,
-# red→green.
+# record package-manager invocations. The uninstaller scenario runs the
+# REAL delete.lua under the host's real lua5.4 — it only unlinks paths
+# inside the synthetic root. (The install.lua leg stays stubbed: its
+# package installs belong to the container matrix.) The former
+# KNOWN-DEFECT pins (audit I-1, I-2, I-19) were flipped to fixed
+# behavior by the Task-3 remediation, red half recorded in the plan.
 #
 # PATH layout per scenario:   $NEUTRAL_DIR : $T/bin : $BASE_BIN
 #   NEUTRAL_DIR — uname/id/sudo shims only (always visible).
@@ -170,9 +172,8 @@ scenario_update_ours() {
 }
 
 scenario_update_ours_source() {
-  # KNOWN-DEFECT(I-1) pin: the ours-branch fetches hard-coded origin and
-  # ignores DWP_VIM_SOURCE — a valid source does NOT rescue a dead
-  # origin today. The T3 fix must flip this scenario red->green.
+  # FIXED(I-1): the ours-branch honors DWP_VIM_SOURCE — a dead origin no
+  # longer kills the update when a valid source is exported.
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
@@ -180,17 +181,19 @@ scenario_update_ours_source() {
   git clone -q "$FIXTURE" "$T/home/.config/nvim"
   git -C "$T/home/.config/nvim" remote set-url origin "$T/dead-deepworkplan-vim"
   run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
-  wg "recognized as ours"      "Existing DeepWorkPlan Vim install" "$T/out.log"
-  wg "fetch of dead origin fails" "git fetch failed"            "$T/out.log"
-  wx "exit non-zero"           test "$RC" -ne 0
-  wx "DEST left a git repo"    test -d "$T/home/.config/nvim/.git"
+  wg "recognized as ours"   "Existing DeepWorkPlan Vim install" "$T/out.log"
+  wg "update completed"     "DeepWorkPlan Vim is installed at"  "$T/out.log"
+  wng "no fetch failure"    "git fetch failed"                  "$T/out.log"
+  wg "lua leg ran (stub)"   "lua5.4 install.lua"                "$T/shim.log"
+  wx "exit 0"               test "$RC" -eq 0
+  wx "DEST left a git repo" test -d "$T/home/.config/nvim/.git"
 }
 
 scenario_not_ours_local_path() {
-  # KNOWN-DEFECT(I-2) pin: is_ours matches the origin URL by substring
-  # 'deepworkplan-vim' — a genuine clone from a mirror path without the
-  # string is misdetected as a FOREIGN config (abort unattended). The T3
-  # fix must flip this scenario red->green.
+  # FIXED(I-2): is_ours identifies the checkout by its contents
+  # (install.lua + lua/plugins.lua), so a clone from a mirror path whose
+  # URL lacks 'deepworkplan-vim' updates in place instead of being
+  # treated as a foreign config.
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
@@ -198,10 +201,13 @@ scenario_not_ours_local_path() {
   git clone -q --bare "$FIXTURE" "$T/m"
   git clone -q "$T/m" "$T/home/.config/nvim"
   run_install "$T" "$T/out.log"
-  wg "misdected as foreign"    "An existing Neovim config was found" "$T/out.log"
-  wg "unattended abort"        "refusing to touch an existing config unattended" "$T/out.log"
-  wx "exit non-zero"           test "$RC" -ne 0
-  wx "clone untouched"         test -f "$T/home/.config/nvim/install.lua"
+  wg "recognized as ours"  "Existing DeepWorkPlan Vim install" "$T/out.log"
+  wg "lua leg ran (stub)"  "lua5.4 install.lua"                "$T/shim.log"
+  wng "no consent prompt"  "Move it to"                        "$T/out.log"
+  wng "no foreign abort"   "refusing to touch an existing config unattended" "$T/out.log"
+  wx "exit 0"              test "$RC" -eq 0
+  wx "clone is a repo"     test -d "$T/home/.config/nvim/.git"
+  wx "install.lua intact"  test -f "$T/home/.config/nvim/install.lua"
 }
 
 scenario_foreign_piped() {
@@ -284,12 +290,9 @@ scenario_unsupported_os_unknown() {
 }
 
 scenario_bootstrap_xdg_custom_dir() {
-  # KNOWN-DEFECT(I-19) pin: after a CLEAN headless bootstrap (rc=0), the
-  # idempotence marker is still absent — `touch "$MARKER" 2>/dev/null || true`
-  # cannot create its parent dir, and the swallowed failure means every rerun
-  # re-bootstraps (masked in real installs only by the mason.nvim dir
-  # fallback). The T3 fix (mkdir -p the marker's parent) must flip this
-  # scenario red->green.
+  # FIXED(I-19): after a clean headless bootstrap the idempotence marker
+  # IS written — the installer mkdir -p's the marker's parent before
+  # touching it, so a rerun short-circuits instead of re-bootstrapping.
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
@@ -299,8 +302,30 @@ scenario_bootstrap_xdg_custom_dir() {
   wg "custom DEST used"        "installed at $T/home/.config/dwpvim" "$T/out.log"
   wg "headless bootstrap"      "nvim --headless"               "$T/shim.log"
   wg "XDG parent composition"  "nvim-env XDG_CONFIG_HOME=$T/home/.config NVIM_APPNAME=dwpvim" "$T/shim.log"
-  wx "marker NOT written today" test ! -e "$T/home/.local/share/dwpvim/pckr/.dwp-vim-bootstrapped"
+  wx "marker under appname"    test -f "$T/home/.local/share/dwpvim/pckr/.dwp-vim-bootstrapped"
   wx "exit 0"                  test "$RC" -eq 0
+}
+
+scenario_delete_foreign_config() {
+  # FIXED(I-3) + FIXED(I-4), real Lua: delete.lua leaves a foreign
+  # config_dir in place, and a piped confirm (no tty, EOF) keeps the
+  # default — the uninstall aborts without deleting anything.
+  # delete.lua runs LIVE from the repo tree (like install.sh above) —
+  # a fixture clone would carry the last commit, not this working tree.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  ln -s "$(command -v lua5.4)" "$T/bin/lua5.4"
+  mkdir -p "$T/home/.config/nvim"
+  echo "foreign init.vim" >"$T/home/.config/nvim/init.vim"
+  RC=0
+  env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
+    lua5.4 "$REPO/delete.lua" \
+    </dev/null >"$T/out.log" 2>&1 || RC=$?
+  wg "foreign config left in place" "left in place"  "$T/out.log"
+  wg "uninstall aborted (default No)" "Aborted"      "$T/out.log"
+  wx "exit 0"          test "$RC" -eq 0
+  wx "foreign intact"  test "$(cat "$T/home/.config/nvim/init.vim")" = "foreign init.vim"
+  wx "no data dirs removed" test ! -e "$T/home/.local/share/nvim"
 }
 
 scenario_bootstrap_already_installed() {
@@ -326,18 +351,16 @@ run_scenario fresh_dnf                   scenario_fresh_dnf
 run_scenario fresh_pacman                scenario_fresh_pacman
 run_scenario fresh_brew                  scenario_fresh_brew
 run_scenario update_ours                 scenario_update_ours
-run_scenario update_ours_source          scenario_update_ours_source \
-  "[KNOWN-DEFECT I-1 pinned: asserts current buggy behavior]"
-run_scenario not_ours_local_path         scenario_not_ours_local_path \
-  "[KNOWN-DEFECT I-2 pinned: asserts current buggy behavior]"
+run_scenario update_ours_source          scenario_update_ours_source
+run_scenario not_ours_local_path         scenario_not_ours_local_path
 run_scenario foreign_piped               scenario_foreign_piped
 run_scenario foreign_interactive_yes     scenario_foreign_interactive_yes
 run_scenario backup_collision            scenario_backup_collision
 run_scenario dest_is_file                scenario_dest_is_file
 run_scenario unsupported_os_mingw        scenario_unsupported_os_mingw
 run_scenario unsupported_os_unknown      scenario_unsupported_os_unknown
-run_scenario bootstrap_xdg_custom_dir    scenario_bootstrap_xdg_custom_dir \
-  "[KNOWN-DEFECT I-19 pinned: asserts current buggy behavior]"
+run_scenario bootstrap_xdg_custom_dir    scenario_bootstrap_xdg_custom_dir
+run_scenario delete_foreign_config      scenario_delete_foreign_config
 run_scenario bootstrap_already_installed scenario_bootstrap_already_installed
 
 TOTAL=$((TOTAL_PASS+TOTAL_FAIL))
