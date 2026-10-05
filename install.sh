@@ -246,6 +246,12 @@ say "==> Running the system setup ($LUA install.lua)"
 if (cd "$DEST" && "$LUA" install.lua); then
   say "==> System setup finished"
 else
+  # The handoff line comes first so it sits directly under the failure
+  # output; the original die line below stays verbatim (UX2-03).
+  say ""
+  say "Copy the line below and hand it to your agent — they can read the log and fix this:"
+  say "  Read $DEST/fails.log and fix the DeepWorkPlan Vim install failure it describes."
+  say ""
   die "'$LUA install.lua' failed — see $DEST/fails.log and https://github.com/DailybotHQ/deepworkplan-vim/issues/new"
 fi
 
@@ -311,3 +317,4 @@ say "  Launch        nvim"
 say "  Command index Space h h   (the whole editor, listed)"
 say "  Plan browser  Space P"
 say "  Update        rerun this installer (idempotent) or: git -C '$DEST' pull"
+say "  Remove        lua '$DEST/delete.lua'  (lists every path first, asks, keeps Neovim)"

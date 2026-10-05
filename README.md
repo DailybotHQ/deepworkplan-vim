@@ -30,10 +30,30 @@ DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh                       #
 DWP_VIM_SKIP_PACKAGES=1 lua install.lua                                        # image already has the deps
 ```
 
-Windows: `curl | bash` is not the Windows gesture — install Neovim with
-`winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements`,
-clone into `%LOCALAPPDATA%\nvim`, run `lua install.lua` (Git Bash), or use WSL
-where the one-liner works as-is. Requires [Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
+Windows: `curl | bash` is not the Windows gesture — use winget plus Git Bash,
+or run the one-liner above inside WSL, where it works as-is:
+
+```bash
+winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
+git clone https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+cd "$LOCALAPPDATA/nvim" && lua install.lua
+```
+
+Run the last two lines in Git Bash (which provides `git`); `lua` must be on
+PATH. A one-line Windows installer is on the roadmap. Requires
+[Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
+
+## Remove
+
+One line — the same shape as the install. It lists every path it will touch
+and asks before removing anything; Neovim itself stays installed:
+
+```bash
+lua ~/.config/nvim/delete.lua
+```
+
+On Windows the config lives in `%LOCALAPPDATA%\nvim` — in Git Bash:
+`lua "$LOCALAPPDATA/nvim/delete.lua"`.
 
 ## What you get
 

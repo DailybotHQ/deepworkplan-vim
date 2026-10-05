@@ -115,6 +115,8 @@ scenario_fresh_apt() {
   wg "lua leg ran (stub)"      "lua5.4 install.lua"            "$T/shim.log"
   wg "completion line"         "DeepWorkPlan Vim is installed at" "$T/out.log"
   wg "nvim-absent note"        "nvim is not on PATH"           "$T/out.log"
+  wg "uninstall mirror row"    "Remove"                        "$T/out.log"
+  wg "uninstall mirror names delete.lua" "delete.lua"          "$T/out.log"
   wx "exit 0"                  test "$RC" -eq 0
   wx "no backup created"       test ! -e "$T/home/.config/previous-deepworkplan-vim"
 }
@@ -373,6 +375,49 @@ scenario_bootstrap_already_installed() {
   wx "exit 0"                  test "$RC" -eq 0
 }
 
+scenario_lua_failure_handoff() {
+  # UX2-03: a failed system-setup leg ends with a paste-able agent
+  # handoff naming the fails.log path — ADDED to the existing log +
+  # issues lines, never replacing them (both are still asserted).
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  # A lua5.4 that always fails: the system-setup leg must die, not pass.
+  printf '#!/bin/sh\necho "simulated setup failure" >&2\nexit 1\n' >"$T/bin/lua5.4"
+  chmod 755 "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install "$T" "$T/out.log" FAKE_UID=1000 DWP_VIM_SOURCE="$FIXTURE"
+  wg "failure names its log"   "fails.log"                     "$T/out.log"
+  wg "agent handoff sentence"  "hand it to your agent"         "$T/out.log"
+  wg "paste line names the log" "Read $T/home/.config/nvim/fails.log" "$T/out.log"
+  wg "issues url kept"         "issues/new"                    "$T/out.log"
+  wx "exit non-zero"           test "$RC" -ne 0
+}
+
+scenario_delete_one_liner() {
+  # UX2-04: the advertised one-liner — delete.lua invoked by absolute
+  # path from an unrelated cwd — removes a DeepWorkPlan Vim install
+  # under a synthetic root after its consent question (real lua5.4;
+  # piped 'y' answers it). The config dir is a full fixture clone —
+  # delete.lua requires utilities/installation from its own tree.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  ln -s "$(command -v lua5.4)" "$T/bin/lua5.4"
+  git clone -q "$FIXTURE" "$T/home/.config/nvim"
+  mkdir -p "$T/home/.local/share/nvim/pckr"
+  : >"$T/home/.local/share/nvim/pckr/.dwp-vim-bootstrapped"
+  RC=0
+  (
+    cd "$T"
+    printf 'y\n' | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
+      lua5.4 "$T/home/.config/nvim/delete.lua"
+  ) >"$T/out.log" 2>&1 || RC=$?
+  wg "config queued as target" "DeepWorkPlan Vim config"       "$T/out.log"
+  wg "uninstall finished"      "user data is gone"             "$T/out.log"
+  wx "exit 0"                  test "$RC" -eq 0
+  wx "config dir removed"      test ! -e "$T/home/.config/nvim"
+  wx "data dir removed"        test ! -e "$T/home/.local/share/nvim"
+}
+
 # --- run them all -----------------------------------------------------------
 
 echo "== installer compatibility harness =="
@@ -393,6 +438,8 @@ run_scenario bootstrap_xdg_custom_dir    scenario_bootstrap_xdg_custom_dir
 run_scenario update_diverged_local     scenario_update_diverged_local
 run_scenario delete_foreign_config      scenario_delete_foreign_config
 run_scenario bootstrap_already_installed scenario_bootstrap_already_installed
+run_scenario lua_failure_handoff        scenario_lua_failure_handoff
+run_scenario delete_one_liner           scenario_delete_one_liner
 
 TOTAL=$((TOTAL_PASS+TOTAL_FAIL))
 if [ "$TOTAL_FAIL" -eq 0 ] && [ "$TOTAL" -ge 11 ]; then
