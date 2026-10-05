@@ -1,3 +1,9 @@
+# Multi-distro installer smokes. The apk / emerge / zypper legs are
+# SMOKE-ONLY: DeepWorkPlan Vim's supported set is brew, pacman, apt-get
+# and dnf (plus WSL-as-Linux; Windows is the manual winget path), and the
+# installer is EXPECTED to refuse on the smoke-only distros — the legs
+# prove the refusal is clean, they do not add support. Host-runnable
+# proof without Docker: tests/installer/run.sh.
 services:
   apk_test:
     image: docker.io/library/alpine:latest

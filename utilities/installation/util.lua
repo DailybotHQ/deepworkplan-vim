@@ -188,17 +188,64 @@ function M.is_absolute(path)
   return path:sub(1, 1) == "/"
 end
 
+-- Pure-Lua path resolution for when GNU `realpath -m` is unavailable —
+-- macOS BSD realpath rejects -m, and some minimal images ship no realpath
+-- at all. Expands a leading ~ to $HOME, makes the path absolute against
+-- the physical cwd, and collapses `.` / `..` / duplicate separators. It
+-- does NOT resolve symlinks: callers use the result for prefix
+-- comparisons (the run-from-inside guard), where syntactic normalization
+-- is what the comparison needs (installer audit I-7).
+local function resolve_in_lua(path)
+  local p = path
+  local home = M.home()
+  if p == "~" then
+    p = home
+  elseif p:sub(1, 2) == "~/" then
+    p = home .. p:sub(2)
+  end
+  if not M.is_absolute(p) then
+    local cwd = M.pwd()
+    if cwd ~= "" then
+      p = cwd .. "/" .. p
+    end
+  end
+  local parts = {}
+  local leading = (p:sub(1, 1) == "/") and "/" or ""
+  for seg in p:gmatch("[^/]+") do
+    if seg ~= "." then
+      if seg == ".." then
+        if #parts > 0 then
+          table.remove(parts)
+        end
+      else
+        parts[#parts + 1] = seg
+      end
+    end
+  end
+  local resolved = leading .. table.concat(parts, "/")
+  if resolved == "" then
+    resolved = "/"
+  end
+  return resolved
+end
+
 function M.realpath(path)
   if M.is_windows() then
     return path
   end
   local handle = io.popen('realpath -m -- "' .. path .. '" 2>/dev/null')
-  if not handle then
-    return path
+  if handle then
+    local resolved = handle:read("*l")
+    handle:close()
+    -- GNU realpath -m prints an absolute path even for non-existent
+    -- input; a rejecting or missing realpath prints nothing at all —
+    -- fall through to the Lua resolution instead of returning the input
+    -- unresolved.
+    if resolved and resolved ~= "" and resolved:sub(1, 1) == "/" then
+      return resolved
+    end
   end
-  local resolved = handle:read("*l")
-  handle:close()
-  return resolved or path
+  return resolve_in_lua(path)
 end
 
 function M.get_package_manager()

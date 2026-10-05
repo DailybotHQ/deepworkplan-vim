@@ -485,6 +485,52 @@ scenario_consent_eof_safe() {
   wx "unix gate target intact" test -f "$T/home/target2/init.vim"
 }
 
+scenario_realpath_bsd_fallback() {
+  # I-7 (PLAN_004 audit): when GNU realpath -m is unavailable — macOS BSD
+  # realpath rejects -m, some minimal images lack realpath entirely —
+  # util.realpath must still resolve the path in pure Lua (expand ~,
+  # make absolute, normalize . / .. / //) instead of returning the input
+  # unresolved. Probes call the real module from the repo cwd.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  ln -s "$(command -v lua5.4)" "$T/bin/lua5.4"
+  local LUA_ENV="HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN"
+
+  # A. BSD-style realpath on PATH: rejects -m (the util's probe flag).
+  cat >"$T/bin/realpath" <<'SH'
+#!/bin/sh
+# Models macOS BSD realpath: -m and -- are illegal options.
+for a in "$@"; do
+  case "$a" in
+    -m*|--*) echo "realpath: illegal option -- ${a#-}" >&2; exit 1 ;;
+  esac
+done
+exec /usr/bin/realpath "$@"
+SH
+  chmod 755 "$T/bin/realpath"
+  RC=0
+  env -i $LUA_ENV lua5.4 -e 'local u=require("utilities.installation.util") io.write("A "..u.realpath("~/.config/nvim").."\n")' \
+    >"$T/a.log" 2>&1 || RC=$?
+  wg "tilde expanded to HOME" "A $T/home/.config/nvim" "$T/a.log"
+  wng "no literal tilde survives" "~"                      "$T/a.log"
+
+  # B. No realpath on PATH at all: a relative path still resolves to the
+  #    physical cwd with . / .. collapsed (harness PATH has no realpath).
+  local PHYS; PHYS="$(pwd -P)"
+  RC=0
+  env -i $LUA_ENV lua5.4 -e 'local u=require("utilities.installation.util") io.write("B "..u.realpath("./sub/../nvim").."\n")' \
+    >"$T/b.log" 2>&1 || RC=$?
+  wg "relative normalized to cwd" "B $PHYS/nvim"           "$T/b.log"
+
+  # C. Guard semantics intact: the resolved ~ path is under the resolved
+  #    HOME and not under an unrelated sibling (regression guard for the
+  #    run-from-inside check, install.lua's path_is_under clause).
+  RC=0
+  env -i $LUA_ENV lua5.4 -e 'local u=require("utilities.installation.util") local r=u.realpath("~/.config/nvim") io.write("C "..tostring(u.path_is_under(r,u.realpath("~"))).." "..tostring(u.path_is_under(r,u.realpath("~/elsewhere"))).."\n")' \
+    >"$T/c.log" 2>&1 || RC=$?
+  wg "under HOME, not under sibling" "C true false"        "$T/c.log"
+}
+
 # --- run them all -----------------------------------------------------------
 
 echo "== installer compatibility harness =="
@@ -508,6 +554,7 @@ run_scenario bootstrap_already_installed scenario_bootstrap_already_installed
 run_scenario lua_failure_handoff        scenario_lua_failure_handoff
 run_scenario delete_one_liner           scenario_delete_one_liner
 run_scenario consent_eof_safe           scenario_consent_eof_safe
+run_scenario realpath_bsd_fallback      scenario_realpath_bsd_fallback
 
 TOTAL=$((TOTAL_PASS+TOTAL_FAIL))
 if [ "$TOTAL_FAIL" -eq 0 ] && [ "$TOTAL" -ge 11 ]; then
