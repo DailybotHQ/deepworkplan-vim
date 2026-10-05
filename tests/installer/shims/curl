@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# tests/installer/shims/curl — satisfies the preflight curl requirement in
+# scenarios without a package manager. install.sh clones via git, so curl
+# is never actually invoked; the stub only needs to exist and succeed.
+[ -n "${SHIM_LOG:-}" ] && printf 'curl %s\n' "$*" >>"$SHIM_LOG"
+exit 0

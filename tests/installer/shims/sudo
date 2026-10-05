@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# tests/installer/shims/sudo — records the delegation, then runs the
+# command itself (which resolves to the manager shim on PATH).
+[ -n "${SHIM_LOG:-}" ] && printf 'sudo %s\n' "$*" >>"$SHIM_LOG"
+exec "$@"

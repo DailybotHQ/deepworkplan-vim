@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# tests/installer/shims/nvim — records the headless bootstrap invocation
+# plus the XDG composition it received, then succeeds (marker eligible).
+[ -n "${SHIM_LOG:-}" ] && {
+  printf 'nvim %s\n' "$*" >>"$SHIM_LOG"
+  printf 'nvim-env XDG_CONFIG_HOME=%s NVIM_APPNAME=%s\n' \
+    "${XDG_CONFIG_HOME:-}" "${NVIM_APPNAME:-}" >>"$SHIM_LOG"
+}
+exit 0

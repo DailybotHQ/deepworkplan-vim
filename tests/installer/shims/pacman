@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# tests/installer/shims/pacman — records the invocation and simulates
+# package installation: any lua-ish package materializes a recording
+# lua5.4 stub into $SHIM_BIN (the writable scenario bin on PATH).
+[ -n "${SHIM_LOG:-}" ] && printf 'pacman %s\n' "$*" >>"$SHIM_LOG"
+# Any argv word naming a lua package counts: apt/dnf/brew say "install",
+# pacman says "-Sy --noconfirm" — the verb differs, the effect must not.
+for pkg in "$@"; do
+  case "$pkg" in
+    lua | lua5.4 | lua5.3 | luajit)
+      if [ -n "${SHIM_BIN:-}" ] && [ ! -x "$SHIM_BIN/lua5.4" ]; then
+        printf '%s\n' '#!/usr/bin/env bash' \
+          '[ -n "${SHIM_LOG:-}" ] && printf "lua5.4 %s\n" "$*" >>"$SHIM_LOG"' \
+          'exit 0' >"$SHIM_BIN/lua5.4"
+        chmod +x "$SHIM_BIN/lua5.4"
+      fi
+      ;;
+  esac
+done
+exit 0

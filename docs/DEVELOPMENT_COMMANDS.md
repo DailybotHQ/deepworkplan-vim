@@ -83,6 +83,25 @@ docker compose -f compose.yml run --rm <service>   # root compose.yml — distro
 
 Run from the repo root; consult `compose.yml` for the service names.
 
+## Installer compatibility harness (host)
+
+```bash
+bash tests/installer/run.sh
+```
+
+Runs the real `install.sh` in synthetic roots against PATH shims — bash, git
+and coreutils only; no container, no network, no Neovim, no real Lua leg.
+15 scenarios: the four package-manager legs and their sudo policy, the
+consent/backup envelope (piped abort, pty consent, backup collision,
+DEST-is-file), clone-vs-update, OS refusals (MINGW/unknown), and the
+XDG/`NVIM_APPNAME` bootstrap composition. Three scenarios are KNOWN-DEFECT
+pins asserting current buggy behavior (audit I-1, I-2, I-19) — a fix that
+changes installer behavior flips them red→green deliberately. Success
+sentinel: `INSTALLER HARNESS: OK (15 scenarios)`. Scope and bounds:
+[`tests/installer/README.md`](../tests/installer/README.md). Required for
+any change to `install.sh`, `install.lua`, `delete.lua` or
+`utilities/installation/`.
+
 ## DWP harness (plan work)
 
 ```text

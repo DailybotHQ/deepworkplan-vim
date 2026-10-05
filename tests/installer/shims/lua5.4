@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# tests/installer/shims/lua5.4 — records the Lua-leg invocation and
+# succeeds. The harness never runs the real install.lua: its package
+# installs belong to the container matrix, not a bash-only host run.
+[ -n "${SHIM_LOG:-}" ] && printf 'lua5.4 %s\n' "$*" >>"$SHIM_LOG"
+exit 0
