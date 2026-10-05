@@ -308,6 +308,6 @@ fi
 say ""
 say "DeepWorkPlan Vim is installed at $DEST"
 say "  Launch        nvim"
-say "  Command index SPC h h   (the whole editor, listed)"
-say "  Plan browser  SPC P"
+say "  Command index Space h h   (the whole editor, listed)"
+say "  Plan browser  Space P"
 say "  Update        rerun this installer (idempotent) or: git -C '$DEST' pull"

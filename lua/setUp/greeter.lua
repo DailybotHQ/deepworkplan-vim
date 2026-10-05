@@ -1,6 +1,8 @@
 local alpha = require("alpha")
 local function button(sc, txt, keybind)
-	local sc_ = sc:gsub("%s", ""):gsub("SPC", "<leader>")
+	-- The shortcut label doubles as the binding source: first-exposure
+	-- labels spell "Space" (UX2-01), so both spellings derive <leader>.
+	local sc_ = sc:gsub("%s", ""):gsub("SPC", "<leader>"):gsub("Space", "<leader>")
 
 	local opts = {
 		position = "center",
@@ -78,12 +80,12 @@ default.header = {
 default.buttons = {
 	type = "group",
 	val = {
-		button("SPC P", "  Plans  ", ":lua require('dwp.sidebar').toggle()<CR>"),
-		button("SPC h h", "  Commands  ", ":lua require('mapping.glossary').open()<CR>"),
-		button("SPC f f", "  Find File  ", ":Telescope find_files<CR>"),
-		button("SPC f o", "  Recent File  ", ":Telescope oldfiles<CR>"),
-		button("SPC f w", "  Find Word  ", ":Telescope live_grep<CR>"),
-		button("SPC b m", "  Bookmarks  ", ":Telescope marks<CR>"),
+		button("Space P", "  Plans  ", ":lua require('dwp.sidebar').toggle()<CR>"),
+		button("Space h h", "  Commands  ", ":lua require('mapping.glossary').open()<CR>"),
+		button("Space f f", "  Find File  ", ":Telescope find_files<CR>"),
+		button("Space f o", "  Recent File  ", ":Telescope oldfiles<CR>"),
+		button("Space f w", "  Find Word  ", ":Telescope live_grep<CR>"),
+		button("Space b m", "  Bookmarks  ", ":Telescope marks<CR>"),
 	},
 	opts = {
 		spacing = 1,

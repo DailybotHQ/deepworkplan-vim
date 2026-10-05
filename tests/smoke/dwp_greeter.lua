@@ -50,7 +50,7 @@ local long = greeter_plans.plan_line({
 ok(long:find("A very long plan title th…", 1, true) ~= nil, "titles truncate with an ellipsis at 26")
 
 -- 3. Hint line names the gesture.
-ok(section.hint:find("SPC P", 1, true) ~= nil, "hint names SPC P")
+ok(section.hint:find("Space P", 1, true) ~= nil, "hint names Space P (UX2-01: first exposure spells the space bar)")
 ok(section.hint_click and section.hint_click:find("click", 1, true) ~= nil, "hint teaches the statusline click (F-04)")
 
 -- 4. Empty state: the friendly line, zero rows, and (per the spec) the

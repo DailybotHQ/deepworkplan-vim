@@ -95,7 +95,7 @@ function M.build(roots)
 	local section = {
 		header = "Your plans",
 		plan_lines = {},
-		hint = "Press  SPC P  to browse all plans",
+		hint = "Press  Space P  to browse all plans",
 		-- Terminals have no hover: the click affordance of the statusline
 		-- segment is taught once, here (UX_AUDIT F-04).
 		hint_click = "The bar at the bottom shows your active plan — click it anytime",
