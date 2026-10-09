@@ -10,7 +10,55 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.5.0] - 2026-10-09
+
+### Added
+
+- **Version selection, Dailybot-CLI style:** `--version` / `DWP_VIM_VERSION`
+  take `X.Y.Z`, `vX.Y.Z`, `latest` (newest stable release) or `'>=X.Y.Z'`
+  (newest stable release at or above the floor), resolved with
+  `git ls-remote` and compared numerically (pre-releases ignored). Precedence:
+  a flag beats every environment value, then `DWP_VIM_VERSION`, then
+  `DWP_VIM_REF`, then the installer's own release; a version and a ref at the
+  same level that disagree are an error; the resolved tag is printed; a
+  missing version lists the newest releases.
+- **Options** (also after `bash -s --` from a pipe), each with an env twin:
+  `--version`, `--ref`, `--dir`, `--skip-packages`, `--strict`, `--nvim`,
+  `--yes`, `-h/--help`; an unknown option prints the usage and exits 2.
+- **Container mode** for images and CI —
+  `bash install.sh --version 0.5.0 --nvim 0.12.5 --skip-packages --strict`
+  replaces the clone + `install.lua` + headless sync + plugin-check block:
+  - `--nvim X.Y.Z` installs the official Neovim tarball (Linux and macOS,
+    x86_64 and arm64) into `~/.local/opt/nvim-vX.Y.Z`, linked as
+    `~/.local/bin/nvim` (an existing non-link `nvim` there is moved aside),
+    verified against the sha256 Neovim publishes (release asset digest, else
+    the `.sha256sum` asset); a mismatch or no checksum installs nothing.
+    `GITHUB_TOKEN` authenticates the lookup and is then removed from the
+    run's environment.
+  - `--strict` fails on a failed or timed-out headless plugin install and
+    verifies the plugins (alpha-nvim, nvim-cmp, mason.nvim; no empty clone).
+  - `--yes` moves a foreign config aside without a terminal; without it an
+    unattended run still never touches one.
+- Tests: installer harness 52 scenarios (+15); `tests/installer/container.sh`
+  proves the one-liner in Debian as a non-root user without a terminal (CI
+  job "Container install").
+
+### Fixed
+
+- The headless plugin install left every plugin as an empty clone in a fresh
+  container while reporting success (pckr's autoinstall raced the explicit
+  sync, and quitting killed its clones); a headless run now lets the sync do
+  every install. The images' `test -d mason.nvim` check could not see this;
+  `--strict` does. A rerun repairs an install left with empty clones: they
+  are moved aside (never deleted) and installed again.
+
 ### Changed
+
+- Switch values (`DWP_VIM_SKIP_PACKAGES` and the new twins) are
+  `1/true/yes/on` or `0/false/no/off` in any case; anything else is an
+  error. `DWP_VIM_SKIP_PACKAGES=false|no|off` previously meant on.
+- Whether plugins are already installed is decided by the plugins
+  themselves, not by the bootstrap marker or the `mason.nvim` directory.
 
 - The agent harness vendors DeepWorkPlan skill 7.0.1 (standard 7.0.0),
   verified file-by-file against the release `SHA256SUMS`; the addon
@@ -222,7 +270,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...v0.5.0
 [v0.4.2]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...v0.4.2
 [v0.4.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.0...v0.4.1
 [v0.4.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.3.1...v0.4.0

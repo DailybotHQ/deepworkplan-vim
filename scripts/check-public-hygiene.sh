@@ -63,7 +63,7 @@ rules=(
 	"secret-jwt|s|e[y]J[A-Za-z0-9_-]{10,}\\.e[y]J[A-Za-z0-9_-]{10,}"
 	"secret-bearer|i|b[e]arer[[:space:]]+[A-Za-z0-9._~+/-]{20,}"
 	"secret-private-key|s|-----B[E]GIN ([A-Z0-9]+ )*PRIVATE KEY( BLOCK)?-----"
-	"secret-assignment|i|(api[_-]?key|secret|token|passw(or)?d|credentials?)[A-Za-z0-9_-]*[\"']?[[:space:]]*[:=][[:space:]]*[\"'][^\"'[:space:]]{16,}[\"']"
+	"secret-assignment|i|(api[_-]?key|secret|token|passw(or)?d|credentials?)[A-Za-z0-9_-]*[\"']?[[:space:]]*[:=][[:space:]]*[\"']([^\"'[:space:]$]|[$][^{A-Za-z_\"'[:space:]])[^\"'[:space:]]{15,}[\"']"
 	"secret-assignment|i|(api[_-]?key|secret|token|passw(or)?d|credentials?)[A-Za-z0-9_-]*[[:space:]]*[:=][[:space:]]*[A-Za-z0-9_./+-]{20,}"
 )
 public_aliases='^(security|support|ops|conduct)@'

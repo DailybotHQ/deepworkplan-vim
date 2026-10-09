@@ -5,3 +5,5 @@
 docker/local/* | /home/dev | contributor container's generic user `dev` (uid 1000), not a person
 .review/extension.md | /home/dev | documents the container's read-only SSH mount for user `dev`
 docs/SECURITY.md | /home/dev | documents the container's read-only SSH mount for user `dev`
+tests/installer/container.sh | /home/dev | the throwaway test container's generic user `dev`, not a person
+README.md | /home/dev/.local/bin | Dockerfile example for an image user named `dev` (ENV cannot expand $HOME)

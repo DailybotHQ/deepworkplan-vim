@@ -87,6 +87,53 @@ RELEASE_REF="$(sed -n 's/^RELEASE_REF="\(.*\)"$/\1/p' "$REPO/install.sh")"
 [ -n "$RELEASE_REF" ] || { echo "install.sh has no RELEASE_REF line" >&2; exit 1; }
 git -C "$FIXTURE" -c user.name=t -c user.email=t@example.com \
   tag -f -a "$RELEASE_REF" -m "fixture release $RELEASE_REF" >/dev/null
+# A pre-release newer than everything: `latest` and `>=` must ignore it.
+git -C "$FIXTURE" tag -f v9.9.9-rc.1 >/dev/null
+# The version-selection scenarios pin v0.4.1 and v0.4.2. A checkout without
+# those tags (a fork, a tag-less CI fetch) gets them on older commits; a
+# single-commit clone cannot be tested and says so.
+for t in v0.4.2 v0.4.1; do
+  if ! git -C "$FIXTURE" rev-parse -q --verify "refs/tags/$t" >/dev/null; then
+    case "$t" in v0.4.2) back=1 ;; *) back=2 ;; esac
+    git -C "$FIXTURE" rev-parse -q --verify "HEAD~$back" >/dev/null || {
+      echo "installer harness: needs history (git fetch --unshallow --tags) for the version scenarios" >&2
+      exit 1
+    }
+    git -C "$FIXTURE" tag -f "$t" "HEAD~$back" >/dev/null
+  fi
+done
+
+# Neovim release fixture for --nvim: a tarball whose bin/nvim answers
+# --version like Neovim 0.12.5 and otherwise behaves like the nvim shim,
+# plus GitHub-style release JSON (asset digest) — good, bad and missing.
+NVIM_FIX="$WORK/nvim-release"
+mkdir -p "$NVIM_FIX/build/nvim-linux-x86_64/bin" "$NVIM_FIX/dl/v0.12.5" \
+  "$NVIM_FIX/api-good" "$NVIM_FIX/api-bad" "$NVIM_FIX/api-none"
+cat >"$NVIM_FIX/build/nvim-linux-x86_64/bin/nvim" <<EOF
+#!/usr/bin/env bash
+if [ "\${1:-}" = "--version" ]; then printf 'NVIM v0.12.5\nBuild type: Release\n'; exit 0; fi
+exec "$SHIMS/nvim" "\$@"
+EOF
+chmod 755 "$NVIM_FIX/build/nvim-linux-x86_64/bin/nvim"
+tar -czf "$NVIM_FIX/dl/v0.12.5/nvim-linux-x86_64.tar.gz" -C "$NVIM_FIX/build" nvim-linux-x86_64
+if command -v sha256sum >/dev/null 2>&1; then
+  NVIM_FIX_SHA="$(sha256sum "$NVIM_FIX/dl/v0.12.5/nvim-linux-x86_64.tar.gz" | { read -r h _; printf '%s' "$h"; })"
+else
+  NVIM_FIX_SHA="$(shasum -a 256 "$NVIM_FIX/dl/v0.12.5/nvim-linux-x86_64.tar.gz" | { read -r h _; printf '%s' "$h"; })"
+fi
+nvim_api_json() { # nvim_api_json <digest-or-empty>
+  printf '{\n  "tag_name": "v0.12.5",\n  "name": "Nvim 0.12.5",\n  "assets": [\n'
+  printf '    {\n      "name": "nvim-linux-arm64.tar.gz",\n      "uploader": {"login": "github-actions[bot]"},\n      "digest": "sha256:%s"\n    },\n' "1111111111111111111111111111111111111111111111111111111111111111"
+  if [ -n "$1" ]; then
+    printf '    {\n      "name": "nvim-linux-x86_64.tar.gz",\n      "uploader": {"login": "github-actions[bot]"},\n      "digest": "sha256:%s"\n    }\n' "$1"
+  fi
+  printf '  ]\n}\n'
+}
+nvim_api_json "$NVIM_FIX_SHA" >"$NVIM_FIX/api-good/v0.12.5"
+nvim_api_json "0000000000000000000000000000000000000000000000000000000000000000" >"$NVIM_FIX/api-bad/v0.12.5"
+nvim_api_json "" >"$NVIM_FIX/api-none/v0.12.5"
+mkdir -p "$NVIM_FIX/api-nodigest"
+printf '{\n  "tag_name": "v0.12.5",\n  "assets": [\n    {\n      "name": "nvim-linux-x86_64.tar.gz",\n      "uploader": {"login": "github-actions[bot]"},\n      "digest": null\n    }\n  ]\n}\n' >"$NVIM_FIX/api-nodigest/v0.12.5"
 
 # NEUTRAL_DIR: shims visible in every scenario (OS identity only).
 NEUTRAL_DIR="$WORK/neutral-bin"
@@ -150,6 +197,26 @@ run_install_piped() { # run_install_piped <T> <out-file> [VAR=value...] — sets
   cat "$REPO/install.sh" | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
     SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
     "$@" bash >"$out" 2>&1 || RC=$?
+}
+
+run_install_args() { # run_install_args <T> <out-file> [VAR=value...] -- [install.sh args...] — sets RC
+  local T="$1" out="$2"; shift 2
+  local envs=()
+  while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do envs+=("$1"); shift; done
+  [ "${1:-}" = "--" ] && shift
+  RC=0
+  env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+    ${envs[@]+"${envs[@]}"} bash "$REPO/install.sh" "$@" </dev/null >"$out" 2>&1 || RC=$?
+}
+
+# Scenarios added for v0.5.0 leave their mktemp -d roots in place (no
+# rm -rf on a variable path); the OS temp cleaner reclaims them.
+real_tools() { # real_tools <bin-dir> <tool...> — link the host's real tools
+  local dir="$1" t p; shift
+  for t in "$@"; do
+    p="$(command -v "$t" 2>/dev/null)" && ln -sf "$p" "$dir/$t"
+  done
 }
 
 # --- scenarios --------------------------------------------------------------
@@ -750,6 +817,331 @@ scenario_update_offline() {
   wx "still on main"       test "$(git -C "$D" symbolic-ref -q HEAD)" = "refs/heads/main"
 }
 
+scenario_version_exact() {
+  # --version X.Y.Z installs exactly that release (and --dir is honored).
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/dwpvim"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" -- --version 0.4.2 --dir "$D"
+  wg "resolved tag printed" "DeepWorkPlan Vim v0.4.2 (resolved from '0.4.2' via --version)" "$T/out.log"
+  wx "exit 0"               test "$RC" -eq 0
+  wx "HEAD is v0.4.2"       test "$(git -C "$D" describe --tags --exact-match HEAD 2>/dev/null)" = "v0.4.2"
+  # A matching DWP_VIM_REF is not a conflict.
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  run_install_args "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=v0.4.2 -- --version 0.4.2
+  wx "matching ref + version accepted" test "$RC" -eq 0
+}
+
+scenario_version_v_prefix() {
+  # DWP_VIM_VERSION=vX.Y.Z (env twin, v-prefixed).
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_VERSION=v0.4.1 --
+  wg "resolved via env" "DeepWorkPlan Vim v0.4.1 (resolved from 'v0.4.1' via DWP_VIM_VERSION)" "$T/out.log"
+  wx "exit 0"           test "$RC" -eq 0
+  wx "HEAD is v0.4.1"   test "$(git -C "$T/home/.config/nvim" describe --tags --exact-match HEAD 2>/dev/null)" = "v0.4.1"
+}
+
+scenario_version_latest() {
+  # latest = the newest STABLE tag (the fixture's newer v9.9.9-rc.1 is a
+  # pre-release and is ignored); also through `bash -s --` from a pipe.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  RC=0
+  cat "$REPO/install.sh" | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+    DWP_VIM_SOURCE="$FIXTURE" bash -s -- --version latest >"$T/out.log" 2>&1 || RC=$?
+  wg "latest resolved" "DeepWorkPlan Vim $RELEASE_REF (resolved from 'latest' via --version)" "$T/out.log"
+  wng "pre-release ignored" "v9.9.9-rc.1" "$T/out.log"
+  wx "exit 0 (piped, bash -s --)" test "$RC" -eq 0
+  wx "HEAD is the newest stable" test "$(git -C "$T/home/.config/nvim" describe --tags --exact-match HEAD 2>/dev/null)" = "$RELEASE_REF"
+}
+
+scenario_version_floor() {
+  # '>=X.Y.Z' = the newest stable release at or above the floor; a floor
+  # above every release fails and lists what exists.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_VERSION='>=0.4.1' --
+  wg "floor resolved" "DeepWorkPlan Vim $RELEASE_REF (resolved from '>=0.4.1' via DWP_VIM_VERSION)" "$T/out.log"
+  wx "exit 0" test "$RC" -eq 0
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  run_install_args "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE" -- --version '>=99.0.0'
+  wg "floor too high" "no stable release at or above 99.0.0" "$T2/out.log"
+  wg "lists releases" "newest releases: $RELEASE_REF" "$T2/out.log"
+  wx "floor too high: rc non-zero" test "$RC" -ne 0
+}
+
+scenario_version_missing() {
+  # A version that does not exist: non-zero, the newest releases listed,
+  # nothing cloned.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" -- --version 9.9.9
+  wg "names it"      "release v9.9.9 does not exist" "$T/out.log"
+  wg "lists newest"  "newest releases: $RELEASE_REF v0.4.2 v0.4.1" "$T/out.log"
+  wx "rc non-zero"   test "$RC" -ne 0
+  wx "nothing cloned" test ! -e "$T/home/.config/nvim"
+}
+
+scenario_version_ref_conflict() {
+  # A version and a ref at the same level that disagree are an error (two
+  # flags, or two env values); a flag beats any env value.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install_args "$T" "$T/flags.log" DWP_VIM_SOURCE="$FIXTURE" -- --ref main --version 0.4.2
+  wg "flags conflict named" "--version (0.4.2) and --ref (main) disagree" "$T/flags.log"
+  wx "flags conflict: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/env.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=main DWP_VIM_VERSION=0.4.2 --
+  wg "env conflict named" "DWP_VIM_VERSION (0.4.2) and DWP_VIM_REF (main) disagree" "$T/env.log"
+  wx "env conflict: exit 2" test "$RC" -eq 2
+  wx "nothing cloned"     test ! -e "$T/home/.config/nvim"
+  # A flag beats an env value of the other kind (v0.4.2 callers keep
+  # DWP_VIM_REF exported and add --version).
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  run_install_args "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=main -- --version 0.4.2
+  wg "flag wins"          "DeepWorkPlan Vim v0.4.2 (resolved from '0.4.2' via --version)" "$T2/out.log"
+  wx "flag wins: exit 0"  test "$RC" -eq 0
+}
+
+scenario_version_bad_string() {
+  # Strict validation: nothing malformed reaches git; usage, exit 2.
+  local T v i=0; T="$(scen_root)"
+  for v in "1.2" "--upload-pack=touch-x" ">=1.2.3;id" "latest-ish" "v1.2.3.4"; do
+    i=$((i + 1))
+    run_install_args "$T" "$T/out$i.log" DWP_VIM_SOURCE="$FIXTURE" -- --version "$v"
+    wx "rejected: $v (exit 2)" test "$RC" -eq 2
+    wx "says why: $v" grep -qE "is not a version|needs a value" "$T/out$i.log"
+  done
+  run_install_args "$T" "$T/ref.log" DWP_VIM_SOURCE="$FIXTURE" -- --ref "--upload-pack=x"
+  wx "bad --ref rejected (exit 2)" test "$RC" -eq 2
+  run_install_args "$T" "$T/nvim.log" DWP_VIM_SOURCE="$FIXTURE" -- --nvim "0.12"
+  wx "bad --nvim rejected (exit 2)" test "$RC" -eq 2
+  wx "nothing cloned" test ! -e "$T/home/.config/nvim"
+  wx "git never ran" test ! -e "$T/shim.log"
+}
+
+scenario_flag_unknown() {
+  local T; T="$(scen_root)"
+  run_install_args "$T" "$T/out.log" -- --frobnicate
+  wg "names the option" "unknown option: --frobnicate" "$T/out.log"
+  wg "prints usage"     "Usage: bash install.sh"       "$T/out.log"
+  wx "exit 2"           test "$RC" -eq 2
+  run_install_args "$T" "$T/val.log" -- --version
+  wg "missing value"    "--version needs a value"      "$T/val.log"
+  wx "missing value: exit 2" test "$RC" -eq 2
+}
+
+scenario_flag_help() {
+  local T; T="$(scen_root)"
+  run_install_args "$T" "$T/out.log" -- --help
+  wg "usage"            "Usage: bash install.sh"       "$T/out.log"
+  wg "documents --strict" "--strict"                   "$T/out.log"
+  wg "documents env twins" "DWP_VIM_YES=1"             "$T/out.log"
+  wx "exit 0"           test "$RC" -eq 0
+  wx "nothing installed" test ! -e "$T/home/.config/nvim"
+}
+
+scenario_strict_bootstrap_failure() {
+  # --strict: a failed (or timed-out) headless bootstrap is an error, with
+  # the bootstrap log shown; without --strict it stays a warning.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_RC=3 -- --skip-packages --strict
+  wg "strict failure named" "--strict: the headless plugin install failed or timed out (rc=3)" "$T/out.log"
+  wg "log shown"           "headless plugin install log" "$T/out.log"
+  wx "rc non-zero"         test "$RC" -ne 0
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T2/bin/nvim"
+  run_install_args "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_RC=3 --
+  wg "non-strict warns"    "did not finish cleanly (rc=3)" "$T2/out.log"
+  wx "non-strict exit 0"   test "$RC" -eq 0
+  # --strict without nvim on PATH cannot install plugins: an error.
+  local T3; T3="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T3/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T3/bin/curl"
+  run_install_args "$T3" "$T3/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_STRICT=1 --
+  wg "strict needs nvim"   "--strict: nvim is not on PATH" "$T3/out.log"
+  wx "no nvim: rc non-zero" test "$RC" -ne 0
+}
+
+scenario_strict_missing_plugins() {
+  # --strict verifies the plugins, not only the exit code: a missing
+  # required plugin or an empty clone fails with the list; all present passes.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
+  run_install_args "$T" "$T/miss.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp" -- --strict --skip-packages
+  wg "missing named"      "missing: mason.nvim"       "$T/miss.log"
+  wx "missing: rc non-zero" test "$RC" -ne 0
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T2/bin/nvim"
+  run_install_args "$T2" "$T2/empty.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim telescope.nvim" SHIM_NVIM_EMPTY=telescope.nvim -- --strict --skip-packages
+  wg "empty clone named"  "empty clones: telescope.nvim" "$T2/empty.log"
+  wx "empty: rc non-zero" test "$RC" -ne 0
+  local T3; T3="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T3/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T3/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T3/bin/nvim"
+  run_install_args "$T3" "$T3/ok.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "verified"           "Plugins verified"          "$T3/ok.log"
+  wx "complete: exit 0"   test "$RC" -eq 0
+}
+
+scenario_nvim_checksum_mismatch() {
+  # --nvim never installs an unverified binary: a wrong published digest
+  # or no published checksum at all aborts with nothing installed.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  real_tools "$T/bin" curl tar gzip sha256sum shasum perl mktemp rmdir ln
+  run_install_args "$T" "$T/bad.log" DWP_VIM_SOURCE="$FIXTURE" \
+    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-bad" -- --nvim 0.12.5 --skip-packages
+  wg "mismatch named"   "checksum mismatch for nvim-linux-x86_64.tar.gz" "$T/bad.log"
+  wx "mismatch: rc non-zero" test "$RC" -ne 0
+  wx "nothing installed" test ! -e "$T/home/.local/bin/nvim"
+  wx "nothing cloned"    test ! -e "$T/home/.config/nvim"
+  run_install_args "$T" "$T/none.log" DWP_VIM_SOURCE="$FIXTURE" \
+    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-nodigest" -- --nvim 0.12.5 --skip-packages
+  wg "no checksum named" "no published sha256 for nvim-linux-x86_64.tar.gz" "$T/none.log"
+  wx "no checksum: rc non-zero" test "$RC" -ne 0
+  run_install_args "$T" "$T/noasset.log" DWP_VIM_SOURCE="$FIXTURE" \
+    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-none" -- --nvim 0.12.5 --skip-packages
+  wg "asset naming named" "publishes no nvim-linux-x86_64.tar.gz" "$T/noasset.log"
+  wx "no asset: rc non-zero" test "$RC" -ne 0
+  wx "no leftover staging" test -z "$(ls -A "$T/home/.local/opt" 2>/dev/null)"
+  wx "still nothing installed" test ! -e "$T/home/.local/bin/nvim"
+}
+
+scenario_nvim_install_ok() {
+  # --nvim with the published digest: unpacked into ~/.local, on PATH for
+  # the run, used by the --strict bootstrap; a rerun skips the download.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  real_tools "$T/bin" curl tar gzip sha256sum shasum perl mktemp rmdir ln
+  # An older non-symlink nvim in ~/.local/bin is moved aside, not overwritten.
+  mkdir -p "$T/home/.local/bin"
+  printf '#!/bin/sh\necho old\n' >"$T/home/.local/bin/nvim"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" \
+    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-good" -- \
+    --version latest --nvim 0.12.5 --skip-packages --strict
+  wg "verified install"  "Neovim v0.12.5 installed at $T/home/.local/opt/nvim-v0.12.5, linked as $T/home/.local/bin/nvim (sha256 verified)" "$T/out.log"
+  wg "mirror trust noted" "NOTE: --nvim trusts the mirror" "$T/out.log"
+  wx "bin is a link to the versioned dir" test "$(readlink "$T/home/.local/bin/nvim")" = "$T/home/.local/opt/nvim-v0.12.5/bin/nvim"
+  wx "existing nvim moved aside" test -n "$(ls "$T/home/.local/bin/" | grep '^nvim.previous.')"
+  wg "bootstrap via it"  "nvim --headless"     "$T/shim.log"
+  wg "plugins verified"  "Plugins verified"    "$T/out.log"
+  wx "exit 0"            test "$RC" -eq 0
+  run_install_args "$T" "$T/again.log" DWP_VIM_SOURCE="$FIXTURE" \
+    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-bad" -- \
+    --nvim v0.12.5 --skip-packages
+  wg "rerun skips download" "Neovim v0.12.5 already at" "$T/again.log"
+  wx "rerun exit 0"         test "$RC" -eq 0
+}
+
+scenario_yes_moves_foreign() {
+  # --yes / DWP_VIM_YES moves a foreign config aside without a terminal.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  mkdir -p "$T/home/.config/nvim"
+  echo "-- mine" >"$T/home/.config/nvim/init.lua"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_YES=1 --
+  wg "announced"          "--yes was given: moving it aside without asking" "$T/out.log"
+  wx "exit 0"             test "$RC" -eq 0
+  wx "backup holds it"    test "$(cat "$T/home/.config/previous-deepworkplan-vim/init.lua")" = "-- mine"
+  wx "fresh install"      test -f "$T/home/.config/nvim/install.lua"
+}
+
+scenario_install_lua_unattended_answers() {
+  # Without a terminal install.lua gets the answers the images piped
+  # (printf 'n\n\n'): "custom dir?" -> No, extras -> the defaults. Real
+  # cli.lua, stdin /dev/null (what install.sh hands it without a TTY).
+  local T; T="$(scen_root)"
+  ln -s "$(command -v lua5.4)" "$T/bin/lua5.4"
+  local LUA_ENV="HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN"
+  env -i $LUA_ENV lua5.4 -e 'local c=require("utilities.installation.cli") local v=c.confirm("Use a custom config directory?", false) local x=c.multi_select("Optional extra packages:", {{label="zenity",value="zenity",checked=true},{label="shfmt",value="shfmt",checked=true}}) io.write("\nCUSTOM="..tostring(v).." EXTRAS="..table.concat(x,",").."\n")' \
+    </dev/null >"$T/eof.log" 2>&1
+  printf 'n\n\n' | env -i $LUA_ENV lua5.4 -e 'local c=require("utilities.installation.cli") local v=c.confirm("Use a custom config directory?", false) local x=c.multi_select("Optional extra packages:", {{label="zenity",value="zenity",checked=true},{label="shfmt",value="shfmt",checked=true}}) io.write("\nCUSTOM="..tostring(v).." EXTRAS="..table.concat(x,",").."\n")' \
+    >"$T/piped.log" 2>&1
+  wg "EOF: custom dir No, extras default" "CUSTOM=false EXTRAS=zenity,shfmt" "$T/eof.log"
+  wg "images' answers: same result"       "CUSTOM=false EXTRAS=zenity,shfmt" "$T/piped.log"
+}
+
+scenario_strict_repairs_empty_clones() {
+  # An install left with empty clones (pre-0.5.0 race) is repaired: the
+  # empty clones are moved aside (never deleted), the bootstrap runs with
+  # DWP_VIM_BOOTSTRAP=1 and --strict then passes.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
+  git clone -q "$FIXTURE" "$T/home/.config/nvim"
+  local O="$T/home/.local/share/nvim/site/pack/pckr/opt"
+  mkdir -p "$O/mason.nvim/.git" "$O/alpha-nvim/.git"
+  touch "$T/home/.local/share/nvim/.keep"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "empty clones moved"  "Moved empty plugin clones aside" "$T/out.log"
+  wg "bootstrap ran"       "nvim --headless"                 "$T/shim.log"
+  wg "verified"            "Plugins verified"                "$T/out.log"
+  wx "exit 0"              test "$RC" -eq 0
+  wx "moved, not deleted"  test -d "$(ls -d "$T/home/.local/share/nvim"/pckr-empty-clones.*/mason.nvim 2>/dev/null | head -n 1)"
+}
+
+scenario_option_values_hardened() {
+  # Empty or option-like values, unknown switch values, a bad timeout and
+  # a hostile token never pass silently; a relative --dir becomes absolute.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install_args "$T" "$T/a.log" -- --version=
+  wg "empty --version= refused" "--version needs a value" "$T/a.log"
+  wx "empty value: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/b.log" -- --dir --yes
+  wg "option as --dir refused" "--dir needs a value (got the option '--yes')" "$T/b.log"
+  wx "option as value: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/c.log" DWP_VIM_YES=N --
+  wg "DWP_VIM_YES=N refused" "DWP_VIM_YES='N' is not a switch value" "$T/c.log"
+  wx "bad switch: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/d.log" DWP_VIM_BOOTSTRAP_TIMEOUT='-k 1' --
+  wg "bad timeout refused" "DWP_VIM_BOOTSTRAP_TIMEOUT must be a number" "$T/d.log"
+  wx "bad timeout: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/e.log" -- --dir "$T/home"
+  wg "HOME refused as dest" "refusing to install into $T/home" "$T/e.log"
+  wx "home dest: exit 2" test "$RC" -eq 2
+  wx "nothing cloned" test ! -e "$T/home/.config/nvim"
+  # Off values in any case are off; a relative --dir is made absolute.
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  RC=0
+  ( cd "$T2/home" && env -i HOME="$T2/home" PATH="$NEUTRAL_DIR:$T2/bin:$BASE_BIN" \
+      SHIM_LOG="$T2/shim.log" SHIM_BIN="$T2/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+      DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_SKIP_PACKAGES=Off GITHUB_TOKEN='x"
+output = /tmp/pwned' \
+      bash "$REPO/install.sh" --dir rel-nvim </dev/null >"$T2/out.log" 2>&1 ) || RC=$?
+  wx "relative dir made absolute" grep -qE "is installed at /.*/rel-nvim\$" "$T2/out.log"
+  wg "hostile token ignored" "GITHUB_TOKEN has unexpected characters — ignored" "$T2/out.log"
+  wng "Off is off"         "no system packages will be installed" "$T2/out.log"
+  wx "exit 0"              test "$RC" -eq 0
+}
+
 scenario_bootstrap_already_installed() {
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
@@ -759,6 +1151,11 @@ scenario_bootstrap_already_installed() {
   git clone -q "$FIXTURE" "$T/home/.config/nvim"
   mkdir -p "$T/home/.local/share/nvim/pckr"
   touch "$T/home/.local/share/nvim/pckr/.dwp-vim-bootstrapped"
+  local p
+  for p in alpha-nvim nvim-cmp mason.nvim; do
+    mkdir -p "$T/home/.local/share/nvim/site/pack/pckr/opt/$p/.git"
+    echo x >"$T/home/.local/share/nvim/site/pack/pckr/opt/$p/init.lua"
+  done
   run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
   wg "already installed"       "Plugins already installed"     "$T/out.log"
   wng "bootstrap skipped"      "nvim --headless"               "$T/shim.log"
@@ -938,6 +1335,23 @@ run_scenario fresh_apt                   scenario_fresh_apt
 run_scenario fresh_dnf                   scenario_fresh_dnf
 run_scenario fresh_pacman                scenario_fresh_pacman
 run_scenario fresh_brew                  scenario_fresh_brew
+run_scenario version_exact               scenario_version_exact
+run_scenario version_v_prefix            scenario_version_v_prefix
+run_scenario version_latest              scenario_version_latest
+run_scenario version_floor               scenario_version_floor
+run_scenario version_missing             scenario_version_missing
+run_scenario version_ref_conflict        scenario_version_ref_conflict
+run_scenario version_bad_string          scenario_version_bad_string
+run_scenario flag_unknown                scenario_flag_unknown
+run_scenario flag_help                   scenario_flag_help
+run_scenario strict_bootstrap_failure    scenario_strict_bootstrap_failure
+run_scenario strict_missing_plugins      scenario_strict_missing_plugins
+run_scenario nvim_checksum_mismatch      scenario_nvim_checksum_mismatch
+run_scenario nvim_install_ok             scenario_nvim_install_ok
+run_scenario yes_moves_foreign           scenario_yes_moves_foreign
+run_scenario strict_repairs_empty_clones scenario_strict_repairs_empty_clones
+run_scenario option_values_hardened      scenario_option_values_hardened
+run_scenario install_lua_unattended_answers scenario_install_lua_unattended_answers
 run_scenario update_origin_old_fork      scenario_update_origin_old_fork
 run_scenario update_origin_old_fork_consent scenario_update_origin_old_fork_consent
 run_scenario update_local_modifications  scenario_update_local_modifications

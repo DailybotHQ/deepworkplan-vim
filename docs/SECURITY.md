@@ -91,6 +91,28 @@ a non-secret name; a real secret is rotated first, then removed.
 
 ## Installer distribution
 
+- Options and versions are validated before anything runs: versions match a
+  strict semver form (`X.Y.Z`, `vX.Y.Z`, `latest`, `>=X.Y.Z`), refs a plain
+  name, `--nvim` `X.Y.Z` — nothing can reach git or a URL as an option; a
+  version and a ref that disagree are an error.
+- `--nvim` installs only a tarball whose sha256 equals the one Neovim
+  publishes (the GitHub release asset digest, else the asset's
+  `.sha256sum`); a mismatch or no published checksum installs nothing. The
+  optional `GITHUB_TOKEN` is sent only to `api.github.com`, through curl's
+  config on stdin (never argv), never printed, must look like a token
+  (`[A-Za-z0-9_.-]`), and is removed from the environment before
+  `install.lua`, Neovim and plugin build hooks run. The mirror overrides
+  `DWP_VIM_NVIM_DOWNLOAD_BASE` / `DWP_VIM_NVIM_API_BASE` (https:// or
+  file://) are **fully trusted** — the checksum then comes from the mirror
+  too, so it guards against corruption, not a hostile mirror; the run
+  prints a note when one is set.
+- The destination is never `/` or `$HOME`, never an option-like value, and
+  always absolute; an unpack failure leaves nothing installed; an existing
+  non-link `~/.local/bin/nvim` is moved aside.
+- `--yes` / `DWP_VIM_YES` is the only way an unattended run moves a foreign
+  or blocked config aside (to the backup path, never deleted); without it
+  such a run stops and touches nothing.
+
 - Every shipped text teaches download → verify → run: `install.sh` is
   fetched to a file, checked against `install.sh.sha256` (published next to
   it on the website and on each GitHub release, with `SHA256SUMS`), then
