@@ -10,6 +10,38 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.4.2] - 2026-10-09
+
+### Fixed
+
+- Updating an existing install no longer fails for installs cloned from
+  the older `mu-vim` fork ("couldn't find remote ref"): the release is
+  fetched from `DWP_VIM_SOURCE` or the DeepWorkPlan Vim repository, never
+  from the checkout's own origin.
+
+### Changed
+
+- An existing install whose origin is another repository, or that has
+  local edits to tracked files, is no longer switched in place. The
+  installer names the situation and offers the consented path — move it
+  to `~/.config/previous-deepworkplan-vim`, then install fresh — or how to
+  keep it and update in place (only the steps that apply: point origin at
+  the repository, stash the edits); without a terminal it stops and
+  touches nothing. A checkout whose changes cannot be read stops too.
+- Updates no longer follow the checkout's origin: an install kept in sync
+  with a mirror (even one named `deepworkplan-vim`) sets `DWP_VIM_SOURCE`
+  to that mirror for every update.
+
+### Security
+
+- URLs shown by the installer drop everything that can carry a credential
+  (user-info, query, fragment); asking about local changes takes no index
+  lock; the backup path is checked again right before the move, and a
+  failure after the move says where the previous config is.
+- The installer harness runs with git limited to the file protocol and no
+  system gitconfig, so no scenario can depend on the network or the host
+  (37 scenarios).
+
 ## [v0.4.1] - 2026-10-09
 
 The installer the website publishes at `https://deepworkplan.com/vim/install.sh`,
@@ -179,7 +211,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...HEAD
+[v0.4.2]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...v0.4.2
 [v0.4.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.0...v0.4.1
 [v0.4.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.3.1...v0.4.0
 [v0.3.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.3.0...v0.3.1

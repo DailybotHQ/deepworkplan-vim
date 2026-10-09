@@ -20,7 +20,7 @@ answer).
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (31 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (37 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -46,9 +46,15 @@ shim per scenario; real `git`/coreutils for everything else):
 | `pnpm_fallback_no_pipe` | Real `installer.lua` `ensure_pnpm()` under real `lua5.4` (stubbed util, `tests/installer/lua/pnpm_fallback.lua`): Unix installs `pnpm@10` with `npm install -g --ignore-scripts --prefix <PNPM_HOME>` (shell-quoted, even with `$`/`"` in the path), Windows with `npm install -g --ignore-scripts pnpm@10`; a missing npm is added with its own `apt-get install -y npm`; no npm → clear failure; Node 12 → "too old", nothing installed; no command contains a pipe |
 | `piped_stdin_fresh` | The script read through a real pipe (as when the URL is piped into bash) completes a fresh install on the release tag, and the `install.lua` stub records an empty stdin — no script text reaches a child |
 | `piped_stdin_foreign_safe` | The same pipe over a foreign config: "ran without a terminal" abort, rc non-zero, config intact, no backup |
+| `update_origin_old_fork` | Field bug of v0.4.1: an install whose origin is the older `mu-vim` fork is not updated in place — without a terminal the run names the origin, offers backup + fresh install or how to keep it, fetches nothing, changes nothing (HEAD, branch, no backup) — also when the script is piped; only the origin advice is given (no stash); origins with user:password (even an unescaped `@`), a token alone, or a query token are printed redacted, an `@` in the path kept |
+| `update_origin_old_fork_consent` | The consented path on a pty (`y`): the fork install, with its local edit, is moved to `previous-deepworkplan-vim` intact and a fresh install lands on the release tag |
+| `update_local_modifications` | Local edits to tracked files in our own checkout: stop naming "local edits in 2 tracked file(s)" with stash advice only (origin is fine), HEAD and both edits intact, no backup |
+| `update_status_unreadable` | A checkout whose `git status` fails (corrupt index) is never assumed clean: stop naming "local changes could not be inspected" |
+| `update_offline` | `DWP_VIM_SOURCE` unreachable: stop naming the source, HEAD and branch unchanged, no system setup |
+| `update_fetches_canonical_source` | With `DWP_VIM_SOURCE` unset the update fetches from the DeepWorkPlan Vim repository URL, not origin (proved offline: the file-only protocol refuses it) |
 | `update_ours` | Idempotent rerun over our own clone: update path to the release tag, no consent prompt, Lua leg + headless bootstrap run, rc 0, no backup |
 | `update_ours_source` | FIXED(I-1): dead `origin` + valid `DWP_VIM_SOURCE` updates from the source and completes (the env var is honored on updates) |
-| `not_ours_local_path` | FIXED(I-2): our clone via a mirror path (URL lacks `deepworkplan-vim`) is recognized by checkout contents and updates in place |
+| `not_ours_local_path` | FIXED(I-2): our clone via a mirror path (URL lacks `deepworkplan-vim`) is recognized by checkout contents and updates in place when `DWP_VIM_SOURCE` names that mirror |
 | `foreign_piped` | Piped/non-tty run over a foreign config: detection, "cannot ask unattended" abort, foreign file intact, no backup |
 | `foreign_interactive_yes` | Pty run, consent `y`: foreign config moved to `previous-deepworkplan-vim`, fresh clone installed, rc 0 |
 | `backup_collision` | Pre-existing `previous-deepworkplan-vim` aborts before touching anything |
@@ -95,7 +101,7 @@ breaks them is a regression, not a pin.
 
 ```
 tests/installer/
-├── run.sh                  # the harness (31 scenarios + shared setup)
+├── run.sh                  # the harness (37 scenarios + shared setup)
 ├── lua/pnpm_fallback.lua   # real installer.lua ensure_pnpm() under a stubbed util
 └── shims/
     ├── uname id sudo       # OS/identity shims (FAKE_UNAME / FAKE_UID)

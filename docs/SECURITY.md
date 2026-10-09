@@ -53,6 +53,19 @@ a non-secret name; a real secret is rotated first, then removed.
   move-aside instructions instead of auto-taking a branch. An explicit
   empty line still accepts the stated default; declining requires a typed
   answer.
+- Updates fetch the release from `DWP_VIM_SOURCE` or the DeepWorkPlan Vim
+  repository — never from the checkout's own origin. A checkout that tracks
+  another repository (an install from the older `mu-vim` fork) or has local
+  edits to tracked files is never switched or reset: interactively the
+  installer offers to move it to `~/.config/previous-deepworkplan-vim`
+  (moved, not deleted) and install fresh; without a terminal it stops with
+  instructions. Updates never follow origin: a mirror install sets
+  `DWP_VIM_SOURCE` to its mirror. URLs are printed without anything that
+  can carry a credential (user-info, query, fragment); asking about local
+  changes uses `git --no-optional-locks` (no write before consent); a
+  status that cannot be read stops the run; the backup path is re-checked
+  right before the move. Accepted: keys typed ahead on the terminal can
+  answer the prompt (the user's own keyboard).
 - "Is this ours" is decided by the checkout's contents (`install.lua` +
   `lua/plugins.lua`, remote-URL substring as fallback), so clones from
   mirrors or renamed forks update in place instead of being treated as
