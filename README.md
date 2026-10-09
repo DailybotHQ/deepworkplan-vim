@@ -52,7 +52,9 @@ bash install.sh
 
 The same two files are assets of the
 [GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.4.1)
-(with `SHA256SUMS` for every asset):
+(with `SHA256SUMS` for every asset) — comparing the website's copy with the
+release's `SHA256SUMS` checks it against a second origin; release tags are
+immutable:
 
 ```bash
 curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.1/install.sh

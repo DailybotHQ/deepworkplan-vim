@@ -14,6 +14,8 @@
 #   shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
 #   bash install.sh
 # Run it from a terminal: it asks before touching an existing config.
+# For a check from a second origin, compare the hash with the install.sh
+# line of SHA256SUMS on the GitHub release (release tags are immutable).
 #
 # What it does, in order:
 #   1. Preflight — detects OS and package manager; installs git, curl, and
@@ -47,6 +49,12 @@
 #
 set -euo pipefail
 
+# The whole script is one function, called on the last line: bash parses
+# all of it before running anything. When the download is piped into bash
+# the script arrives on stdin, so nothing it runs may read stdin — and no
+# half-downloaded script can run partially.
+main() {
+
 REPO_URL="https://github.com/DailybotHQ/deepworkplan-vim.git"
 # The release this script belongs to: it installs exactly that tag unless
 # DWP_VIM_REF names another tag, branch or commit (DWP_VIM_REF=main follows
@@ -68,6 +76,10 @@ esac
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
+
+# Refs and sources reach git as arguments: never as options.
+case "$REF" in -*) die "DWP_VIM_REF must not start with '-' (got '$REF')" ;; esac
+case "$SOURCE" in -*) die "DWP_VIM_SOURCE must not start with '-' (got '$SOURCE')" ;; esac
 
 # --- 1. Preflight -----------------------------------------------------------
 
@@ -241,24 +253,29 @@ if is_ours "$DEST"; then
   # DWP_VIM_SOURCE redirects the update too (offline installs, local
   # mirrors); unset, the update pulls from the clone's own origin.
   FETCH_SOURCE="${DWP_VIM_SOURCE:-origin}"
-  if git -C "$DEST" fetch -q "$FETCH_SOURCE" "+refs/tags/$REF:refs/tags/$REF" 2>/dev/null; then
+  # The tag is fetched into a private ref, never over refs/tags: a local
+  # tag of the same name (the user's own) is left exactly as it is.
+  if git -C "$DEST" fetch -q "$FETCH_SOURCE" "+refs/tags/$REF:refs/dwp-vim/release" 2>/dev/null; then
     # A release tag (the default): pin the checkout to it, detached. Local
     # work is never left behind silently: a HEAD carrying commits that no
     # remote branch or tag holds stops the run, like the branch path below
     # (final-review finding R2). An older or newer upstream commit simply
     # moves to the tag.
-    TARGET="$(git -C "$DEST" rev-parse "refs/tags/$REF^{commit}")"
+    TARGET="$(git -C "$DEST" rev-parse "refs/dwp-vim/release^{commit}")"
     if [ "$(git -C "$DEST" rev-parse HEAD)" != "$TARGET" ]; then
       if ! git -C "$DEST" merge-base --is-ancestor HEAD "$TARGET" &&
         [ -n "$(git -C "$DEST" rev-list -n 1 HEAD --not --remotes --tags)" ]; then
         die "update skipped: $DEST has local commits that are not in '$REF' — nothing was changed. Keep them on a branch of your own (they stay there), or ask your agent, then rerun."
+      fi
+      if git -C "$DEST" merge-base --is-ancestor "$TARGET" HEAD; then
+        say "==> Moving from $(git -C "$DEST" rev-parse --short HEAD) back to release $REF (your branches are kept; DWP_VIM_REF=main follows main)"
       fi
       git -C "$DEST" -c advice.detachedHead=false checkout -q "$TARGET" ||
         die "git checkout '$REF' failed in $DEST (local changes block it — see the error above)"
     fi
   else
     git -C "$DEST" fetch "$FETCH_SOURCE" "$REF" ||
-      die "git fetch failed from $FETCH_SOURCE in $DEST (offline? set DWP_VIM_SOURCE to a local path)"
+      die "could not fetch '$REF' from $FETCH_SOURCE in $DEST — not a tag, branch or commit there, or the source is unreachable (offline? set DWP_VIM_SOURCE to a local path)"
     git -C "$DEST" checkout "$REF" >/dev/null ||
       die "git checkout '$REF' failed in $DEST (ref missing, or local changes block it — see the error above)"
     # A branch: fast-forward to the fetched tip when it is ahead. merge
@@ -278,7 +295,7 @@ if is_ours "$DEST"; then
 else
   say "==> Cloning DeepWorkPlan Vim ('$REF') into $DEST"
   mkdir -p "$(dirname "$DEST")"
-  git clone "$SOURCE" "$DEST" || die "clone from $SOURCE failed"
+  git clone -- "$SOURCE" "$DEST" || die "clone from $SOURCE failed"
   git -C "$DEST" -c advice.detachedHead=false checkout -q "$REF" ||
     die "git checkout '$REF' failed in the clone from $SOURCE (ref missing, or local changes block it — see the error above)"
 fi
@@ -295,7 +312,13 @@ fi
 # --- 3. The repository's own installer ---------------------------------------
 
 say "==> Running the system setup ($LUA install.lua)"
-if (cd "$DEST" && "$LUA" install.lua); then
+# install.lua may ask questions: it reads the terminal when there is one,
+# never the pipe that may be carrying this script.
+LUA_STDIN=/dev/null
+if : </dev/tty 2>/dev/null; then
+  LUA_STDIN=/dev/tty
+fi
+if (cd "$DEST" && "$LUA" install.lua) <"$LUA_STDIN"; then
   say "==> System setup finished"
 else
   # The handoff line comes first so it sits directly under the failure
@@ -340,12 +363,12 @@ else
     timeout "$BOOTSTRAP_TIMEOUT" env \
       XDG_CONFIG_HOME="$(dirname "$DEST")" \
       NVIM_APPNAME="$BOOTSTRAP_APPNAME" \
-      nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
+      nvim --headless </dev/null >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   else
     env \
       XDG_CONFIG_HOME="$(dirname "$DEST")" \
       NVIM_APPNAME="$BOOTSTRAP_APPNAME" \
-      nvim --headless >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
+      nvim --headless </dev/null >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   fi
   if [ "$bootstrap_rc" -eq 0 ]; then
     # mkdir -p first: touch cannot create the parent dir, and a silently
@@ -371,3 +394,6 @@ say "  Plan browser  Space P"
 say "  Version       $REF"
 say "  Update        run a newer release's install.sh (each one pins its release; DWP_VIM_REF=main follows main)"
 say "  Remove        lua '$DEST/delete.lua'  (lists every path first, asks, keeps Neovim)"
+}
+
+main "$@"

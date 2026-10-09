@@ -82,15 +82,31 @@ a non-secret name; a real secret is rotated first, then removed.
   fetched to a file, checked against `install.sh.sha256` (published next to
   it on the website and on each GitHub release, with `SHA256SUMS`), then
   run with `bash install.sh`. No file in this repository spells a download
-  piped into a shell; the `pipe-to-shell` rule of
-  `scripts/check-public-hygiene.sh` enforces it in CI.
+  run by a shell; the `pipe-to-shell` rule of
+  `scripts/check-public-hygiene.sh` catches the common forms in CI (piped
+  into a shell — path-qualified, via sudo/env, after intermediate pipes —,
+  process and command substitution, PowerShell `iex`).
 - Piping the URL into bash still works (some users will), and stays safe:
-  the script reads nothing from stdin, and without a terminal it never
-  touches an existing config (harness: `piped_stdin_*`).
+  the script is one `main` function called on its last line, so bash
+  parses all of it before running anything (a truncated download never runs
+  partially); `install.lua` reads the terminal (`/dev/tty`) or `/dev/null`,
+  never the pipe carrying the script, and the headless Neovim reads
+  `/dev/null`; without a terminal an existing config is never touched
+  (harness: `piped_stdin_*`, whose Lua stub proves its stdin is empty).
 - `install.sh` installs the release tag baked into it (`RELEASE_REF`),
-  never a moving branch unless `DWP_VIM_REF=main` asks for it.
+  never a moving branch unless `DWP_VIM_REF=main` asks for it. The tag is
+  fetched into a private ref (`refs/dwp-vim/release`), so a user's own tag
+  of the same name is never rewritten. Release tags `v*` are immutable on
+  GitHub (a repository ruleset blocks updating or deleting them), and
+  `install.sh.sha256` / `SHA256SUMS` on the release give a second origin to
+  verify the website's copy against. `DWP_VIM_REF` / `DWP_VIM_SOURCE`
+  values starting with `-` are refused (they would reach git as options).
 - Nothing in the install chain pipes a download into a shell: pnpm comes
-  from npm (user prefix), not from a fetched install script.
+  from npm (`pnpm@10`, `--ignore-scripts`, user prefix), not from a fetched
+  install script. npm itself is added with its own package-manager call
+  only when missing (never in the core batch: Debian's npm conflicts with
+  NodeSource's nodejs), and a Node.js older than 18 stops with a clear
+  message instead of a broken pnpm.
 
 ## Release workflow
 

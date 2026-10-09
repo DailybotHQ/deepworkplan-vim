@@ -519,22 +519,30 @@ scenario_skip_packages_zero_is_off() {
 
 scenario_pnpm_fallback_no_pipe() {
   # The REAL installer.lua ensure_pnpm() under the host's real lua5.4 with
-  # a stubbed util: pnpm comes from npm (user prefix), and nothing it runs
-  # pipes a download into a shell.
+  # a stubbed util: pnpm comes from npm (pinned major, no lifecycle scripts,
+  # user prefix), npm is added on its own apt call only when missing, an old
+  # Node.js fails clearly, and nothing it runs pipes a download into a shell.
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
   local L="$REPO/tests/installer/lua/pnpm_fallback.lua"
-  lua5.4 "$L" "$REPO" unix npm >"$T/unix.log" 2>&1
-  lua5.4 "$L" "$REPO" windows npm >"$T/win.log" 2>&1
-  lua5.4 "$L" "$REPO" unix no-npm >"$T/nonpm.log" 2>&1
-  wg "unix: npm user prefix"  'EXEC npm install -g --prefix "/stub-home/.local/share/pnpm" pnpm' "$T/unix.log"
+  lua5.4 "$L" "$REPO" unix npm 22 >"$T/unix.log" 2>&1
+  lua5.4 "$L" "$REPO" windows npm 22 >"$T/win.log" 2>&1
+  lua5.4 "$L" "$REPO" unix no-npm 22 >"$T/nonpm.log" 2>&1
+  lua5.4 "$L" "$REPO" unix apt-adds-npm 22 >"$T/aptnpm.log" 2>&1
+  lua5.4 "$L" "$REPO" unix npm 12 >"$T/oldnode.log" 2>&1
+  lua5.4 "$L" "$REPO" unix npm 22 '/stub home/$x"q' >"$T/quote.log" 2>&1
+  wg "unix: npm user prefix"  'EXEC npm install -g --ignore-scripts --prefix "/stub-home/.local/share/pnpm" pnpm@10' "$T/unix.log"
   wg "unix: result true"      "RESULT true"            "$T/unix.log"
-  wg "windows: npm global"    "EXEC npm install -g pnpm" "$T/win.log"
+  wg "windows: npm global"    "EXEC npm install -g --ignore-scripts pnpm@10" "$T/win.log"
+  wg "apt adds npm alone"     "EXEC sudo apt-get update && sudo apt-get install -y npm" "$T/aptnpm.log"
+  wg "then pnpm via npm"      "EXEC npm install -g --ignore-scripts --prefix" "$T/aptnpm.log"
   wg "no npm: clear failure"  "npm is not available"   "$T/nonpm.log"
   wg "no npm: result false"   "RESULT false"           "$T/nonpm.log"
-  wng "no npm: nothing run"   "EXEC"                   "$T/nonpm.log"
+  wg "old node: clear failure" "Node.js 12 is too old"  "$T/oldnode.log"
+  wng "old node: no install"  "EXEC npm"               "$T/oldnode.log"
+  wx "prefix quoted for sh"   grep -qF -- '--prefix "/stub home/\$x\"q/.local/share/pnpm"' "$T/quote.log"
   local f
-  for f in "$T/unix.log" "$T/win.log"; do
+  for f in "$T/unix.log" "$T/win.log" "$T/aptnpm.log"; do
     wx "no pipe in $(basename "$f")" test -z "$(grep 'EXEC' "$f" | grep '|')"
   done
 }
@@ -547,8 +555,9 @@ scenario_piped_stdin_fresh() {
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
   install -m 755 "$SHIMS/curl" "$T/bin/curl"
   install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
-  run_install_piped "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  run_install_piped "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_STDIN_LOG="$T/lua_stdin.log"
   wg "completion line"     "DeepWorkPlan Vim is installed at" "$T/out.log"
+  wx "install.lua read no script text from stdin" test -e "$T/lua_stdin.log" -a ! -s "$T/lua_stdin.log"
   wg "lua leg ran (stub)"  "lua5.4 install.lua"               "$T/shim.log"
   wg "bootstrap ran"       "nvim --headless"                  "$T/shim.log"
   wx "exit 0"              test "$RC" -eq 0

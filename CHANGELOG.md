@@ -27,6 +27,13 @@ and the repository's public-standard baseline.
   `install.lua` skips its package step; `0` or empty means off in both.
 - The installer header no longer claims that `/install.sh` redirects to
   `/vim/install.sh`.
+- A run with the script piped into bash no longer lets `install.lua` read
+  the rest of the script as answers: the script is parsed whole before it
+  runs (`main`), `install.lua` reads the terminal or `/dev/null`, and the
+  headless Neovim reads `/dev/null`.
+- pnpm is installed with npm (`pnpm@10`); a missing npm is added with its
+  own package-manager call, and a Node.js older than 18 stops with a clear
+  message.
 
 ### Added
 
@@ -66,6 +73,9 @@ and the repository's public-standard baseline.
   pnpm with npm (user prefix) instead of piping a fetched script into `sh`
   (or `iex` on Windows). Piping the URL into bash still works and stays
   safe: without a terminal an existing config is never touched.
+- The release tag is fetched into a private ref (a user's own tag of the
+  same name is never rewritten); release tags are immutable on GitHub;
+  `DWP_VIM_REF`/`DWP_VIM_SOURCE` values starting with `-` are refused.
 - The release workflow no longer interpolates commit text into shell.
 - Third-party GitHub Actions are pinned by commit SHA.
 

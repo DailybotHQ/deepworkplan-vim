@@ -21,8 +21,7 @@ M.EXTRA_PACKAGES = {
 
 local CORE_BY_MANAGER = {
   pacman = { "neovim", "nodejs", "pnpm", "ripgrep", "fd", "python-neovim", "luarocks" },
-  -- Debian/Ubuntu ship npm separately from nodejs; it installs pnpm.
-  ["apt-get"] = { "neovim", "nodejs", "npm", "ripgrep", "fd-find", "python3-neovim", "luarocks" },
+  ["apt-get"] = { "neovim", "nodejs", "ripgrep", "fd-find", "python3-neovim", "luarocks" },
   dnf = { "neovim", "nodejs", "ripgrep", "fd-find", "python3-neovim", "luarocks" },
   brew = { "neovim", "node", "pnpm", "ripgrep", "fd", "luarocks" },
 }
@@ -50,6 +49,30 @@ local WINGET_EXTRA = {
 
 local function exec_ok(cmd)
   return util.exec_ok(cmd)
+end
+
+-- Defined further down; ensure_pnpm needs it to add npm on demand.
+local install_unix_packages
+
+-- pnpm major this config installs when the system has none, and the oldest
+-- Node.js that runs it.
+M.PNPM_SPEC = "pnpm@10"
+M.PNPM_MIN_NODE = 18
+
+-- Major version of the node on PATH, or nil when it cannot be read.
+function M.node_major()
+  local handle = io.popen("node --version 2>/dev/null")
+  if not handle then
+    return nil
+  end
+  local out = handle:read("*a") or ""
+  handle:close()
+  return tonumber(out:match("^v(%d+)"))
+end
+
+-- Escape a value for use inside a double-quoted POSIX shell word.
+local function sh_dq(value)
+  return (value:gsub('[\\"$`]', "\\%0"))
 end
 
 function M.core_packages(manager)
@@ -118,23 +141,43 @@ function M.pnpm_env()
   return string.format('PNPM_HOME="%s" PATH="%s:$PATH" ', home, bin)
 end
 
-function M.ensure_pnpm()
+-- npm installs pnpm from the registry: no downloaded script is ever piped
+-- into a shell. On Unix it goes under the user prefix PNPM_HOME, whose bin/
+-- pnpm_env() puts on PATH. `manager` (optional) adds a missing npm first —
+-- separately from the core batch, because Debian's npm package conflicts
+-- with the npm NodeSource's nodejs already bundles.
+function M.ensure_pnpm(manager)
   util.mkdir_p(M.pnpm_home())
   if util.has_command("pnpm") then
     return true
   end
-  -- npm (shipped with Node.js, a core package) installs pnpm from the
-  -- registry: no downloaded script is piped into a shell. On Unix it goes
-  -- under the user prefix PNPM_HOME, whose bin/ pnpm_env() puts on PATH.
+  if not util.has_command("npm") and manager and manager ~= "winget" and not util.is_windows() then
+    io.write("npm is not on PATH, installing it with " .. manager .. "\n")
+    install_unix_packages(manager, { "npm" })
+  end
   if not util.has_command("npm") then
     io.stderr:write("pnpm is missing and npm is not available to install it: install Node.js with npm, then rerun\n")
     return false
   end
-  io.write("pnpm is not on PATH, installing it with npm (user prefix)\n")
-  if util.is_windows() then
-    return exec_ok("npm install -g pnpm")
+  local major = M.node_major()
+  if major and major < M.PNPM_MIN_NODE then
+    io.stderr:write(
+      string.format(
+        "Node.js %d is too old for %s (needs %d+): install a newer Node.js, then rerun\n",
+        major,
+        M.PNPM_SPEC,
+        M.PNPM_MIN_NODE
+      )
+    )
+    return false
   end
-  return exec_ok(string.format('npm install -g --prefix "%s" pnpm', M.pnpm_home()))
+  io.write("pnpm is not on PATH, installing " .. M.PNPM_SPEC .. " with npm (user prefix)\n")
+  if util.is_windows() then
+    return exec_ok("npm install -g --ignore-scripts " .. M.PNPM_SPEC)
+  end
+  return exec_ok(
+    string.format('npm install -g --ignore-scripts --prefix "%s" %s', sh_dq(M.pnpm_home()), M.PNPM_SPEC)
+  )
 end
 
 -- Global pnpm packages go under the user prefix. A system PNPM_HOME
@@ -159,7 +202,7 @@ function M.ensure_formatters()
   return status
 end
 
-local function install_unix_packages(manager, packages)
+install_unix_packages = function(manager, packages)
   local pkg_list = table.concat(packages, " ")
   -- Root (common in containers) has no sudo binary and needs none.
   local sudo = util.is_root() and "" or "sudo "
@@ -235,7 +278,7 @@ function M.installDependencies(manager, extra_names, config_dir)
     end
   end
 
-  if not M.ensure_pnpm() then
+  if not M.ensure_pnpm(manager) then
     io.stderr:write("Could not install pnpm\n")
     status = false
   end

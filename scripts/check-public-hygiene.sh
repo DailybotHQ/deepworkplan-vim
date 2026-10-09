@@ -11,9 +11,13 @@
 #   private-repo     names of private repositories
 #   internal-name    internal tooling and mesh names
 #   private-email    @dailybot.com addresses other than the public aliases
-#   pipe-to-shell    a download piped into a shell interpreter, in code or
-#                    prose (installers are taught as download -> verify ->
-#                    run; supply-chain rules E005/W012)
+#   pipe-to-shell    a download run by a shell, in code or prose — the common
+#                    forms: piped into (ba|z|da|k)sh (path-qualified, via
+#                    sudo/env, after intermediate pipes), a shell reading
+#                    `<(<download>)`, `sh -c` or `eval` of `$(<download>)`,
+#                    and a PowerShell download piped into iex.
+#                    Installers are taught as download -> verify -> run
+#                    (supply-chain rules E005/W012).
 #   secret-*         credential-shaped strings (values are never printed)
 #
 # Exceptions live in .public-hygiene-allow, one per line:
@@ -46,7 +50,9 @@ rules=(
 	"internal-name|i|${b_l}(d[b]dev|d[a]ilybot-dev|d[a]ilybot-peers|d[a]ilybot-workspaces)${b_r}"
 	"internal-name|i|d[a]ilybot-ws-|\\[d[a]ilybot-mesh\\]"
 	"private-email|i|[A-Za-z0-9._%+-]+@d[a]ilybot\\.com"
-	"pipe-to-shell|i|(c[u]rl|w[g]et)[^|]*[|][[:space:]]*([A-Za-z_]+=[^[:space:]]*[[:space:]]+)*(sudo[[:space:]]+)?(env[[:space:]]+[^|]*)?(ba|z|da|k)?sh([^A-Za-z0-9_]|$)"
+	'pipe-to-shell|i|(c[u]rl|w[g]et)[^|]*([|][^|]*)*[|][[:space:]]*([A-Za-z_]+=[^[:space:]]*[[:space:]]+)*(sudo([[:space:]]+-[A-Za-z]+)*[[:space:]]+)?((/[^[:space:]|]*/)?env[[:space:]]+[^|]*)?(/[^[:space:]|]*/)?(ba|z|da|k)?sh([^A-Za-z0-9_]|$)'
+	'pipe-to-shell|i|(source|[.]|(ba|z|da|k)?sh)[[:space:]]+<[(][[:space:]]*(c[u]rl|w[g]et)'
+	'pipe-to-shell|i|(-c|eval)[[:space:]]+["'"'"']?[$][(][[:space:]]*(c[u]rl|w[g]et)'
 	"pipe-to-shell|i|(i[w]r|i[r]m|invoke-webrequest|invoke-restmethod)[^|]*[|][[:space:]]*(i[e]x|invoke-expression)"
 	"secret-aws|s|(A[K]IA|A[S]IA)[0-9A-Z]{16}"
 	"secret-github|s|gh[pousr]_[A-Za-z0-9]{36}|g[i]thub_pat_[A-Za-z0-9_]{22,}"
