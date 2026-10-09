@@ -47,7 +47,7 @@ tests/               Go mapping-contract suite (parses Lua/VimScript; no Neovim)
                      + smoke suite (tests/smoke/: host-runnable headless
                      nvim over fixtures — model, sidebar, reader,
                      statusline, greeter, render/consistency proofs,
-                     addon surface)
+                     lua/dwp self-containment, addon surface)
 addon/               surface.json: machine-readable addon surface (interface 1,
                      version, detection, tag-pinned install + sha256, read-only
                      plan reader, shipped features) — read by the DWP `vim`

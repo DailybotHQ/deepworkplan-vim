@@ -23,6 +23,13 @@
 - **Mapping changes are contract changes:** anything touching
   `lua/mapping/*.lua` must keep `tests/mappings_test.go` expectations green in
   the same change (see [TESTING_GUIDE.md](TESTING_GUIDE.md)).
+- **`lua/dwp/` is self-contained** (it becomes the standalone
+  `deepworkplan.nvim` plugin in v7.1): its modules require only `dwp.*`
+  (Neovim's `vim.*` APIs need no require) — no dynamic `require`,
+  `dofile`, `loadfile`, `luafile` or `package.loaded` reach-around — and the
+  rest of the editor reaches `dwp` only lazily (inside functions or command
+  strings, never a top-level `require`). Enforced by
+  `tests/smoke/dwp_self_contained.lua`.
 - Theme palettes in `lua/scheme/palettes/` are declarative tables — no logic.
 - No plugin is added to `lua/plugins.lua` without its set-up wired in
   `lua/composition.lua` (or a comment saying why it needs none).
