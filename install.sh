@@ -437,7 +437,15 @@ install_nvim() {
   fi
   command -v tar >/dev/null 2>&1 || die "--nvim needs tar"
   say "==> Installing Neovim v$v ($asset) into $HOME/.local"
-  json="$(curl -fsSL "$NVIM_API_BASE/v$v" 2>/dev/null || true)"
+  # GitHub allows 60 unauthenticated API calls an hour per address; with
+  # GITHUB_TOKEN set the call is authenticated (api.github.com only). The
+  # token travels in curl's config on stdin — never in argv, never printed.
+  if [ -n "${GITHUB_TOKEN:-}" ] && [ "$NVIM_API_BASE" = "https://api.github.com/repos/neovim/neovim/releases/tags" ]; then
+    json="$(printf 'header = "Authorization: Bearer %s"\n' "$GITHUB_TOKEN" |
+      curl -fsSL -K - "$NVIM_API_BASE/v$v" 2>/dev/null || true)"
+  else
+    json="$(curl -fsSL "$NVIM_API_BASE/v$v" 2>/dev/null || true)"
+  fi
   while IFS= read -r line; do
     case "$line" in
       '"name"'*) cur="${line#*\"name\"*:*\"}"; cur="${cur%\"}" ;;
@@ -455,7 +463,7 @@ install_nvim() {
     expect="${line%%[[:space:]]*}"
   fi
   [[ "$expect" =~ ^[0-9a-f]{64}$ ]] ||
-    die "no published sha256 for $asset of Neovim v$v — refusing to install an unverified binary"
+    die "no published sha256 for $asset of Neovim v$v — refusing to install an unverified binary${json:+}${json:-" (the release API at $NVIM_API_BASE did not answer: offline or rate-limited? set GITHUB_TOKEN)"}"
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/dwp-vim-nvim.XXXXXX")"
   curl -fsSL -o "$tmp/$asset" "$NVIM_DOWNLOAD_BASE/v$v/$asset" ||
     die "could not download $asset for Neovim v$v"
