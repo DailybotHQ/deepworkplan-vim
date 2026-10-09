@@ -76,7 +76,7 @@ secrets, and SSH surfaces; relaxed about stylistic Lua choices inside `lua/`.
   `INSTALL_GROK_CLI`, …) default **false** in
   `docker/local/dwpvim/Dockerfile`; do not flip defaults or add hard runtime
   dependencies on any single CLI. Same rule for Dailybot paths — never require
-  `dbdev` or Dailybot-only flows.
+  internal-only tooling or Dailybot-only flows.
 
 ## Test-strategy expectations
 

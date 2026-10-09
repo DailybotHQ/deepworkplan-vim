@@ -53,11 +53,13 @@ bash -n dev.sh
 bash -n docker/local/dwpvim/entrypoint.sh
 find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p   # full Lua parse
 luac5.4 -p lua/mapping/git.lua                                  # scoped Lua parse
+bash scripts/check-public-hygiene.sh                            # public-hygiene rules (offline)
+bash tests/hygiene/run.sh                                       # hygiene check self-test
 bash tests/run.sh                                               # contract suite — needs Podman/Docker
 cd tests && go test -count=1 -parallel 8 .                      # contract suite — needs Go on host
 ```
 
-Status of each gate on a bare dev host (bash + lua only): the first four run;
+Status of each gate on a bare dev host (bash + lua + git): the first six run;
 the last two need a container or Go. See [TESTING_GUIDE.md](TESTING_GUIDE.md)
 for the evidence and the fallback.
 

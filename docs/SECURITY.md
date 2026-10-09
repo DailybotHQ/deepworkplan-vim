@@ -18,6 +18,18 @@ review severities.
   (`~/.claude_data` etc.) managed by `entrypoint.sh`; it never enters the
   image or the repo.
 
+## Public hygiene
+
+This repository is public. `scripts/check-public-hygiene.sh` (run in CI on
+every pull request and push to `main`) fails on personal absolute paths,
+private organization, repository and internal tool names, `@dailybot.com`
+addresses other than the public aliases (`security@`, `support@`, `ops@`,
+`conduct@`), and secret-shaped strings — whose values it never prints.
+Deliberate exceptions go in `.public-hygiene-allow` with a reason; a
+secret-shaped test fixture must be obviously fake (`fake`, `test`,
+`planted` or `example` on the line). History is never rewritten to remove
+a non-secret name; a real secret is rotated first, then removed.
+
 ## SSH surface
 
 - Host `~/.ssh` is mounted into the dev container **read-only** at

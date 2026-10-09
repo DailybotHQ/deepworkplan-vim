@@ -88,6 +88,8 @@ Install Herdr on the host: https://herdr.dev/docs/install/ — show the command;
 | Syntax-check entrypoint | `bash -n docker/local/dwpvim/entrypoint.sh` | full |
 | Parse-check all Lua | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | full (scoped: `luac5.4 -p <file>`) |
 | dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter/render/consistency/self-contained/addon-surface over fixtures (render proves screen-grid output; consistency proves one vocabulary across surfaces; self-contained keeps `lua/dwp` requiring only `dwp.*`; addon-surface proves `addon/surface.json` true of the tree) |
+| Public-hygiene check | `bash scripts/check-public-hygiene.sh` | full — host-runnable (bash + git + grep, offline); tracked files minus vendored `.agents/skills/`: personal paths, private org/repo/tool names, non-public emails, secret shapes; exceptions with reasons in `.public-hygiene-allow` |
+| Hygiene check self-test | `bash tests/hygiene/run.sh` | full — host-runnable; planted fakes in throwaway repos prove every rule, allow scoping, stale/reasonless entries, redaction |
 | Installer compat harness | `bash tests/installer/run.sh` | full — host-runnable (bash + git + coreutils + `script` (util-linux or BSD/macOS) + `lua5.4`; any branch); real install.sh over PATH shims: manager legs, sudo policy, consent/backup envelope, clone-vs-update incl. diverged-local die, XDG/APPNAME composition, real-Lua uninstaller guards |
 | Mapping-contract tests | `bash tests/run.sh` | full — needs Podman or Docker |
 | Mapping tests, Go host | `cd tests && go test -count=1 -parallel 8 .` | full — needs Go (not on this host; unverified here) |
@@ -136,6 +138,7 @@ narrower scope, plan gates, or this repository's rules above.
 
 - Commit secrets or private hostnames
 - Bake SSH host private keys into the image
-- Require Dailybot-only paths or `dbdev`
+- Require Dailybot-only paths or internal-only tooling
+- Commit private context (internal repo or tool names, personal paths, non-public emails) — `scripts/check-public-hygiene.sh` enforces it
 - Change `LICENSE` away from GPL-3.0
 - Drop [CREDITS.md](./CREDITS.md)

@@ -64,7 +64,7 @@
 - `~/.ssh` stays mounted read-only; SSH publishes on loopback only.
 - Keep `LICENSE` (GPL-3.0) and `CREDITS.md` (mu-vim lineage) intact in every
   change.
-- Do not require Dailybot-only paths or `dbdev`; do not flip coding-CLI build
+- Do not require Dailybot-only paths or internal-only tooling; do not flip coding-CLI build
   args away from default `false`.
 
 ## Docs hygiene

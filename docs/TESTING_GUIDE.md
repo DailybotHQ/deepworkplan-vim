@@ -25,6 +25,8 @@ Full suite and lint/type-check commands, with the working directory and status:
 | `luac5.4 -p lua/mapping/git.lua` | repo root | scoped — one file | **verified on host** (non-empty: parses that file; the full-run variant above is the cheap default) |
 | `bash tests/smoke/run.sh` | repo root | full — dwp runtime smokes (model, sidebar, reader, statusline, greeter, render, consistency, self-contained, addon surface) over committed fixtures, the `lua/dwp` sources and `addon/surface.json`; 561 assertions | **verified on host** |
 | `bash tests/installer/run.sh` | repo root | full — installer compatibility harness: 21 scenarios over the real `install.sh` (OS gate, per-manager sudo policy, consent/backup envelope, clone-vs-update incl. the diverged-local die, XDG/APPNAME bootstrap composition, real-Lua uninstaller guards); bounds in `tests/installer/README.md` | **verified on host** |
+| `bash scripts/check-public-hygiene.sh` | repo root | full — public-hygiene rules over every tracked file except vendored `.agents/skills/` (personal paths, private org/repo/tool names, non-public `@dailybot.com` emails, secret shapes; secret hits redacted); exceptions in `.public-hygiene-allow`, each with a reason, stale entries fail | **verified on host** |
+| `bash tests/hygiene/run.sh` | repo root | full — self-test of the hygiene check: planted fakes in throwaway git repos prove each rule fires, lookalikes pass, allow entries are path-scoped, stale/reasonless entries fail, secret allows need a fake marker, values never print; 23 assertions | **verified on host** |
 | `bash tests/run.sh` | repo root | full — mapping contracts via Podman/Docker | **container-required** — no Podman/Docker on the dev host; verified shape, not run here |
 | `cd tests && go test -count=1 -parallel 8 .` | `tests/` | full — mapping contracts on a Go host | **unverified on this host** (no Go installed); same suite `tests/run.sh` runs in compose |
 
@@ -82,6 +84,11 @@ alongside.
 `tests/smoke/README.md`): a change to any dwp module requires its smoke to
 stay green in the same change; new behavior ships with assertions in the
 same change.
+
+`scripts/check-public-hygiene.sh` ⇄ `tests/hygiene/run.sh`: a rule change
+ships with a planted case in the self-test in the same change. Every tracked
+file ⇄ `scripts/check-public-hygiene.sh`: run it after adding or renaming
+files, not only after editing them.
 
 ## Consumer policy
 
