@@ -103,10 +103,11 @@ tell the same story in sidebar, reader, statusline and greeter).
 
 ## Release flow
 
-`.github/workflows/auto-release.yml`: push to `main` → resolve next semver from
+`.github/workflows/auto-release.yml`: push to `main` → no-op (notice) while
+`addon/surface.json` names a released version → otherwise resolve next semver from
 commit prefixes (`feat:`/`fix:`/`perf:` bump minor; `BREAKING CHANGE` footer
-bumps major; anything else patch) → refuse unless `CHANGELOG.md` has a
-`## [vX.Y.Z]` section and `addon/surface.json` names the tag → annotated tag →
+bumps major; anything else patch) → refuse unless `addon/surface.json` names
+that tag and `CHANGELOG.md` has its `## [vX.Y.Z]` section → annotated tag →
 GitHub Release whose notes are that CHANGELOG section, with the source
 archive, `install.sh`, `surface.json` and `SHA256SUMS` attached
 (`scripts/release-notes.sh`, `scripts/release-assets.sh`). `[skip release]`

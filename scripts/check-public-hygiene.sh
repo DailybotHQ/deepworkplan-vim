@@ -45,18 +45,31 @@ rules=(
 	"private-email|i|[A-Za-z0-9._%+-]+@d[a]ilybot\\.com"
 	"secret-aws|s|(A[K]IA|A[S]IA)[0-9A-Z]{16}"
 	"secret-github|s|gh[pousr]_[A-Za-z0-9]{36}|g[i]thub_pat_[A-Za-z0-9_]{22,}"
-	"secret-llm|s|s[k]-[A-Za-z0-9_-]{20,}"
-	"secret-slack|s|x[o]x[abprs]-[A-Za-z0-9-]{10,}|hooks\\.s[l]ack\\.com/services/T[A-Z0-9]+"
+	"secret-llm|s|(^|[^A-Za-z0-9_-])(s[k]-[A-Za-z0-9_-]{20,}|x[a]i-[A-Za-z0-9]{20,})"
+	"secret-vendor|s|n[p]m_[A-Za-z0-9]{36}|g[l]pat-[A-Za-z0-9_-]{20,}|[sr]k_l[i]ve_[A-Za-z0-9]{20,}|h[f]_[A-Za-z0-9]{30,}"
+	"secret-slack|s|x[o]x[abeprs]-[A-Za-z0-9-]{10,}|hooks\\.s[l]ack\\.com/services/T[A-Z0-9]+"
 	"secret-google|s|A[I]za[0-9A-Za-z_-]{35}"
-	"secret-private-key|s|-----B[E]GIN ([A-Z0-9]+ )*PRIVATE KEY-----"
+	"secret-jwt|s|e[y]J[A-Za-z0-9_-]{10,}\\.e[y]J[A-Za-z0-9_-]{10,}"
+	"secret-bearer|i|b[e]arer[[:space:]]+[A-Za-z0-9._~+/-]{20,}"
+	"secret-private-key|s|-----B[E]GIN ([A-Z0-9]+ )*PRIVATE KEY( BLOCK)?-----"
 	"secret-assignment|i|(api[_-]?key|secret|token|passw(or)?d|credentials?)[A-Za-z0-9_-]*[\"']?[[:space:]]*[:=][[:space:]]*[\"'][^\"'[:space:]]{16,}[\"']"
+	"secret-assignment|i|(api[_-]?key|secret|token|passw(or)?d|credentials?)[A-Za-z0-9_-]*[[:space:]]*[:=][[:space:]]*[A-Za-z0-9_./+-]{20,}"
 )
 public_aliases='^(security|support|ops|conduct)@'
+fake_marker='fake|test|planted|example'
+
+rule_grep() { # mode -> grep flags (extended regex, binary files skipped)
+	if [ "$1" = i ]; then printf '%s' -iIE; else printf '%s' -IE; fi
+}
 
 # --- allowlist ---------------------------------------------------------------
 allow_globs=()
 allow_lits=()
 allow_used=()
+bad_entry() {
+	echo "$allow_file:$1: $2" >&2
+	exit 2
+}
 if [ -f "$allow_file" ]; then
 	n=0
 	while IFS= read -r line || [ -n "$line" ]; do
@@ -71,9 +84,26 @@ if [ -f "$allow_file" ]; then
 		lit="$(printf '%s' "$lit" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 		reason="$(printf '%s' "$reason" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 		if [ "$rest" = "$line" ] || [ "$reason" = "$rest" ] || [ -z "$glob" ] || [ -z "$lit" ] || [ -z "$reason" ]; then
-			echo "$allow_file:$n: malformed entry (need: path-glob | literal | reason)" >&2
-			exit 2
+			bad_entry "$n" "malformed entry (need: path-glob | literal | reason)"
 		fi
+		case "$glob" in '*' | '**' | '*/*' | '**/*') bad_entry "$n" "glob '$glob' covers the whole repository — name the file or directory" ;; esac
+		[ "${#lit}" -ge 4 ] || bad_entry "$n" "literal '$lit' is shorter than 4 characters — too broad"
+		# The allowlist is published too: a literal may not itself be private
+		# context, and a secret-shaped literal must be obviously fake.
+		for entry in "${rules[@]}"; do
+			id="${entry%%|*}"
+			r="${entry#*|}"
+			if printf '%s\n' "$lit" | grep -q "$(rule_grep "${r%%|*}")" -- "${r#*|}"; then
+				case "$id" in
+				secret-*) printf '%s' "$lit" | grep -qiE "$fake_marker" ||
+					bad_entry "$n" "[$id] the literal is secret-shaped and not obviously fake (value redacted)" ;;
+				private-email) printf '%s\n' "$lit" | grep -oiE "${r#*|}" | grep -qviE "$public_aliases" &&
+					bad_entry "$n" "[$id] the literal is itself a private address" ;;
+				personal-path) ;;
+				*) bad_entry "$n" "[$id] the literal is itself private context" ;;
+				esac
+			fi
+		done
 		allow_globs+=("$glob")
 		allow_lits+=("$lit")
 		allow_used+=(0)
@@ -97,17 +127,21 @@ report() { # rule file lineno text
 	esac
 }
 
-allowed() { # rule file text -> 0 when an entry covers it (marks it used)
-	local i
+allowed() { # rule mode regex file text -> 0 when an entry covers it (marks it used)
+	local i v
 	for i in "${!allow_globs[@]}"; do
 		# shellcheck disable=SC2053 # glob match is intended
-		if [[ "$2" == ${allow_globs[$i]} ]] && [[ "$3" == *"${allow_lits[$i]}"* ]]; then
+		if [[ "$4" == ${allow_globs[$i]} ]] && [[ "$5" == *"${allow_lits[$i]}"* ]]; then
 			case "$1" in
 			secret-*)
-				if ! printf '%s' "$3" | grep -qiE 'fake|test|planted|example'; then
-					echo "$2: [$1] allow entry ${allow_globs[$i]} | ${allow_lits[$i]} covers a value that is not obviously fake" >&2
-					return 1
-				fi
+				# Every matched value itself (not merely the line) must be
+				# obviously fake.
+				while IFS= read -r v; do
+					if ! printf '%s' "$v" | grep -qiE "$fake_marker"; then
+						echo "$4: [$1] allow entry for '$4' covers a value that is not obviously fake (value redacted)" >&2
+						return 1
+					fi
+				done < <(printf '%s\n' "$5" | grep -o "$(rule_grep "$2")" -- "$3")
 				;;
 			esac
 			allow_used[i]=1
@@ -117,30 +151,35 @@ allowed() { # rule file text -> 0 when an entry covers it (marks it used)
 	return 1
 }
 
+errlog="$(mktemp)"
+trap 'rm -f "$errlog"' EXIT
 if [ "${#files[@]}" -gt 0 ]; then
 	for entry in "${rules[@]}"; do
 		id="${entry%%|*}"
 		rest="${entry#*|}"
 		mode="${rest%%|*}"
 		re="${rest#*|}"
-		flags=(-nIE)
-		[ "$mode" = i ] && flags=(-niIE)
-		while IFS= read -r hit; do
-			file="${hit%%:*}"
-			rest_hit="${hit#*:}"
-			lineno="${rest_hit%%:*}"
-			text="${rest_hit#*:}"
-			if [ "$id" = private-email ]; then
-				bad=0
-				while IFS= read -r addr; do
-					printf '%s' "$addr" | grep -qiE "$public_aliases" || bad=1
-				done < <(printf '%s\n' "$text" | grep -oiE "$re")
-				[ "$bad" -eq 1 ] || continue
-			fi
-			allowed "$id" "$file" "$text" && continue
-			report "$id" "$file" "$lineno" "$text"
-		done < <(printf '%s\0' "${files[@]}" | xargs -0 grep "${flags[@]}" -- "$re" /dev/null 2>/dev/null || true)
+		flags="$(rule_grep "$mode")"
+		# File names come back NUL-separated (safe for ":" or newlines in a
+		# name); lines are then read per file, so nothing parses a path.
+		while IFS= read -r -d '' file; do
+			while IFS= read -r hit; do
+				lineno="${hit%%:*}"
+				text="${hit#*:}"
+				if [ "$id" = private-email ]; then
+					printf '%s\n' "$text" | grep -oiE "$re" | grep -qviE "$public_aliases" || continue
+				fi
+				allowed "$id" "$mode" "$re" "$file" "$text" && continue
+				report "$id" "$file" "$lineno" "$text"
+			done < <(grep -n "$flags" -- "$re" "$file" 2>>"$errlog")
+		done < <(printf '%s\0' "${files[@]}" | xargs -0 grep -l --null "$flags" -- "$re" 2>>"$errlog" || true)
 	done
+fi
+if [ -s "$errlog" ]; then
+	# grep could not read a file or rejected a pattern: never report OK.
+	cat "$errlog" >&2
+	echo "public-hygiene: grep failed — the result is not trustworthy" >&2
+	exit 2
 fi
 
 stale=0

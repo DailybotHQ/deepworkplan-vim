@@ -3,8 +3,11 @@
 #   deepworkplan-vim-<tag>.tar.gz   source archive of the tagged tree
 #   install.sh                      the one-line installer at that tag
 #   surface.json                    addon/surface.json at that tag (v0.4.0+)
-# Everything is read from the tag with git, never from the working tree,
-# so the assets of an old release can be rebuilt (and backfilled) exactly.
+# Everything is read from the tag with git, never from the working tree, so
+# an old release's assets can be rebuilt and backfilled. install.sh and
+# surface.json are byte-identical on every machine; the .tar.gz bytes depend
+# on the git and gzip versions, so SHA256SUMS always describes the archive
+# that was actually uploaded with it.
 #
 # Usage: scripts/release-assets.sh vX.Y.Z OUTDIR
 # Exit: 0 built, 1 tag missing, 2 usage.

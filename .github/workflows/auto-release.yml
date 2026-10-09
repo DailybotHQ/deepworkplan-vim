@@ -5,12 +5,12 @@ name: Auto release
 #
 # feat: / fix: / perf: bump minor. A BREAKING CHANGE footer (or `!:`) bumps
 # major. Everything else, including a missing prefix, bumps patch.
-# Put [skip release] in the merge commit body to publish nothing — every
-# merge that does not ship a release must carry it.
-#
-# A release is refused unless the merged tree already describes it:
-# CHANGELOG.md has a "## [vX.Y.Z]" section and addon/surface.json names
-# vX.Y.Z (CONTRIBUTING.md → Releases). The tag is annotated; the notes are
+# A merge whose addon/surface.json still names an already-released version
+# publishes nothing (a notice, not a failure); [skip release] in the merge
+# commit body also publishes nothing. A release PR sets surface.json to the
+# version the commits compute and adds its CHANGELOG section; the run is
+# refused when the two disagree (CONTRIBUTING.md → Releases). A re-run after
+# a failed publish finishes the release already tagged on the commit. The tag is annotated; the notes are
 # that CHANGELOG section; the assets (source archive, install.sh,
 # surface.json) ship with SHA256SUMS. A pre-release (vX.Y.Z-rc.1) is cut
 # only by hand, through workflow_dispatch with the `prerelease` suffix, and is
@@ -54,12 +54,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve next version
+      - name: Resolve the release
         id: version
         env:
           SUFFIX: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || '' }}
+          REF: ${{ github.ref }}
         run: |
           set -euo pipefail
+          if [ "$DRY_RUN" != "true" ] && [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::a real release is cut from main only (this run: $REF) — use dry_run on other branches"
+            exit 1
+          fi
+          surface="$(python3 -c 'import json; print(json.load(open("addon/surface.json"))["version"])')"
+          # Re-run of a release whose publish step failed: the tag already
+          # points at this commit, so finish that release instead of bumping.
+          existing="$(git tag --points-at "$GITHUB_SHA" -l 'v[0-9]*' | head -n 1)"
+          if [ -n "$existing" ]; then
+            echo "tag=$existing" >> "$GITHUB_OUTPUT"
+            echo "existing=true" >> "$GITHUB_OUTPUT"
+            echo "Resuming release $existing (tag already on $GITHUB_SHA)"
+            exit 0
+          fi
+          # Nothing to release: the tree still describes a version that is
+          # already tagged (a docs, CI or dependency merge).
+          if [ -z "$SUFFIX" ] && git rev-parse -q --verify "refs/tags/$surface" >/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::addon/surface.json names $surface, which is already released — nothing to release"
+            exit 0
+          fi
           latest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v -- - | head -n 1 || true)"
           if [ -z "$latest" ]; then
             major=0; minor=1; patch=0; range="HEAD"
@@ -89,34 +111,31 @@ jobs:
             case "$SUFFIX" in *[!A-Za-z0-9.]*) echo "::error::pre-release suffix may only use letters, digits and dots"; exit 1 ;; esac
             tag="${tag}-${SUFFIX}"
           fi
+          if [ "$surface" != "$tag" ]; then
+            echo "::error::the commits since ${latest:-the start} compute $tag (${bump} bump) but addon/surface.json names $surface — set version and install.ref to $tag in the release PR"
+            exit 1
+          fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Next release: $tag (${bump} bump since ${latest:-the first commit})"
 
-      - name: Check the tree describes this release
+      - name: Notes, annotated tag and assets
+        if: ${{ steps.version.outputs.skip != 'true' }}
         env:
           TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          bash scripts/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
-          surface="$(python3 -c 'import json; print(json.load(open("addon/surface.json"))["version"])')"
-          if [ "$surface" != "$TAG" ]; then
-            echo "::error::addon/surface.json names $surface, not $TAG — bump it (and install.ref) in the release PR, or merge with [skip release]"
-            exit 1
-          fi
-
-      - name: Create the annotated tag and the assets
-        env:
-          TAG: ${{ steps.version.outputs.tag }}
+          EXISTING: ${{ steps.version.outputs.existing }}
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
           set -euo pipefail
-          git tag -a "$TAG" -m "DeepWorkPlan Vim $TAG" "$GITHUB_SHA"
+          bash scripts/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
+          if [ "$EXISTING" != "true" ]; then
+            git tag -a "$TAG" -m "DeepWorkPlan Vim $TAG" "$GITHUB_SHA"
+          fi
           bash scripts/release-assets.sh "$TAG" "$RUNNER_TEMP/dist"
           (cd "$RUNNER_TEMP/dist" && sha256sum -c SHA256SUMS)
 
       - name: Upload the dry-run assets
-        if: ${{ env.DRY_RUN == 'true' }}
+        if: ${{ steps.version.outputs.skip != 'true' && env.DRY_RUN == 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-dry-run
@@ -125,7 +144,7 @@ jobs:
             ${{ runner.temp }}/notes.md
 
       - name: Push the tag and publish the release
-        if: ${{ env.DRY_RUN != 'true' }}
+        if: ${{ steps.version.outputs.skip != 'true' && env.DRY_RUN != 'true' && github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -134,10 +153,15 @@ jobs:
           prerelease=()
           case "$TAG" in *-*) prerelease=(--prerelease) ;; esac
           git push origin "refs/tags/$TAG"
-          gh release create "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --verify-tag \
-            --title "$TAG" \
-            --notes-file "$RUNNER_TEMP/notes.md" \
-            "${prerelease[@]}" \
-            "$RUNNER_TEMP"/dist/*
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # A previous run created the release: make its assets complete.
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "$RUNNER_TEMP"/dist/*
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "$TAG" \
+              --notes-file "$RUNNER_TEMP/notes.md" \
+              "${prerelease[@]}" \
+              "$RUNNER_TEMP"/dist/*
+          fi

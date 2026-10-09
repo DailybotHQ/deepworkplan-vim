@@ -18,12 +18,15 @@ esac
 body="$(awk -v tag="$tag" '
 	/^## / {
 		if (found) exit
-		h = $0
-		sub(/^## \[?/, "", h)
-		sub(/[] ].*$/, "", h)
-		if (h == tag) { found = 1; next }
+		h = substr($0, 4)
+		if (substr(h, 1, 1) == "[") h = substr(h, 2)
+		for (i = 1; i <= length(h); i++) {
+			c = substr(h, i, 1)
+			if (c == "]" || c == " ") break
+		}
+		if (substr(h, 1, i - 1) == tag) { found = 1; next }
 	}
-	/^\[[^]]+\]: / && found { exit }
+	found && substr($0, 1, 1) == "[" && index($0, "]: ") > 0 { exit }
 	found { print }
 ' "$file")"
 

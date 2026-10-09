@@ -23,4 +23,4 @@
 - [ ] Tests updated in the same change (keymaps → `tests/contract.go`, `install.sh` → `addon/surface.json` sha256)
 - [ ] Docs updated (`README.md`, `docs/`, `CHANGELOG.md` under `[Unreleased]`)
 - [ ] License (GPL-3.0) and `CREDITS.md` untouched
-- [ ] Release PR only: CHANGELOG section and `addon/surface.json` name the new tag; otherwise merge with `[skip release]`
+- [ ] Release PR only: `addon/surface.json` (version, install tags), the CHANGELOG section and the README pin name the new tag

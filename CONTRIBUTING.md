@@ -83,9 +83,10 @@ A DCO sign-off is **not** required.
 
 ## Releases
 
-Merging to `main` cuts a release unless the merge commit body contains
-`[skip release]`. **Every merge that does not ship a release carries
-`[skip release]`.** A release PR:
+A merge to `main` publishes a release only when the tree describes a new
+one: while `addon/surface.json` names an already-released version (docs, CI,
+dependency merges), the release run ends with a notice and publishes
+nothing. `[skip release]` in the merge commit body also skips it. A release PR:
 
 1. Renames `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) to
    `## [vX.Y.Z] - YYYY-MM-DD` (the version the commit types compute) and
@@ -94,10 +95,12 @@ Merging to `main` cuts a release unless the merge commit body contains
    `vX.Y.Z` (and the README's pinned tag).
 3. Merges without `[skip release]`.
 
-The workflow refuses a release whose CHANGELOG section or surface version
-does not match, creates an annotated tag, publishes the CHANGELOG section as
+The workflow refuses a release whose surface version differs from the one
+the commit types compute, or whose CHANGELOG section is missing; it creates
+an annotated tag, publishes the CHANGELOG section as
 the notes and attaches the source archive, `install.sh`, `surface.json` and
-`SHA256SUMS`. Dry-run it first from the Actions tab (`Auto release` →
+`SHA256SUMS`. Only `main` publishes; re-running a run whose publish step
+failed finishes the same release. Dry-run it first from the Actions tab (`Auto release` →
 Run workflow, `dry_run` on).
 
 ## License

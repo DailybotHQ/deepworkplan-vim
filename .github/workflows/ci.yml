@@ -38,6 +38,14 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.4
       - name: Parse every Lua file
         run: find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p
+      - name: Release scripts (notes and assets of the latest tag)
+        run: |
+          set -euo pipefail
+          git fetch -q --tags origin
+          tag="$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)"
+          bash scripts/release-notes.sh "$tag" > /dev/null
+          bash scripts/release-assets.sh "$tag" "$RUNNER_TEMP/assets"
+          (cd "$RUNNER_TEMP/assets" && sha256sum -c SHA256SUMS)
       - name: Shell syntax
         run: |
           set -e

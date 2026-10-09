@@ -27,10 +27,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ### Changed
 
-- Releases use annotated tags and take their notes from this file; a merge
-  whose tree does not describe the computed release (CHANGELOG section and
-  `addon/surface.json` version) is refused. Manual dispatch defaults to a
-  dry run and can cut a flagged pre-release.
+- Releases use annotated tags and take their notes from this file. A merge
+  publishes only when `addon/surface.json` names a new version (others end
+  with a notice), and is refused when that version, the computed bump and
+  the CHANGELOG section disagree. Only `main` publishes; a re-run finishes a
+  failed publish; manual dispatch defaults to a dry run and can cut a
+  flagged pre-release.
 - README follows the ecosystem layout; the install line is pinned to the tag.
 
 ### Security
