@@ -10,6 +10,30 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.4.2] - 2026-10-09
+
+### Fixed
+
+- Updating an existing install no longer fails for installs cloned from
+  the older `mu-vim` fork ("couldn't find remote ref"): the release is
+  fetched from `DWP_VIM_SOURCE` or the DeepWorkPlan Vim repository, never
+  from the checkout's own origin.
+
+### Changed
+
+- An existing install whose origin is another repository, or that has
+  local edits to tracked files, is no longer switched in place. The
+  installer names the situation and offers the consented path — move it
+  to `~/.config/previous-deepworkplan-vim`, then install fresh — or how to
+  keep it and update in place; without a terminal it stops and touches
+  nothing. A mirror install names its mirror in `DWP_VIM_SOURCE`.
+
+### Security
+
+- Origin URLs shown by the installer have embedded credentials removed.
+- The installer harness runs with git limited to the file protocol, so no
+  scenario can depend on the network (36 scenarios).
+
 ## [v0.4.1] - 2026-10-09
 
 The installer the website publishes at `https://deepworkplan.com/vim/install.sh`,
@@ -179,7 +203,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...HEAD
+[v0.4.2]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...v0.4.2
 [v0.4.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.0...v0.4.1
 [v0.4.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.3.1...v0.4.0
 [v0.3.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.3.0...v0.3.1

@@ -39,7 +39,7 @@ sha256, the read-only plan reader, and the features this tag ships
 
 ## Install
 
-Release **v0.4.1** — macOS, Linux or WSL; requires
+Release **v0.4.2** — macOS, Linux or WSL; requires
 [Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
 Download the installer, verify it, then run it from a terminal:
 
@@ -51,14 +51,14 @@ bash install.sh
 ```
 
 The same two files are assets of the
-[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.4.1)
+[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.4.2)
 (with `SHA256SUMS` for every asset) — comparing the website's copy with the
 release's `SHA256SUMS` checks it against a second origin; release tags are
 immutable:
 
 ```bash
-curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.1/install.sh
-curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.1/install.sh.sha256
+curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.2/install.sh
+curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.2/install.sh.sha256
 shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
 bash install.sh
 ```
@@ -66,19 +66,23 @@ bash install.sh
 That is the whole install: preflight (installs git, curl and Lua if they
 are missing), clone into `~/.config/nvim`, the system setup
 (`lua install.lua`), and a headless plugin install — no quit-and-reopen
-dance. The installer installs **the release it belongs to** (v0.4.1);
+dance. The installer installs **the release it belongs to** (v0.4.2);
 `DWP_VIM_REF=main bash install.sh` follows the moving `main` branch instead.
 An existing Neovim config is **never overwritten**: you are asked before it
 is moved to `~/.config/previous-deepworkplan-vim`, and a run without a
 terminal stops and leaves it untouched (missing git, curl or Lua may already
-have been installed by the preflight).
+have been installed by the preflight). Rerunning a newer installer updates
+an existing install from the DeepWorkPlan Vim repository; an install that
+tracks another repository (such as the older `mu-vim` fork) or has local
+edits is never changed in place — you are offered the same backup and a
+fresh install, or told how to keep it.
 
 Images, CI and offline:
 
 ```bash
 DWP_VIM_SKIP_PACKAGES=1 bash install.sh                    # image already has every dependency: install no system package
 DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh   # local/offline source (also redirects updates)
-git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
+git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
 cd ~/.config/nvim && lua install.lua
 ```
 
@@ -90,7 +94,7 @@ where they work as-is:
 
 ```bash
 winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 cd "$LOCALAPPDATA/nvim" && lua install.lua
 ```
 

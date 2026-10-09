@@ -1,7 +1,7 @@
 {
   "name": "deepworkplan-vim",
   "interface": 1,
-  "version": "v0.4.1",
+  "version": "v0.4.2",
   "repository": "https://github.com/DailybotHQ/deepworkplan-vim",
   "license": "GPL-3.0",
   "requires": {
@@ -37,30 +37,30 @@
     "read_only": true
   },
   "install": {
-    "ref": "v0.4.1",
+    "ref": "v0.4.2",
     "ref_env": "DWP_VIM_REF",
     "skip_packages_env": "DWP_VIM_SKIP_PACKAGES",
     "skip_packages_note": "set to 1 when the image already carries git, curl, Lua and the editor dependencies: install.sh and install.lua install no system package, and a missing tool stops the run",
     "script": {
-      "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.4.1/install.sh",
-      "release_asset_url": "https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.1/install.sh",
+      "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.4.2/install.sh",
+      "release_asset_url": "https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.2/install.sh",
       "mirror_url": "https://deepworkplan.com/vim/install.sh",
       "mirror_note": "the website's copy; from v0.4.1 it is byte-identical to the release's install.sh — use it only when its sha256 equals script.sha256, otherwise use url",
       "sha256_file": "install.sh.sha256 (next to install.sh on the website and on the release)",
-      "sha256": "eaeb6c909284ff354b4f6a617fab28084e9eb329706d6d0f8d20ef0c76c8285d"
+      "sha256": "da77265e9115d72fe1c782e14076ea3d76b13b14557a9615539a1cc51f73895a"
     },
     "steps": [
       "download script.url (or mirror_url, or release_asset_url) to a local file named install.sh",
       "verify its sha256 equals script.sha256; stop on mismatch",
-      "run it: bash install.sh (it installs its own release, v0.4.1; DWP_VIM_REF overrides it)"
+      "run it: bash install.sh (it installs its own release, v0.4.2; DWP_VIM_REF overrides it)"
     ],
     "manual": [
-      "git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git <config_dir>",
+      "git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git <config_dir>",
       "cd <config_dir> && lua install.lua"
     ],
     "windows": [
       "winget install -e --id Neovim.Neovim",
-      "git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git \"$LOCALAPPDATA/nvim\"",
+      "git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git \"$LOCALAPPDATA/nvim\"",
       "cd \"$LOCALAPPDATA/nvim\" && lua install.lua"
     ],
     "consent": {
