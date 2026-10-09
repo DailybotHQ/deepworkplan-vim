@@ -247,9 +247,12 @@ RUN set -eu; \
 # as ~/.local/bin/nvim), the config at the pinned release in ~/.config/nvim,
 # install.lua (pckr + the font, no system packages), the headless plugin
 # sync, and --strict: a failed sync or a missing/empty plugin fails the
-# build. The hosted script is downloaded, verified against the release's
-# install.sh.sha256 (a second origin, pinned by DWP_VIM_VERSION — bump both
-# together), then run; no download is piped into a shell.
+# build. The hosted script is downloaded and verified against the
+# v${DWP_VIM_VERSION} release's install.sh.sha256 (a second origin); when
+# the website already serves a newer release, the exact release asset is
+# used instead (same checksum), so the build always runs the pinned
+# installer bytes and a website release never breaks it. No download is
+# piped into a shell.
 # At container start the entrypoint links ~/.config/nvim to /workspace
 # (this image develops DeepWorkPlan Vim itself); without /workspace the
 # image is a working editor on the release config.
@@ -260,9 +263,13 @@ ARG NVIM_VERSION=0.12.5
 RUN --mount=type=secret,id=github_token,uid=1000 \
     set -eu; \
     tmp="$(mktemp -d)"; \
+    release="https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v${DWP_VIM_VERSION}"; \
+    curl -fsSL -o "$tmp/install.sh.sha256" "$release/install.sh.sha256"; \
     curl -fsSL -o "$tmp/install.sh" https://vim.deepworkplan.com/install.sh; \
-    curl -fsSL -o "$tmp/install.sh.sha256" \
-      "https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v${DWP_VIM_VERSION}/install.sh.sha256"; \
+    if ! (cd "$tmp" && sha256sum -c --status install.sh.sha256); then \
+      echo "hosted installer is not v${DWP_VIM_VERSION}; using the release asset"; \
+      curl -fsSL -o "$tmp/install.sh" "$release/install.sh"; \
+    fi; \
     (cd "$tmp" && sha256sum -c install.sh.sha256); \
     token=""; \
     if [ -r /run/secrets/github_token ]; then token="$(cat /run/secrets/github_token)"; fi; \

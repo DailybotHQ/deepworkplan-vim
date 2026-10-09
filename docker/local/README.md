@@ -20,7 +20,7 @@ install script is piped to a shell.**
 | Base image | `debian:trixie-20261005-slim@sha256:a29215…` | Docker Hub | digest |
 | Debian packages (git, lua5.4, nodejs, npm, ripgrep, …) | the base image's Debian release (trixie) | apt | apt signatures; versions follow trixie's stable updates (exception: not frozen per package) |
 | gh | `2.83.2` | GitHub release tarball | sha256 from `gh_<v>_checksums.txt` |
-| DeepWorkPlan Vim installer | `DWP_VIM_VERSION=0.5.0` | `https://vim.deepworkplan.com/install.sh` | sha256 = the release's `install.sh.sha256` (GitHub, second origin); bump the ARG to move both |
+| DeepWorkPlan Vim installer | `DWP_VIM_VERSION=0.5.0` | `https://vim.deepworkplan.com/install.sh` (an alias of `https://deepworkplan.com/vim/install.sh`); the release's own `install.sh` when the website already serves a newer release | sha256 = the release's `install.sh.sha256` (GitHub, second origin) — the build always runs the pinned bytes |
 | Neovim | `NVIM_VERSION=0.12.5` | GitHub release tarball, installed by the installer's `--nvim` into `~/.local/opt/nvim-v0.12.5` | sha256 = the release asset digest (the installer refuses a mismatch or a missing digest) |
 | Herdr (always) | `0.9.3` | GitHub release binary | sha256 from `herdr.dev/latest.json` |
 | pnpm | `10.34.6` | npm registry | npm integrity hash |
@@ -36,7 +36,18 @@ install script is piped to a shell.**
 Coding CLIs stay **opt-in** (`INSTALL_*_CLI=true`); the default build
 installs none of them.
 
+**Building with a token.** The installer looks up Neovim's published
+sha256 on the GitHub API (60 unauthenticated calls an hour per address).
+`GITHUB_TOKEN=… bash dev.sh build` passes the token as the BuildKit secret
+`github_token` (compose `build.secrets`); it is used for that lookup only and
+never stored in a layer. Without it the build works until the limit.
+
 **Exceptions (documented):**
+
+- **Neovim's checksum is read at build time** from the GitHub release asset
+  digest by the installer (it refuses a mismatch or a missing digest), so it
+  comes from the same host as the tarball: it proves the download is the
+  published asset, not that GitHub itself was not tampered with.
 
 - **Cursor and Grok publish no checksums.** Their versioned artifacts are
   pinned by URL, and the sha256 values in the Dockerfile were computed from

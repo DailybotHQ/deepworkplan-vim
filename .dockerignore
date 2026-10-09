@@ -1,8 +1,7 @@
 # Docker build context for docker/local/dwpvim (context = this repository
-# root; see docker/local/docker-compose.yaml). The Dockerfile COPYs only the
-# editor config (init.lua, lua/, snippets/, dicts/, CheatSheet.md, delete.lua)
-# and utilities/installation/ — everything else is excluded to keep the
-# context lean. .git alone dominates the tree; .env files must never enter a
+# root; see docker/local/docker-compose.yaml). The Dockerfile COPYs only
+# docker/local/dwpvim/entrypoint.sh (the editor comes from the DeepWorkPlan
+# Vim installer) — everything else is excluded to keep the context lean. .git alone dominates the tree; .env files must never enter a
 # build context.
 .git
 .dwp
