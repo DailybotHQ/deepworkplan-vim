@@ -129,11 +129,14 @@ scen_root() { # scen_root — new scenario root; echoes the path
   printf '%s' "$T"
 }
 
+# Every run sets GIT_ALLOW_PROTOCOL=file: git may only reach the local
+# fixture, so no scenario can silently depend on the network (the default
+# source is the GitHub repository; update scenarios pass DWP_VIM_SOURCE).
 run_install() { # run_install <T> <out-file> [VAR=value...] — sets RC
   local T="$1" out="$2"; shift 2
   RC=0
   env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file \
     "$@" bash "$REPO/install.sh" </dev/null >"$out" 2>&1 || RC=$?
 }
 
@@ -145,7 +148,7 @@ run_install_piped() { # run_install_piped <T> <out-file> [VAR=value...] — sets
   local T="$1" out="$2"; shift 2
   RC=0
   cat "$REPO/install.sh" | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file \
     "$@" bash >"$out" 2>&1 || RC=$?
 }
 
@@ -210,7 +213,7 @@ scenario_update_ours() {
   install -m 755 "$SHIMS/curl" "$T/bin/curl"
   install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
   git clone -q "$FIXTURE" "$T/home/.config/nvim"
-  run_install "$T" "$T/out.log"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
   wg "update path taken"       "Existing DeepWorkPlan Vim install" "$T/out.log"
   wg "updating to ref"         "updating to '$RELEASE_REF'"    "$T/out.log"
   wng "no consent prompt"      "Move it to"                    "$T/out.log"
@@ -243,14 +246,16 @@ scenario_not_ours_local_path() {
   # FIXED(I-2): is_ours identifies the checkout by its contents
   # (install.lua + lua/plugins.lua), so a clone from a mirror path whose
   # URL lacks 'deepworkplan-vim' updates in place instead of being
-  # treated as a foreign config.
+  # treated as a foreign config. Since v0.4.2 updates come from the
+  # canonical source: a mirror install names its mirror in DWP_VIM_SOURCE
+  # (an unnamed foreign origin stops instead — update_origin_old_fork).
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
   install -m 755 "$SHIMS/curl" "$T/bin/curl"
   git clone -q --bare "$FIXTURE" "$T/m"
   git clone -q "$T/m" "$T/home/.config/nvim"
-  run_install "$T" "$T/out.log"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$T/m"
   wg "recognized as ours"  "Existing DeepWorkPlan Vim install" "$T/out.log"
   wg "lua leg ran (stub)"  "lua5.4 install.lua"                "$T/shim.log"
   wng "no consent prompt"  "Move it to"                        "$T/out.log"
@@ -286,7 +291,7 @@ scenario_foreign_interactive_yes() {
   # A pty so /dev/tty opens and ask_consent can read the 'y'.
   local rc=0
   pty_answer $'y\n' \
-    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
+    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
     >"$T/out.log" 2>&1 || rc=$?
   wg "consent offered"         "Move it to"                    "$T/out.log"
   wg "backup announced"        "Moving the existing config"    "$T/out.log"
@@ -466,7 +471,7 @@ scenario_update_older_to_tag() {
   git clone -q "$FIXTURE" "$D"
   git -C "$D" reset -q --hard HEAD~1
   local OLD; OLD="$(git -C "$D" rev-parse HEAD)"
-  run_install "$T" "$T/out.log"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
   wng "not refused"        "update skipped"              "$T/out.log"
   wg "setup ran"           "Running the system setup"    "$T/out.log"
   wx "exit 0"              test "$RC" -eq 0
@@ -580,6 +585,133 @@ scenario_piped_stdin_foreign_safe() {
   wx "no backup made"        test ! -e "$T/home/.config/previous-deepworkplan-vim"
 }
 
+scenario_update_origin_old_fork() {
+  # Field bug (v0.4.1): an install cloned from the older mu-vim fork took
+  # the update path and failed fetching the release from its own origin.
+  # Since v0.4.2 a checkout tracking another repository is never switched
+  # without consent: without a terminal the run stops, names the origin,
+  # fetches nothing and touches nothing.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/nvim"
+  git clone -q "$FIXTURE" "$D"
+  git -C "$D" remote set-url origin "https://github.com/DailybotHQ/mu-vim.git"
+  local HEAD0; HEAD0="$(git -C "$D" rev-parse HEAD)"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  wg "names the situation"  "tracks a different repository (origin: https://github.com/DailybotHQ/mu-vim.git)" "$T/out.log"
+  wg "cannot ask unattended" "ran without a terminal"            "$T/out.log"
+  wg "offers the backup"     "mv '$D' '$T/home/.config/previous-deepworkplan-vim'" "$T/out.log"
+  wg "offers keeping it"     "remote set-url origin"             "$T/out.log"
+  wng "no update attempted"  "updating to"                       "$T/out.log"
+  wng "setup not run"        "Running the system setup"          "$T/out.log"
+  wx "rc non-zero"           test "$RC" -ne 0
+  wx "HEAD unchanged"        test "$(git -C "$D" rev-parse HEAD)" = "$HEAD0"
+  wx "still on main"         test "$(git -C "$D" symbolic-ref -q HEAD)" = "refs/heads/main"
+  wx "nothing fetched"       test -z "$(git -C "$D" for-each-ref refs/dwp-vim)"
+  wx "no backup made"        test ! -e "$T/home/.config/previous-deepworkplan-vim"
+  # Credentials embedded in an origin URL are never printed.
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  git clone -q "$FIXTURE" "$T2/home/.config/nvim"
+  git -C "$T2/home/.config/nvim" remote set-url origin "https://someone:planted-not-a-secret@example.com/mu-vim.git"
+  run_install "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  wg "origin shown redacted" "origin: https://example.com/mu-vim.git" "$T2/out.log"
+  wng "credential never shown" "planted-not-a-secret"            "$T2/out.log"
+  rm -rf "$T2"
+}
+
+scenario_update_origin_old_fork_consent() {
+  # The consented path: on a terminal, 'y' moves the fork install aside to
+  # the backup location (moved, not deleted) and installs fresh.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/nvim"
+  git clone -q "$FIXTURE" "$D"
+  git -C "$D" remote set-url origin "https://github.com/DailybotHQ/mu-vim.git"
+  echo "-- my edit" >>"$D/init.lua"
+  local rc=0
+  pty_answer $'y\n' \
+    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
+    >"$T/out.log" 2>&1 || rc=$?
+  local B="$T/home/.config/previous-deepworkplan-vim"
+  wg "consent offered"        "Move it to"                       "$T/out.log"
+  wg "backup announced"       "Moving the existing config"       "$T/out.log"
+  wg "completion line"        "DeepWorkPlan Vim is installed at" "$T/out.log"
+  wx "exit 0"                 test "$rc" -eq 0
+  wx "backup keeps the fork"  test "$(git -C "$B" remote get-url origin)" = "https://github.com/DailybotHQ/mu-vim.git"
+  wx "backup keeps the edit"  grep -q -- "-- my edit" "$B/init.lua"
+  wx "fresh install on tag"   test "$(git -C "$D" describe --tags --exact-match HEAD 2>/dev/null)" = "$RELEASE_REF"
+}
+
+scenario_update_local_modifications() {
+  # Local edits to tracked files in our own checkout: never carried into a
+  # release checkout or reset — the run stops and the edits stay.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/nvim"
+  git clone -q "$FIXTURE" "$D"
+  git -C "$D" reset -q --hard HEAD~1
+  echo "-- my edit" >>"$D/init.lua"
+  echo "-- another" >>"$D/install.lua"
+  local HEAD0; HEAD0="$(git -C "$D" rev-parse HEAD)"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  wg "names the edits"      "local edits in 2 tracked file(s)" "$T/out.log"
+  wg "cannot ask unattended" "ran without a terminal"          "$T/out.log"
+  wng "no update attempted" "updating to"                      "$T/out.log"
+  wx "rc non-zero"          test "$RC" -ne 0
+  wx "HEAD unchanged"       test "$(git -C "$D" rev-parse HEAD)" = "$HEAD0"
+  wx "edit 1 intact"        grep -q -- "-- my edit" "$D/init.lua"
+  wx "edit 2 intact"        grep -q -- "-- another" "$D/install.lua"
+  wx "no backup made"       test ! -e "$T/home/.config/previous-deepworkplan-vim"
+}
+
+scenario_update_fetches_canonical_source() {
+  # With no DWP_VIM_SOURCE the update fetches from the DeepWorkPlan Vim
+  # repository URL, never from the clone's origin (which may be a fork or a
+  # stale mirror). The harness allows git the file protocol only, so the
+  # https fetch is refused — proving which source was used, offline — and
+  # the install is left exactly as it was.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/nvim"
+  git clone -q "$FIXTURE" "$D"
+  git -C "$D" reset -q --hard HEAD~1
+  local HEAD0; HEAD0="$(git -C "$D" rev-parse HEAD)"
+  run_install "$T" "$T/out.log"
+  wg "canonical source used" "from https://github.com/DailybotHQ/deepworkplan-vim.git" "$T/out.log"
+  wng "origin not used"      "Running the system setup"        "$T/out.log"
+  wx "rc non-zero"           test "$RC" -ne 0
+  wx "HEAD unchanged"        test "$(git -C "$D" rev-parse HEAD)" = "$HEAD0"
+}
+
+scenario_update_offline() {
+  # The source cannot be reached: the run stops naming it, and the install
+  # is exactly as it was.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/nvim"
+  git clone -q "$FIXTURE" "$D"
+  git -C "$D" reset -q --hard HEAD~1
+  local HEAD0; HEAD0="$(git -C "$D" rev-parse HEAD)"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$T/unreachable-deepworkplan-vim"
+  wg "names the failure"   "could not fetch '$RELEASE_REF' from $T/unreachable-deepworkplan-vim" "$T/out.log"
+  wng "setup not run"      "Running the system setup"        "$T/out.log"
+  wx "rc non-zero"         test "$RC" -ne 0
+  wx "HEAD unchanged"      test "$(git -C "$D" rev-parse HEAD)" = "$HEAD0"
+  wx "still on main"       test "$(git -C "$D" symbolic-ref -q HEAD)" = "refs/heads/main"
+}
+
 scenario_bootstrap_already_installed() {
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
@@ -589,7 +721,7 @@ scenario_bootstrap_already_installed() {
   git clone -q "$FIXTURE" "$T/home/.config/nvim"
   mkdir -p "$T/home/.local/share/nvim/pckr"
   touch "$T/home/.local/share/nvim/pckr/.dwp-vim-bootstrapped"
-  run_install "$T" "$T/out.log"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
   wg "already installed"       "Plugins already installed"     "$T/out.log"
   wng "bootstrap skipped"      "nvim --headless"               "$T/shim.log"
   wx "exit 0"                  test "$RC" -eq 0
@@ -768,6 +900,11 @@ run_scenario fresh_apt                   scenario_fresh_apt
 run_scenario fresh_dnf                   scenario_fresh_dnf
 run_scenario fresh_pacman                scenario_fresh_pacman
 run_scenario fresh_brew                  scenario_fresh_brew
+run_scenario update_origin_old_fork      scenario_update_origin_old_fork
+run_scenario update_origin_old_fork_consent scenario_update_origin_old_fork_consent
+run_scenario update_local_modifications  scenario_update_local_modifications
+run_scenario update_offline              scenario_update_offline
+run_scenario update_fetches_canonical_source scenario_update_fetches_canonical_source
 run_scenario update_ours                 scenario_update_ours
 run_scenario update_ours_source          scenario_update_ours_source
 run_scenario not_ours_local_path         scenario_not_ours_local_path

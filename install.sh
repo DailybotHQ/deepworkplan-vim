@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# DeepWorkPlan Vim — self-contained installer for release v0.4.1.
+# DeepWorkPlan Vim — self-contained installer for release v0.4.2.
 #
 # Published at  : https://deepworkplan.com/vim/install.sh
 #                 and as the install.sh asset (with SHA256SUMS) of each
@@ -31,7 +31,7 @@
 #
 # Environment overrides:
 #   DWP_VIM_REF             tag, branch, or commit to install (default: this
-#                           script's release, v0.4.1; "main" follows main)
+#                           script's release, v0.4.2; "main" follows main)
 #   DWP_VIM_SOURCE          repository URL or a local path (offline installs)
 #   DWP_VIM_DIR             destination directory (default: ~/.config/nvim)
 #   DWP_VIM_SKIP_PACKAGES   set to 1 to install no system package — the
@@ -44,7 +44,7 @@
 # Windows: use winget plus Git Bash, or run the steps above inside WSL,
 # where they work as-is:
 #   winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-#   git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+#   git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 #   cd "$LOCALAPPDATA/nvim" && lua install.lua
 #
 set -euo pipefail
@@ -59,7 +59,7 @@ REPO_URL="https://github.com/DailybotHQ/deepworkplan-vim.git"
 # The release this script belongs to: it installs exactly that tag unless
 # DWP_VIM_REF names another tag, branch or commit (DWP_VIM_REF=main follows
 # the moving main branch — only when asked for).
-RELEASE_REF="v0.4.1"
+RELEASE_REF="v0.4.2"
 REF="${DWP_VIM_REF:-$RELEASE_REF}"
 SOURCE="${DWP_VIM_SOURCE:-$REPO_URL}"
 DEST="${DWP_VIM_DIR:-$HOME/.config/nvim}"
@@ -221,16 +221,19 @@ if [ -e "$DEST" ] && [ ! -d "$DEST" ]; then
   die "$DEST exists and is not a directory — resolve it manually and rerun"
 fi
 
-if [ -d "$DEST" ] && dir_has_content "$DEST" && ! is_ours "$DEST"; then
-  # A foreign Neovim config exists. It is never overwritten silently.
+# Move the config at $DEST aside to $BACKUP_DIR — only after an interactive
+# yes; it is moved, never deleted. $1 is one sentence naming the situation;
+# $2 (optional) tells how to keep the config instead. Without a terminal
+# nothing is touched: the run stops with instructions.
+move_aside_with_consent() {
+  local situation="$1" keep="${2:-}" rc=0
   if [ -e "$BACKUP_DIR" ]; then
-    die "an existing Neovim config was found at $DEST, and the backup path $BACKUP_DIR already exists — move or remove one of them and rerun. Nothing was touched."
+    die "$situation The backup path $BACKUP_DIR already exists — move or remove one of them and rerun. Nothing was touched."
   fi
-  rc=0
-  ask_consent "An existing Neovim config was found at $DEST. Move it to $BACKUP_DIR and continue?" || rc=$?
+  ask_consent "$situation Move it to $BACKUP_DIR and continue with a fresh install?" || rc=$?
   if [ "$rc" -eq 2 ]; then
     say ""
-    say "An existing Neovim config was found at $DEST. Nothing was changed."
+    say "$situation Nothing was changed."
     say "This script ran without a terminal, so it cannot ask what to do."
     say "Either:"
     say "  1. run it interactively — download it, then run it in a terminal:"
@@ -238,21 +241,82 @@ if [ -d "$DEST" ] && dir_has_content "$DEST" && ! is_ours "$DEST"; then
     say "       bash install.sh"
     say "  2. or move the config aside first, then run the installer again:"
     say "       mv '$DEST' '$BACKUP_DIR'"
+    if [ -n "$keep" ]; then
+      say "  3. or keep it and update in place: $keep"
+    fi
     die "refusing to touch an existing config unattended"
   fi
   if [ "$rc" -ne 0 ]; then
     die "aborted — nothing was touched"
   fi
   say "==> Moving the existing config to $BACKUP_DIR"
-  mkdir -p "$HOME/.config"
+  mkdir -p "$(dirname "$BACKUP_DIR")"
   mv -- "$DEST" "$BACKUP_DIR" || die "could not move $DEST to $BACKUP_DIR — nothing was deleted"
+}
+
+# A URL as it may be shown: credentials embedded in it are dropped.
+redact_url() {
+  case "$1" in
+    *://*@*) printf '%s' "${1%%://*}://${1#*@}" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# Is this origin URL DeepWorkPlan Vim itself (or the explicit source)?
+same_project() {
+  [ -n "$1" ] || return 1
+  if [ -n "${DWP_VIM_SOURCE:-}" ] && [ "$1" = "$DWP_VIM_SOURCE" ]; then
+    return 0
+  fi
+  printf '%s' "$1" | grep -qi 'deepworkplan-vim'
+}
+
+# Why a DeepWorkPlan Vim checkout must not be updated in place, one reason
+# per line (none: it may be). A checkout that tracks another repository —
+# an install cloned from the older fork — or that carries local edits to
+# tracked files belongs to its user: switching it to the release could
+# silently migrate or entangle that work.
+update_blockers() {
+  local origin edits
+  origin="$(git -C "$1" remote get-url origin 2>/dev/null || true)"
+  if ! same_project "$origin"; then
+    if [ -z "$origin" ]; then
+      printf '%s\n' "it has no origin remote to match against DeepWorkPlan Vim"
+    else
+      printf '%s\n' "it tracks a different repository (origin: $(redact_url "$origin"))"
+    fi
+  fi
+  edits="$(git -C "$1" status --porcelain --untracked-files=no 2>/dev/null | grep -c . || true)"
+  if [ "${edits:-0}" -gt 0 ]; then
+    printf '%s\n' "it has local edits in $edits tracked file(s) — git -C '$1' status lists them"
+  fi
+}
+
+if [ -d "$DEST" ] && dir_has_content "$DEST" && ! is_ours "$DEST"; then
+  # A foreign Neovim config exists. It is never overwritten silently.
+  move_aside_with_consent "An existing Neovim config was found at $DEST."
+fi
+
+if is_ours "$DEST"; then
+  BLOCKERS="$(update_blockers "$DEST")"
+  if [ -n "$BLOCKERS" ]; then
+    say "==> $DEST holds a DeepWorkPlan Vim config that is not updated in place:"
+    while IFS= read -r reason; do
+      say "      - $reason"
+    done <<<"$BLOCKERS"
+    move_aside_with_consent \
+      "The Neovim config at $DEST cannot be updated in place." \
+      "commit or stash your edits, point origin at $REPO_URL (git -C '$DEST' remote set-url origin $REPO_URL), then run the installer again"
+  fi
 fi
 
 if is_ours "$DEST"; then
   say "==> Existing DeepWorkPlan Vim install at $DEST — updating to '$REF'"
-  # DWP_VIM_SOURCE redirects the update too (offline installs, local
-  # mirrors); unset, the update pulls from the clone's own origin.
-  FETCH_SOURCE="${DWP_VIM_SOURCE:-origin}"
+  # Updates come from the canonical source — DWP_VIM_SOURCE, or the
+  # DeepWorkPlan Vim repository — never from whatever the clone's origin
+  # happens to be (an older install may track the fork, which has no
+  # release tags).
+  FETCH_SOURCE="$SOURCE"
   # The tag is fetched into a private ref, never over refs/tags: a local
   # tag of the same name (the user's own) is left exactly as it is.
   if git -C "$DEST" fetch -q "$FETCH_SOURCE" "+refs/tags/$REF:refs/dwp-vim/release" 2>/dev/null; then
