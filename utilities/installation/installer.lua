@@ -133,12 +133,13 @@ function M.install_pckr(config_dir)
     io.stderr:write("Failed to clone pckr.nvim\n")
     return false
   end
-  -- Check out the commit the config's lock pins (lua/plugins.lua does the
-  -- same on every start, so an older release's clone converges too).
+  -- Check out the commit the config's lock pins. A failure is a warning,
+  -- the same policy as lua/plugins.lua, which retries on the installer's
+  -- headless bootstrap (fetching first); install.sh --strict then fails if
+  -- pckr is still away from its pin.
   local pin = M.pckr_pin(config_dir)
   if pin and not exec_ok('git -C "' .. pckr_dir .. '" checkout -q ' .. pin) then
-    io.stderr:write("Failed to check out pckr.nvim at its pinned commit " .. pin .. "\n")
-    return false
+    io.stderr:write("Warning: could not check out pckr.nvim at its pinned commit " .. pin .. "\n")
   end
   return true
 end

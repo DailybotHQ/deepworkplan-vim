@@ -930,6 +930,7 @@ verify_lock() {
   # else is refused rather than half-read. Plain bash: no sed/awk needed.
   re='^  \["https://github\.com/([A-Za-z0-9._-]+/[A-Za-z0-9._-]+)"\] = \{ commit = "([0-9a-f]{40})" \},$'
   while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}" # a CRLF checkout (core.autocrlf) reads the same
     case "$line" in
       'return {' | '}') continue ;;
     esac
@@ -1035,12 +1036,12 @@ else
   # Quoted operands (review round-2 finding 4): an unquoted word list
   # would split a destination containing spaces into extra argv.
   if command -v timeout >/dev/null 2>&1; then
-    timeout "$BOOTSTRAP_TIMEOUT" env \
+    timeout "$BOOTSTRAP_TIMEOUT" env -u DWP_VIM_LOCK_UPDATE \
       XDG_CONFIG_HOME="$(dirname "$DEST")" \
       NVIM_APPNAME="$BOOTSTRAP_APPNAME" DWP_VIM_BOOTSTRAP=1 \
       nvim --headless </dev/null >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   else
-    env \
+    env -u DWP_VIM_LOCK_UPDATE \
       XDG_CONFIG_HOME="$(dirname "$DEST")" \
       NVIM_APPNAME="$BOOTSTRAP_APPNAME" DWP_VIM_BOOTSTRAP=1 \
       nvim --headless </dev/null >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
@@ -1075,7 +1076,10 @@ if command -v nvim >/dev/null 2>&1; then
   fi
   # Each plugin at the commit the release pins: what makes two installs
   # (or two image builds) of one release the same code.
-  if [ ! -f "$LOCKFILE" ]; then
+  if [ ! -f "$LOCKFILE" ] && [ "$STRICT" = 1 ] && [[ "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+    && ! version_gt 0.5.1 "${REF#v}"; then
+    strict_fail "$REF ships pckr/lockfile.lua (v0.5.1+), but $LOCKFILE is missing — plugin commits cannot be verified"
+  elif [ ! -f "$LOCKFILE" ]; then
     say "NOTE: $REF has no plugin lock (pckr/lockfile.lua, v0.5.1+): plugin commits are not verified"
   elif verify_lock; then
     say "==> Plugin commits verified ($LOCK_COUNT pinned in pckr/lockfile.lua)"

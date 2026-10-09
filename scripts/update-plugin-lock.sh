@@ -57,7 +57,7 @@ for tool in git nvim; do
 		exit 1
 	}
 done
-if [ "$commit" -eq 1 ] && ! git diff --quiet -- "$LOCK"; then
+if [ "$commit" -eq 1 ] && ! { git diff --quiet -- "$LOCK" && git diff --cached --quiet -- "$LOCK"; }; then
 	echo "update-plugin-lock: $LOCK has uncommitted changes; commit or restore it first" >&2
 	exit 1
 fi
@@ -73,7 +73,10 @@ sync_into() {
 	ln -s "$REPO" "$root/config/nvim"
 	local runner=()
 	if command -v timeout >/dev/null 2>&1; then runner=(timeout "$TIMEOUT"); fi
-	if ! env -u NVIM_APPNAME -u GITHUB_TOKEN -u GH_TOKEN \
+	# env -i + an allowlist: the sync runs plugin code nobody has reviewed yet
+	# (branch tips, their build hooks), so it gets no credentials, agent
+	# sockets or tokens from this shell — only what a build needs.
+	if ! env -i PATH="$PATH" LANG="${LANG:-C.UTF-8}" TERM="${TERM:-dumb}" TMPDIR="${TMPDIR:-/tmp}" \
 		HOME="$root/home" XDG_CONFIG_HOME="$root/config" \
 		XDG_DATA_HOME="$root/home/.local/share" XDG_STATE_HOME="$root/home/.local/state" \
 		XDG_CACHE_HOME="$root/home/.cache" \
@@ -147,8 +150,16 @@ fi
 
 # --- 3. commit -----------------------------------------------------------
 if [ "$commit" -eq 1 ] && [ "$changed" -eq 1 ]; then
-	moved="$(diff "$W/lockfile.before.lua" "$LOCK" | sed -n 's/^> *\["https:\/\/github.com\/\(.*\)\.git"\] = { commit = "\(.......\).*/- \1 -> \2/p')"
-	git commit -q -m "chore(deps): refresh the plugin lock" -m "Moved to the branch tip (verified by a pinned reinstall and the test suites):
+	# Lock keys are pckr's plugin.url (no .git): "> " lines are new pins,
+	# "< " lines whose plugin has no new pin were removed.
+	moved="$(diff "$W/lockfile.before.lua" "$LOCK" | sed -n 's/^> *\["https:\/\/github.com\/\(.*\)"\] = { commit = "\(.......\).*/- \1 -> \2/p')"
+	[ -n "$moved" ] || moved="- (no pin moved; format only)"
+	if [ "$tests" -eq 1 ]; then
+		how="verified by a pinned reinstall and the test suites"
+	else
+		how="NOT verified: --skip-tests"
+	fi
+	git commit -q -m "chore(deps): refresh the plugin lock" -m "Moved to the branch tip ($how):
 $moved" -- "$LOCK"
 	echo "== committed: $(git log --oneline -1)"
 elif [ "$commit" -eq 1 ]; then

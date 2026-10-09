@@ -30,7 +30,14 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   longer "already installed" until its plugins match the lock: rerunning the
   installer moves them to their pins. A release without a lockfile (an older
   `--version`) still installs, and the run says its commits are not
-  verified.
+  verified — but under `--strict` a v0.5.1+ release tag whose tree lacks
+  the lockfile is an error.
+- A plugin left unpinned is reported, not hidden: a start whose lock is
+  missing or incomplete warns that those plugins follow their branch tip,
+  and pckr warns when it cannot reach its pin (the network fetch for that
+  happens only during the installer's bootstrap, so an offline start never
+  waits on it). Each repository is pinned on one spec, so pckr shows no
+  "specified more than once" warnings for shared dependencies.
 
 ### Added
 
@@ -38,7 +45,10 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   every plugin to its branch tip in a throwaway `HOME`, writes the lock,
   reinstalls from it and requires every commit to match, runs the smoke
   suite and the installer harness, and with `--commit` commits the lock
-  alone (`chore(deps): refresh the plugin lock`).
+  alone (`chore(deps): refresh the plugin lock`, listing what moved). The
+  sync runs with an environment allowlist (no tokens or agent sockets);
+  it executes unreviewed branch-tip code, so run it in the contributor
+  container.
 - Tests: `tests/smoke/plugin_lock.lua` fails when a plugin (or a dependency)
   has no lock entry, the lock names an undeclared plugin, the file leaves
   pckr's format, or a pin is not applied; installer harness 58 scenarios

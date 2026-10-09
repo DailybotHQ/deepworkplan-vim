@@ -99,8 +99,13 @@ It syncs every plugin to its branch tip in a throwaway `HOME` (your
 `~/.config/nvim` and `~/.local/share/nvim` are never touched), writes the
 lock, reinstalls from it and requires every commit to match, then runs the
 smoke suite and the installer harness. It needs `nvim`, `git`, `lua5.4` and
-network. Read the moved plugins' upstream changes before you open the PR:
-the lock is the line between upstream and every install.
+network. **It runs unreviewed upstream code** (each branch tip and its
+build hooks) with only `PATH`, `LANG`, `TERM` and `TMPDIR` from your
+environment — run it in the contributor container (`bash dev.sh shell`)
+or another disposable machine, not next to your credentials. Read the
+moved plugins' upstream changes before you open the PR: the lock is the
+line between upstream and every install. Do not use `:Pckr lock` instead —
+it drops pckr's own pin.
 
 Adding or removing a plugin: edit `lua/plugin_specs.lua`, then run the
 script — `tests/smoke/plugin_lock.lua` fails while a plugin has no lock

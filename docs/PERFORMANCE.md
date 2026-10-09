@@ -8,9 +8,11 @@ have real budgets.
 - `lua/settings.lua` sets `lazyredraw` and disables swap/backup writes up
   front — keep those flags.
 - pckr.nvim bootstraps lazily; `lua/plugins.lua` clones it once and reuses the
-  stdpath copy. The plugin lock adds one small `dofile` (`pckr/lockfile.lua`)
-  and one read of pckr's `.git/HEAD` per start — no git process unless pckr
-  is away from its pin. Avoid adding work to `init.lua`'s boot chain that could be
+  stdpath copy. The plugin lock adds one small `dofile` (`pckr/lockfile.lua`),
+  an in-memory coverage walk of the ~45 specs and one read of pckr's
+  `.git/HEAD` per start — no git process unless pckr is away from its pin,
+  and then only a local checkout (the fetch belongs to the installer's
+  bootstrap, so an offline start never waits on the network). Avoid adding work to `init.lua`'s boot chain that could be
   deferred into `composition` or a plugin's own lazy hook.
 - The perceptible target: first frame on a warm cache should not regress when
   plugins are added — if an addition needs eager loading, justify it in a

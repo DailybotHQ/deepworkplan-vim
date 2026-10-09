@@ -4,8 +4,25 @@
 -- scripts/update-plugin-lock.sh — ignores the pins so a sync moves every
 -- plugin to its branch tip.
 local plugin_lock = require("plugin_lock")
-local lock = vim.env.DWP_VIM_LOCK_UPDATE == "1" and {}
-  or plugin_lock.read(vim.fn.stdpath("config") .. "/pckr/lockfile.lua")
+local specs = require("plugin_specs")
+local lock = {}
+if vim.env.DWP_VIM_LOCK_UPDATE ~= "1" then
+  lock = plugin_lock.read(vim.fn.stdpath("config") .. "/pckr/lockfile.lua")
+  -- A missing or broken lock, or a plugin without a pin, means pckr follows
+  -- branch tips for those plugins: say so instead of failing open silently.
+  local missing = plugin_lock.coverage(specs, lock)
+  if #missing > 0 then
+    vim.schedule(function()
+      vim.notify(
+        ("%d plugin(s) have no pinned commit in pckr/lockfile.lua and follow their branch tip (%s)"):format(
+          #missing,
+          missing[1]
+        ),
+        vim.log.levels.WARN
+      )
+    end)
+  end
+end
 
 -- HEAD of a git checkout without spawning git (startup path): a detached
 -- HEAD file holds the commit itself.
@@ -29,13 +46,25 @@ local function bootstrap_pckr()
   end
 
   -- Move pckr to its pin (a fresh clone, or one made by an older release
-  -- at the branch tip); fetch only when the commit is not local yet.
+  -- at the branch tip). A local checkout is tried on any start; the network
+  -- fetch only in the installer's bootstrap (DWP_VIM_BOOTSTRAP=1), so an
+  -- offline start never waits on it. A pin still out of reach is reported,
+  -- not hidden (install.sh --strict also fails on it).
   if pin and fs.fs_stat(pckr_path) and head_commit(pckr_path) ~= pin then
     local git = { "git", "-C", pckr_path }
     vim.fn.system(vim.list_extend(vim.deepcopy(git), { "checkout", "-q", pin }))
-    if vim.v.shell_error ~= 0 then
+    if vim.v.shell_error ~= 0 and vim.env.DWP_VIM_BOOTSTRAP == "1" then
       vim.fn.system(vim.list_extend(vim.deepcopy(git), { "fetch", "-q", "origin" }))
       vim.fn.system(vim.list_extend(vim.deepcopy(git), { "checkout", "-q", pin }))
+    end
+    if vim.v.shell_error ~= 0 then
+      vim.schedule(function()
+        vim.notify(
+          "pckr.nvim is not at its pinned commit " .. pin:sub(1, 12)
+            .. " (offline?): rerun the DeepWorkPlan Vim installer to move it",
+          vim.log.levels.WARN
+        )
+      end)
     end
   end
 
@@ -56,7 +85,7 @@ end
 
 -- Each spec and each of its requires carries its pinned commit; pckr
 -- checks that commit out on install and on update (sync).
-require("pckr").add(plugin_lock.pin_all(require("plugin_specs"), lock))
+require("pckr").add(plugin_lock.pin_all(specs, lock))
 
 -- First launch: no plugins cloned yet. Detected on the filesystem — the
 -- same check install.sh uses — because `require('mason')` cannot work

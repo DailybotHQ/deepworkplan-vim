@@ -50,24 +50,39 @@ for i = 2, #lines - 1 do
 end
 ok(keys == #urls + 1, ("one line per repository (%d lines, %d repositories + pckr)"):format(keys, #urls))
 
--- Injection: what pckr receives carries each pin, requires included.
+-- Injection: what pckr receives carries each repository's pin exactly once
+-- (on a table spec when the repository has one), requires included, and no
+-- repository is given by two table ("non-simple") specs — pckr warns about
+-- that on every start.
 local pinned = plugin_lock.pin_all(specs, lock)
 local function walk(spec, fn)
 	fn(spec)
-	if type(spec.requires) == "table" then
+	if type(spec) == "table" and type(spec.requires) == "table" then
 		for _, dep in ipairs(spec.requires) do
 			walk(dep, fn)
 		end
 	end
 end
-local injected = 0
+local pins, tables = {}, {}
 for _, spec in ipairs(pinned) do
 	walk(spec, function(s)
-		injected = injected + 1
-		ok(type(s) == "table" and s.commit ~= nil and s.commit == plugin_lock.commit(lock, plugin_lock.url(s[1])), "pin injected: " .. tostring(s[1]))
+		local url = plugin_lock.url(type(s) == "table" and s[1] or s)
+		if type(s) == "table" then
+			tables[url] = (tables[url] or 0) + 1
+			if s.commit ~= nil then
+				pins[url] = (pins[url] or 0) + 1
+				ok(s.commit == plugin_lock.commit(lock, url), "pin injected: " .. url)
+			end
+		end
 	end)
 end
-ok(injected > #specs, "requires are pinned too (" .. injected .. " specs)")
+local pinned_urls = 0
+for _, url in ipairs(urls) do
+	ok(pins[url] == 1, "pinned exactly once: " .. url .. " (" .. tostring(pins[url]) .. ")")
+	ok((tables[url] or 0) <= 1, "one non-simple spec: " .. url .. " (" .. tostring(tables[url]) .. ")")
+	pinned_urls = pinned_urls + (pins[url] == 1 and 1 or 0)
+end
+ok(pinned_urls == #urls, ("every repository pinned (%d of %d)"):format(pinned_urls, #urls))
 local hooks = 0
 for i, spec in ipairs(specs) do
 	if type(spec) == "table" and (spec.run or spec.config) then

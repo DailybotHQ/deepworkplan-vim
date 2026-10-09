@@ -98,11 +98,30 @@ a non-secret name; a real secret is rotated first, then removed.
   directory (`GIT_CEILING_DIRECTORIES`) so an invalid `.git` cannot answer
   for a repository further up. Without `--strict` a mismatch is a warning.
 - Pins move only through `scripts/update-plugin-lock.sh` (CONTRIBUTING →
-  Plugin lock): it runs in a throwaway `HOME`, never the maintainer's
-  config, proves a reinstall from the new lock matches it, and runs the
-  test suites; the reviewer reads the moved plugins' upstream changes in
+  Plugin lock): it proves a reinstall from the new lock matches it and runs
+  the test suites; the reviewer reads the moved plugins' upstream changes in
   the lock diff. `tests/smoke/plugin_lock.lua` fails while any plugin lacks
-  a pin.
+  a pin. **A refresh executes unreviewed code** — every plugin's branch tip
+  and its build hooks (`:TSUpdate`, `mkdp#util#install`, `pnpm install`
+  with dependency install scripts) — on the machine that runs it, before
+  anyone has read the diff. It is not a sandbox: a throwaway `HOME`/XDG
+  tree keeps it off the maintainer's config, and `env -i` with an
+  allowlist (`PATH`, `LANG`, `TERM`, `TMPDIR`) keeps tokens, agent sockets
+  and cloud credentials out of its environment, but the filesystem stays
+  reachable. Run it in the contributor container (`bash dev.sh shell`) or
+  another disposable machine.
+- At run time a pin that cannot apply is reported, not hidden: a start
+  whose lock is missing or incomplete warns that those plugins follow their
+  branch tip, and a pckr that cannot reach its pin (offline; the network
+  fetch happens only during the installer's bootstrap) warns as well.
+  Under `--strict`, a v0.5.1+ release tag whose tree lacks the lockfile is
+  an error; `DWP_VIM_LOCK_UPDATE` (the refresh switch that ignores pins)
+  is removed from the installer's bootstrap environment.
+- `:Pckr lock` is not the refresh path: it rewrites the tracked lockfile
+  without pckr's own entry (and dirties the config checkout). Every
+  `:Pckr sync` also shows "failed to update" for pckr.nvim: its
+  self-upgrade is a fast-forward merge, which a pinned (detached) pckr
+  refuses — expected, and the reason pckr stays at its pin.
 - Not pinned by the lock: Mason's language servers, treesitter parsers and
   plugin build hooks (`markdown-preview`'s binary, `bracey`'s pnpm install)
   fetch at install or run time; the pin fixes which hook code runs, not
