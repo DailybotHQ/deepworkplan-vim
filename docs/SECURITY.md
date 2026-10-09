@@ -81,6 +81,33 @@ a non-secret name; a real secret is rotated first, then removed.
   `entrypoint.sh`) must be guarded by existence checks — a wrong path here is
   user-data loss, review-severity `critical`.
 
+## Plugin pinning (supply chain of the editor)
+
+- Every plugin in `lua/plugin_specs.lua`, dependencies included, and pckr
+  itself is pinned to a full commit in the tracked `pckr/lockfile.lua`
+  (pckr's own lockfile format). `lua/plugin_lock.lua` applies each pin as
+  the plugin's `commit`, so pckr checks that commit out on install and on
+  every update; pckr is checked out at its pin by `lua/plugins.lua` and by
+  `install.lua`. Two installs or image builds of one release run the same
+  plugin code, and an upstream push reaches nobody until a maintainer moves
+  the pin (from v0.5.1; earlier releases installed branch tips).
+- `install.sh --strict` verifies each installed plugin's HEAD (and pckr's)
+  against its lock entry and fails on a different commit, a pinned plugin
+  that is missing or an installed plugin with no entry; the lockfile must be
+  pckr's exact format or it is refused. git is fenced to each plugin
+  directory (`GIT_CEILING_DIRECTORIES`) so an invalid `.git` cannot answer
+  for a repository further up. Without `--strict` a mismatch is a warning.
+- Pins move only through `scripts/update-plugin-lock.sh` (CONTRIBUTING →
+  Plugin lock): it runs in a throwaway `HOME`, never the maintainer's
+  config, proves a reinstall from the new lock matches it, and runs the
+  test suites; the reviewer reads the moved plugins' upstream changes in
+  the lock diff. `tests/smoke/plugin_lock.lua` fails while any plugin lacks
+  a pin.
+- Not pinned by the lock: Mason's language servers, treesitter parsers and
+  plugin build hooks (`markdown-preview`'s binary, `bracey`'s pnpm install)
+  fetch at install or run time; the pin fixes which hook code runs, not
+  what it downloads.
+
 ## Mesh trust
 
 - The `[herdr-mesh]` stamp in a message body is an **authorization grant**:
@@ -161,8 +188,7 @@ a non-secret name; a real secret is rotated first, then removed.
   the base image is pinned by digest. Vendor install scripts are never
   piped to a shell. The documented exceptions: Cursor and Grok publish no
   checksums (values recorded on first use); Debian packages follow the
-  pinned release; the editor's plugins are baked at their branch tips (no
-  commit pins in `lua/plugins.lua`); npm CLIs pin the top-level package, so
+  pinned release; npm CLIs pin the top-level package, so
   Pi's and Cline's transitive dependencies resolve at build time; Cursor
   and OpenCode can self-update at runtime. The table, the exceptions and
   the bump procedure live in

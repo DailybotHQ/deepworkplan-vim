@@ -8,7 +8,9 @@ composition); concerns live in the sub-modules below. Full picture:
 | Module | Responsibility |
 |---|---|
 | `settings.lua` | `vim.opt` basics and performance flags (`lazyredraw`, no swap/backup) |
-| `plugins.lua` | pckr.nvim bootstrap + the curated plugin list |
+| `plugins.lua` | pckr.nvim bootstrap (checked out at its pin) + hands pckr the pinned plugin list |
+| `plugin_specs.lua` | the curated plugin list — pure data |
+| `plugin_lock.lua` | commit pins: reads `pckr/lockfile.lua`, applies each pin as the spec's `commit` (requires included), reports lock coverage (pure functions; `tests/smoke/plugin_lock.lua`) |
 | `composition.lua` | wires every plugin's set-up (setUp, LSP, scheme) |
 | `autocommand.lua` | autocommands |
 | `mapping/` | **keybindings — a contract surface** (see below) |
@@ -38,8 +40,10 @@ both are user commands with `desc`, defined next to their mappings.
 
 ## Conventions
 
-- New plugins: list in `plugins.lua`, wire in `composition.lua` (or comment
-  why they need no wiring).
+- New plugins: list in `plugin_specs.lua`, wire in `composition.lua` (or
+  comment why they need no wiring), then pin it with
+  `bash scripts/update-plugin-lock.sh` — the smoke suite fails while a
+  plugin has no lock entry ([CONTRIBUTING](../CONTRIBUTING.md#plugin-lock)).
 - Palettes are data, not logic.
 - Validate edits: `luac5.4 -p <file>` (or the full-tree variant in
   [AGENTS.md](../AGENTS.md)).

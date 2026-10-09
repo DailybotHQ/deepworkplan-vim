@@ -56,13 +56,15 @@ never stored in a layer. Without it the build works until the limit.
   build — by design.
 - **Debian packages** are pinned to the base image's release, not to
   per-package versions; the base image itself is pinned by digest.
-- **The editor's plugins are baked unpinned.** The installer's headless
-  bootstrap (`--strict`: the build fails unless alpha-nvim, nvim-cmp and
-  mason.nvim are present and no plugin is an empty clone) clones each pckr
-  plugin at its current branch tip — `lua/plugins.lua` pins no commits — runs that Lua at
-  build time and compiles treesitter parsers; Mason may download language
-  servers. This is the same path a host install takes; pinning plugins by
-  commit is an editor change tracked separately.
+- **The editor's plugins follow the installer release.** Up to v0.5.0 the
+  headless bootstrap cloned each pckr plugin at its branch tip. From v0.5.1
+  every plugin and pckr are pinned to commits in the release's
+  `pckr/lockfile.lua`, and `--strict` fails the build unless alpha-nvim,
+  nvim-cmp and mason.nvim are present, no plugin is an empty clone and
+  every plugin HEAD equals its lock entry — so bump `DWP_VIM_VERSION` to
+  0.5.1 or later for reproducible plugins. Either way the build runs that
+  Lua, compiles treesitter parsers and Mason may download language servers
+  (not pinned by the lock). This is the same path a host install takes.
 - **Runtime self-updaters.** `DISABLE_AUTOUPDATER=1` holds Claude Code at
   its pin; the Cursor agent and OpenCode can update themselves at runtime,
   so for them the pin is a build-time guarantee.

@@ -31,7 +31,7 @@
   strings, never a top-level `require`). Enforced by
   `tests/smoke/dwp_self_contained.lua`.
 - Theme palettes in `lua/scheme/palettes/` are declarative tables — no logic.
-- No plugin is added to `lua/plugins.lua` without its set-up wired in
+- No plugin is added to `lua/plugin_specs.lua` without its set-up wired in
   `lua/composition.lua` (or a comment saying why it needs none).
 
 ## Shell (`dev.sh`, `docker/`, `tests/run.sh`)

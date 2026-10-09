@@ -27,7 +27,7 @@ Container (for contract tests, installer smokes, mesh work):
 ```bash
 bash -n dev.sh
 bash -n docker/local/dwpvim/entrypoint.sh
-find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p
+find lua utilities pckr -name '*.lua' -print0 | xargs -0 luac5.4 -p
 ```
 
 All three must pass before you touch anything. If you have the container:

@@ -37,7 +37,7 @@ jobs:
       - name: Install Lua 5.4
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.4
       - name: Parse every Lua file
-        run: find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p
+        run: find lua utilities pckr -name '*.lua' -print0 | xargs -0 luac5.4 -p
       - name: Release scripts (notes and assets of the latest tag)
         run: |
           set -euo pipefail

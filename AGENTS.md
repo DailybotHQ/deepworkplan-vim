@@ -32,7 +32,7 @@ Repo shape (2 levels): `init.lua` + `lua/{mapping,lsp,scheme,setUp}` (editor
 config) · `utilities/installation` (installer) · `install.lua`/`delete.lua` ·
 `dev.sh` + `docker/local` (contributor container + Herdr) · `tests/` (Go
 mapping contracts, smokes, installer harness) · `addon/` (machine-readable
-addon surface) · `scripts/` (public-hygiene check, release notes/assets) ·
+addon surface) · `scripts/` (public-hygiene check, release notes/assets, plugin-lock refresh) · `pckr/lockfile.lua` (plugin commit pins) ·
 `.github/` (CI, auto-release, issue/PR templates, Dependabot) · `snippets/` `dicts/` (data) · `.agents/` (harness) ·
 `.dwp/` (plan output, gitignored; `config.json` = tracked addon registry) · `tmp/` (scratch, gitignored).
 
@@ -88,8 +88,9 @@ Install Herdr on the host: https://herdr.dev/docs/install/ — show the command;
 |---|---|---|
 | Syntax-check launcher | `bash -n dev.sh` | full |
 | Syntax-check entrypoint | `bash -n docker/local/dwpvim/entrypoint.sh` | full |
-| Parse-check all Lua | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | full (scoped: `luac5.4 -p <file>`) |
-| dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter/render/consistency/self-contained/addon-surface over fixtures (render proves screen-grid output; consistency proves one vocabulary across surfaces; self-contained keeps `lua/dwp` requiring only `dwp.*`; addon-surface proves `addon/surface.json` true of the tree) |
+| Parse-check all Lua | `find lua utilities pckr -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | full (scoped: `luac5.4 -p <file>`) |
+| dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter/render/consistency/self-contained/addon-surface/plugin-lock over fixtures (render proves screen-grid output; consistency proves one vocabulary across surfaces; self-contained keeps `lua/dwp` requiring only `dwp.*`; addon-surface proves `addon/surface.json` true of the tree; plugin-lock proves every plugin pinned in `pckr/lockfile.lua`) |
+| Refresh the plugin lock | `bash scripts/update-plugin-lock.sh [--commit]` | maintainers — nvim + git + lua5.4 + network; throwaway HOME: sync to tips, write the lock, pinned reinstall must match, smoke + installer harness |
 | Public-hygiene check | `bash scripts/check-public-hygiene.sh` | full — host-runnable (bash + git + grep, offline); tracked files minus vendored `.agents/skills/`: personal paths, private org/repo/tool names, non-public emails, secret shapes; exceptions with reasons in `.public-hygiene-allow` |
 | Hygiene check self-test | `bash tests/hygiene/run.sh` | full — host-runnable; planted fakes in throwaway repos prove every rule, allow scoping, stale/reasonless entries, redaction |
 | Container install | `bash tests/installer/container.sh` | full — needs Docker + network; the image one-liner (`--version <release> --nvim 0.12.5 --skip-packages --strict`) in Debian, non-root, no TTY |

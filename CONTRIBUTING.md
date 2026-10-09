@@ -41,7 +41,7 @@ commands (plus the Go mapping contracts) and branch protection requires them:
 
 ```bash
 bash scripts/check-public-hygiene.sh && bash tests/hygiene/run.sh
-find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p
+find lua utilities pckr -name '*.lua' -print0 | xargs -0 luac5.4 -p
 for f in dev.sh install.sh docker/local/dwpvim/entrypoint.sh scripts/*.sh; do bash -n "$f"; done
 bash tests/smoke/run.sh
 bash tests/installer/run.sh

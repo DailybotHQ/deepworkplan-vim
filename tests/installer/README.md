@@ -20,7 +20,7 @@ answer).
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (54 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (58 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -60,6 +60,10 @@ shim per scenario; real `git`/coreutils for everything else):
 | `nvim_checksum_mismatch` | `--nvim`: a wrong published digest, an asset listed without a digest, and a release without the asset (old naming) all abort with nothing installed and no staging left (file:// fixture of the release API and tarball) |
 | `nvim_install_ok` | `--nvim` with the right digest: unpacked into `~/.local/opt/nvim-v0.12.5`, `~/.local/bin/nvim` linked to it (an existing non-link `nvim` moved aside), mirror trust noted, used by the `--strict` bootstrap; a rerun skips the download |
 | `strict_repairs_empty_clones` | empty clones (only `.git`, as left by the pre-0.5.0 race) are moved aside (not deleted), the bootstrap runs with `DWP_VIM_BOOTSTRAP=1`, `--strict` passes |
+| `strict_lock_ok` | Plugin pins: the fixture lock pins real git prototypes the nvim shim installs; every plugin and pckr at its pin → "Plugin commits verified (4 pinned …)", rc 0; a rerun finds them installed and skips the bootstrap |
+| `strict_lock_mismatch` | A plugin one commit past its pin fails `--strict` naming the plugin and both commits; non-strict reruns the bootstrap and warns; a rerun moves the plugin back to its pin (an older release's install converges); a lockfile outside pckr's format is refused as unreadable |
+| `strict_lock_unlocked` | An installed plugin with no lock entry, and a missing pckr, fail `--strict` |
+| `strict_lock_absent` | A release without `pckr/lockfile.lua` (before v0.5.1) still installs under `--strict` and says its commits are not verified |
 | `option_values_hardened` | `--version=` empty, `--dir --yes`, `DWP_VIM_YES=N`, a non-numeric timeout and `--dir $HOME` exit 2; `DWP_VIM_SKIP_PACKAGES=Off` is off; a relative `--dir` becomes absolute; a `GITHUB_TOKEN` carrying curl config is ignored (no file written) |
 | `yes_moves_foreign` | `DWP_VIM_YES=1` moves a foreign config aside without a terminal |
 | `install_lua_unattended_answers` | real `cli.lua`: stdin `/dev/null` gives the same answers as the images' `printf 'n\n\n'` (custom dir No, extras default) |
@@ -118,7 +122,7 @@ breaks them is a regression, not a pin.
 
 ```
 tests/installer/
-├── run.sh                  # the harness (54 scenarios + shared setup)
+├── run.sh                  # the harness (58 scenarios + shared setup)
 ├── container.sh            # the image one-liner in a Debian container (Docker + network)
 ├── lua/pnpm_fallback.lua   # real installer.lua ensure_pnpm() under a stubbed util
 └── shims/
