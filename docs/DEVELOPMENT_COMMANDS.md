@@ -82,7 +82,7 @@ bash tests/smoke/run.sh
 
 Headless Neovim over the repo's `lua/` tree with a minimal runtime — no
 container, no plugin sync, no network. Five sections (model, sidebar,
-reader, statusline, greeter, render, consistency, self-contained, addon surface; 562 assertions) over the committed fixtures
+reader, statusline, greeter, render, consistency, self-contained, addon surface; 564 assertions) over the committed fixtures
 in `tests/fixtures/dwp_plans/`. Required for any change under `lua/dwp/`;
 per-section scope and honest non-coverage: `tests/smoke/README.md`. Read
 the output for the `assertions OK` sentinel — nvim exits 0 even after a
@@ -109,7 +109,13 @@ Runs the real `install.sh` in synthetic roots against PATH shims — bash,
 git, coreutils, `script` for the one pty scenario (util-linux or BSD/macOS),
 and a real `lua5.4` on PATH for the four `delete.lua`/probe scenarios; no
 container, no network, no Neovim, no real `install.lua` leg. Branch-independent:
-the fixture's `main` is the commit under test. 21 scenarios: the four
+the fixture's `main` is the commit under test and carries the release tag
+baked into `install.sh` (annotated, like real releases). 31 scenarios: the
+release-tag default (fresh, explicit `main`, update from an older commit,
+local commits refused on the tag and branch paths), `DWP_VIM_SKIP_PACKAGES`
+(missing tool, tools present, `0` = off), the pnpm fallback under real Lua
+(npm, never a pipe), the script read through a real pipe (fresh install,
+foreign config untouched), the four
 package-manager legs and their sudo policy, the consent/backup envelope
 (piped abort, pty consent, backup collision, DEST-is-file),
 clone-vs-update (including the diverged-local die), OS refusals
@@ -120,7 +126,7 @@ uninstall one-liner verification, and the consent-EOF tri-state probes
 probes (BSD/no-realpath hosts still resolve paths). The three former KNOWN-DEFECT pins (audit
 I-1, I-2, I-19) were flipped to fixed-behavior assertions by the
 remediation; any regression there fails the suite. Success sentinel:
-`INSTALLER HARNESS: OK (21 scenarios)`. Scope and bounds:
+`INSTALLER HARNESS: OK (31 scenarios)`. Scope and bounds:
 [`tests/installer/README.md`](../tests/installer/README.md). Required for
 any change to `install.sh`, `install.lua`, `delete.lua` or
 `utilities/installation/`.

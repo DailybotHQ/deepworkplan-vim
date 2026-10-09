@@ -20,7 +20,7 @@ answer).
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (21 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (31 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -36,7 +36,17 @@ shim per scenario; real `git`/coreutils for everything else):
 | `fresh_dnf` | Fedora leg: `dnf install -y lua`, **no** `sudo` as root |
 | `fresh_pacman` | Arch leg: `pacman -Sy --noconfirm lua`, `sudo` prefix |
 | `fresh_brew` | macOS leg: `brew install lua`, never `sudo` |
-| `update_ours` | Idempotent rerun over our own clone: update path, fetch + ff, no consent prompt, Lua leg + headless bootstrap run, rc 0, no backup |
+| `ref_default_release_tag` | A5: with no `DWP_VIM_REF` a fresh install lands exactly on the release tag baked into `install.sh` (`RELEASE_REF`), detached, with a `Version` row and no detached-HEAD advice noise |
+| `ref_main_explicit` | `DWP_VIM_REF=main` opts into the moving branch: the checkout is on `refs/heads/main` |
+| `update_older_to_tag` | An install on an older upstream commit moves to the release tag; its local `main` branch is kept |
+| `update_diverged_local_main` | R2 on the branch path (`DWP_VIM_REF=main`): a diverged local `main` dies loudly, local commit intact |
+| `skip_packages_missing_tool` | `DWP_VIM_SKIP_PACKAGES=1` with Lua missing: dies naming the switch and the tool, calls no package manager, clones nothing |
+| `skip_packages_present` | `DWP_VIM_SKIP_PACKAGES=1` with every tool present: completes, calls no package manager, and hands `DWP_VIM_SKIP_PACKAGES=1` to `install.lua` |
+| `skip_packages_zero_is_off` | `DWP_VIM_SKIP_PACKAGES=0` is off: the preflight installs the missing Lua; `install.lua` is not told to skip |
+| `pnpm_fallback_no_pipe` | Real `installer.lua` `ensure_pnpm()` under real `lua5.4` (stubbed util, `tests/installer/lua/pnpm_fallback.lua`): Unix installs pnpm with `npm install -g --prefix <PNPM_HOME>`, Windows with `npm install -g pnpm`, no npm → clear failure and nothing run; no command contains a pipe |
+| `piped_stdin_fresh` | The script read through a real pipe (as when the URL is piped into bash) completes a fresh install on the release tag — nothing in it consumes stdin |
+| `piped_stdin_foreign_safe` | The same pipe over a foreign config: "ran without a terminal" abort, rc non-zero, config intact, no backup |
+| `update_ours` | Idempotent rerun over our own clone: update path to the release tag, no consent prompt, Lua leg + headless bootstrap run, rc 0, no backup |
 | `update_ours_source` | FIXED(I-1): dead `origin` + valid `DWP_VIM_SOURCE` updates from the source and completes (the env var is honored on updates) |
 | `not_ours_local_path` | FIXED(I-2): our clone via a mirror path (URL lacks `deepworkplan-vim`) is recognized by checkout contents and updates in place |
 | `foreign_piped` | Piped/non-tty run over a foreign config: detection, "cannot ask unattended" abort, foreign file intact, no backup |
@@ -46,7 +56,7 @@ shim per scenario; real `git`/coreutils for everything else):
 | `unsupported_os_mingw` | MINGW64 refuses with winget instructions |
 | `unsupported_os_unknown` | Unknown kernel (Haiku) dies naming the uname value |
 | `bootstrap_xdg_custom_dir` | Custom `DWP_VIM_DIR`: `XDG_CONFIG_HOME` = parent + `NVIM_APPNAME` = basename composition reaches nvim; FIXED(I-19): the idempotence marker is written after a clean bootstrap |
-| `update_diverged_local` | FIXED(R2, final review): a local `main` that diverged from the source dies loudly ("update skipped… local commits diverge") — rc non-zero, no success banner, no system setup, local commit intact |
+| `update_diverged_local` | FIXED(R2, final review), tag path (the default): a local commit no remote branch or tag holds dies loudly ("update skipped… local commits") — rc non-zero, no success banner, no system setup, local commit intact |
 | `delete_foreign_config` | FIXED(I-3)+(I-4)+(R1, final review), real `delete.lua` under the host's real `lua5.4`: a foreign config_dir — including a packer-style one carrying `lua/plugins.lua` but no `install.lua` — is listed as "left in place", never a removal target; a piped confirm (no tty, EOF) keeps the default (No) so the uninstall aborts without deleting |
 | `bootstrap_already_installed` | Existing marker short-circuits: "Plugins already installed", no nvim invocation |
 | `lua_failure_handoff` | UX2-03: a failing system-setup leg ends with a paste-able agent handoff naming the `fails.log` path, **added** to the kept log + issues lines; rc non-zero |
@@ -85,7 +95,8 @@ breaks them is a regression, not a pin.
 
 ```
 tests/installer/
-├── run.sh                  # the harness (21 scenarios + shared setup)
+├── run.sh                  # the harness (31 scenarios + shared setup)
+├── lua/pnpm_fallback.lua   # real installer.lua ensure_pnpm() under a stubbed util
 └── shims/
     ├── uname id sudo       # OS/identity shims (FAKE_UNAME / FAKE_UID)
     ├── apt-get             # manager shim template (logs argv; installs a lua5.4 stub)

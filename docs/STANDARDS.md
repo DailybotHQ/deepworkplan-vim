@@ -5,8 +5,8 @@
 - All code, comments, and documentation in **English**.
 - Commit messages: **Conventional Commits** (`feat:`, `fix:`, `perf:`, `docs:`,
   `refactor:`, `test:`, `chore:`, `ci:`). The release workflow parses the
-  prefix — `feat:`/`fix:`/`perf:` bump minor, a `BREAKING CHANGE` footer bumps
-  major, everything else patch. A merge publishes a release only when `addon/surface.json` names a new version (see CONTRIBUTING.md → Releases); `[skip release]` in the body also publishes nothing.
+  prefix (SemVer) — `feat:` bumps minor, `fix:`/`perf:` and everything else
+  patch, a `BREAKING CHANGE` footer or `!:` major. A merge publishes a release only when `addon/surface.json` names a new version (see CONTRIBUTING.md → Releases); `[skip release]` in the body also publishes nothing.
 
 ## Formatting (`.editorconfig` is the source of truth)
 
