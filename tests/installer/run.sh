@@ -79,6 +79,37 @@ git clone -q "$REPO" "$FIXTURE"
 # the fixture would have no 'main' at all: point 'main' at the commit under
 # test and check it out (a no-op when the harness already runs on 'main').
 git -C "$FIXTURE" checkout -q -B main
+# Plugin pins: real git repositories stand in for the plugins (the nvim
+# shim copies them, SHIM_PLUGIN_PROTO), and the fixture's lock pins their
+# HEADs — so a --strict install over the shim checks real commits. The
+# fixture also gets two branches for the lock edge cases: 'nolock' (a
+# release before v0.5.1, no lockfile) and 'badlock' (a lockfile that is
+# not pckr's format).
+PLUGIN_PROTO="$WORK/plugin-proto"
+fgit() { git -c user.name=t -c user.email=t@example.com -c commit.gpgsign=false -c core.hooksPath=/dev/null "$@"; }
+for p in goolord/alpha-nvim hrsh7th/nvim-cmp williamboman/mason.nvim lewis6991/pckr.nvim example/extra-plugin.nvim; do
+  d="$PLUGIN_PROTO/${p##*/}"
+  mkdir -p "$d"
+  git -C "$d" init -q
+  printf -- '-- %s\n' "$p" >"$d/init.lua"
+  fgit -C "$d" add init.lua
+  fgit -C "$d" commit -q -m "$p fixture"
+done
+{
+  echo "return {"
+  for p in goolord/alpha-nvim hrsh7th/nvim-cmp lewis6991/pckr.nvim williamboman/mason.nvim; do
+    printf '  ["https://github.com/%s"] = { commit = "%s" },\n' "$p" "$(git -C "$PLUGIN_PROTO/${p##*/}" rev-parse HEAD)"
+  done
+  echo "}"
+} >"$FIXTURE/pckr/lockfile.lua"
+fgit -C "$FIXTURE" commit -q -m "fixture: lock the prototype plugins" -- pckr/lockfile.lua
+fgit -C "$FIXTURE" checkout -q -b nolock
+fgit -C "$FIXTURE" rm -q pckr/lockfile.lua
+fgit -C "$FIXTURE" commit -q -m "fixture: a release without a plugin lock"
+fgit -C "$FIXTURE" checkout -q -b badlock main
+printf 'return {\n  ["https://github.com/goolord/alpha-nvim"] = { commit = "main" },\n}\n' >"$FIXTURE/pckr/lockfile.lua"
+fgit -C "$FIXTURE" commit -q -m "fixture: a lockfile that is not pckr's format" -- pckr/lockfile.lua
+git -C "$FIXTURE" checkout -q main
 # install.sh installs the release tag baked into it (RELEASE_REF) unless
 # DWP_VIM_REF says otherwise. Before that release exists, and to test the
 # commit under test rather than the published one, the fixture carries the
@@ -183,7 +214,7 @@ run_install() { # run_install <T> <out-file> [VAR=value...] — sets RC
   local T="$1" out="$2"; shift 2
   RC=0
   env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" SHIM_PLUGIN_PROTO="$PLUGIN_PROTO" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
     "$@" bash "$REPO/install.sh" </dev/null >"$out" 2>&1 || RC=$?
 }
 
@@ -195,7 +226,7 @@ run_install_piped() { # run_install_piped <T> <out-file> [VAR=value...] — sets
   local T="$1" out="$2"; shift 2
   RC=0
   cat "$REPO/install.sh" | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" SHIM_PLUGIN_PROTO="$PLUGIN_PROTO" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
     "$@" bash >"$out" 2>&1 || RC=$?
 }
 
@@ -206,7 +237,7 @@ run_install_args() { # run_install_args <T> <out-file> [VAR=value...] -- [instal
   [ "${1:-}" = "--" ] && shift
   RC=0
   env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" SHIM_PLUGIN_PROTO="$PLUGIN_PROTO" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
     ${envs[@]+"${envs[@]}"} bash "$REPO/install.sh" "$@" </dev/null >"$out" 2>&1 || RC=$?
 }
 
@@ -358,7 +389,7 @@ scenario_foreign_interactive_yes() {
   # A pty so /dev/tty opens and ask_consent can read the 'y'.
   local rc=0
   pty_answer $'y\n' \
-    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
+    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin SHIM_PLUGIN_PROTO=$PLUGIN_PROTO GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
     >"$T/out.log" 2>&1 || rc=$?
   wg "consent offered"         "Move it to"                    "$T/out.log"
   wg "backup announced"        "Moving the existing config"    "$T/out.log"
@@ -719,7 +750,7 @@ scenario_update_origin_old_fork_consent() {
   echo "-- my edit" >>"$D/init.lua"
   local rc=0
   pty_answer $'y\n' \
-    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
+    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin SHIM_PLUGIN_PROTO=$PLUGIN_PROTO GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
     >"$T/out.log" 2>&1 || rc=$?
   local B="$T/home/.config/previous-deepworkplan-vim"
   wg "consent offered"        "Move it to"                       "$T/out.log"
@@ -854,7 +885,7 @@ scenario_version_latest() {
   install -m 755 "$SHIMS/curl" "$T/bin/curl"
   RC=0
   cat "$REPO/install.sh" | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" SHIM_PLUGIN_PROTO="$PLUGIN_PROTO" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
     DWP_VIM_SOURCE="$FIXTURE" bash -s -- --version latest >"$T/out.log" 2>&1 || RC=$?
   wg "latest resolved" "DeepWorkPlan Vim $RELEASE_REF (resolved from 'latest' via --version)" "$T/out.log"
   wng "pre-release ignored" "v9.9.9-rc.1" "$T/out.log"
@@ -888,7 +919,9 @@ scenario_version_missing() {
   install -m 755 "$SHIMS/curl" "$T/bin/curl"
   run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" -- --version 9.9.9
   wg "names it"      "release v9.9.9 does not exist" "$T/out.log"
-  wg "lists newest"  "newest releases: $RELEASE_REF v0.4.2 v0.4.1" "$T/out.log"
+  # The three newest stable tags, whichever releases the checkout carries.
+  local newest; newest="$(git -C "$FIXTURE" tag -l --sort=-v:refname 'v[0-9]*' | grep -v -- - | head -n 3 | tr '\n' ' ')"
+  wg "lists newest"  "newest releases: ${newest% }" "$T/out.log"
   wx "rc non-zero"   test "$RC" -ne 0
   wx "nothing cloned" test ! -e "$T/home/.config/nvim"
 }
@@ -1105,6 +1138,79 @@ scenario_strict_repairs_empty_clones() {
   wx "moved, not deleted"  test -d "$(ls -d "$T/home/.local/share/nvim"/pckr-empty-clones.*/mason.nvim 2>/dev/null | head -n 1)"
 }
 
+lock_root() { # lock_root — a scenario root with the shims a --strict install uses
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
+  printf '%s' "$T"
+}
+
+scenario_strict_lock_ok() {
+  # Every plugin and pckr at its pin: --strict passes and says so; a rerun
+  # finds everything installed at its pin and skips the bootstrap.
+  local T; T="$(lock_root)"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "commits verified"   "Plugin commits verified (4 pinned in pckr/lockfile.lua)" "$T/out.log"
+  wx "exit 0"             test "$RC" -eq 0
+  wx "pckr at its pin"    test "$(git -C "$T/home/.local/share/nvim/pckr/pckr.nvim" rev-parse HEAD)" = "$(git -C "$PLUGIN_PROTO/pckr.nvim" rev-parse HEAD)"
+  run_install_args "$T" "$T/again.log" DWP_VIM_SOURCE="$FIXTURE" -- --strict --skip-packages
+  wg "rerun: installed"   "Plugins already installed" "$T/again.log"
+  wx "rerun: one bootstrap" test "$(grep -c '^nvim --headless' "$T/shim.log")" -eq 1
+  wx "rerun: exit 0"      test "$RC" -eq 0
+}
+
+scenario_strict_lock_mismatch() {
+  # A plugin away from its pin fails --strict with the plugin and both
+  # commits named; without --strict it is a warning. A rerun moves it back
+  # to the pin (the sync checks pins out), as when an install made by an
+  # older release is updated. A lockfile in another format is refused.
+  local T; T="$(lock_root)"
+  local PIN; PIN="$(git -C "$PLUGIN_PROTO/nvim-cmp" rev-parse HEAD)"
+  run_install_args "$T" "$T/drift.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" SHIM_NVIM_DRIFT=nvim-cmp -- --strict --skip-packages
+  wg "drift named"        "--strict: plugins differ from pckr/lockfile.lua — nvim-cmp at" "$T/drift.log"
+  wg "pin named"          "(lock ${PIN:0:12})"        "$T/drift.log"
+  wx "drift: rc non-zero" test "$RC" -ne 0
+  run_install_args "$T" "$T/warn.log" DWP_VIM_SOURCE="$FIXTURE" -- --skip-packages
+  wg "non-strict: bootstrap reran" "Installing plugins"  "$T/warn.log"
+  wx "non-strict: exit 0" test "$RC" -eq 0
+  run_install_args "$T" "$T/fixed.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "rerun: back at pin" "Plugin commits verified (4 pinned" "$T/fixed.log"
+  wx "rerun: HEAD = pin"  test "$(git -C "$T/home/.local/share/nvim/site/pack/pckr/opt/nvim-cmp" rev-parse HEAD)" = "$PIN"
+  wx "rerun: exit 0"      test "$RC" -eq 0
+  local T2; T2="$(lock_root)"
+  run_install_args "$T2" "$T2/warn.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" SHIM_NVIM_DRIFT=mason.nvim -- --skip-packages
+  wg "non-strict warns"   "WARNING: plugins differ from pckr/lockfile.lua — mason.nvim at" "$T2/warn.log"
+  wx "non-strict exit 0"  test "$RC" -eq 0
+  local T3; T3="$(lock_root)"
+  run_install_args "$T3" "$T3/bad.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=badlock SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "bad lock refused"   "--strict: plugins differ from pckr/lockfile.lua — unreadable lockfile" "$T3/bad.log"
+  wx "bad lock: rc non-zero" test "$RC" -ne 0
+}
+
+scenario_strict_lock_unlocked() {
+  # An installed plugin the lock does not name, or a pinned plugin (or
+  # pckr) that is missing, fails --strict.
+  local T; T="$(lock_root)"
+  run_install_args "$T" "$T/extra.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim extra-plugin.nvim" -- --strict --skip-packages
+  wg "unlocked named"     "unlocked extra-plugin.nvim" "$T/extra.log"
+  wx "unlocked: rc non-zero" test "$RC" -ne 0
+  local T2; T2="$(lock_root)"
+  run_install_args "$T2" "$T2/nopckr.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_PLUGIN_PROTO="$T2/none" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "missing pckr named" "missing pckr.nvim"          "$T2/nopckr.log"
+  wx "missing: rc non-zero" test "$RC" -ne 0
+}
+
+scenario_strict_lock_absent() {
+  # A release without pckr/lockfile.lua (before v0.5.1) still installs
+  # under --strict; the run says its commits are not verified.
+  local T; T="$(lock_root)"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=nolock SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "absent noted"       "NOTE: nolock has no plugin lock (pckr/lockfile.lua, v0.5.1+): plugin commits are not verified" "$T/out.log"
+  wg "plugins verified"   "Plugins verified"           "$T/out.log"
+  wx "exit 0"             test "$RC" -eq 0
+}
+
 scenario_option_values_hardened() {
   # Empty or option-like values, unknown switch values, a bad timeout and
   # a hostile token never pass silently; a relative --dir becomes absolute.
@@ -1152,10 +1258,11 @@ scenario_bootstrap_already_installed() {
   mkdir -p "$T/home/.local/share/nvim/pckr"
   touch "$T/home/.local/share/nvim/pckr/.dwp-vim-bootstrapped"
   local p
+  # Installed at their pins (v0.5.1+: the fixture lock pins these clones).
   for p in alpha-nvim nvim-cmp mason.nvim; do
-    mkdir -p "$T/home/.local/share/nvim/site/pack/pckr/opt/$p/.git"
-    echo x >"$T/home/.local/share/nvim/site/pack/pckr/opt/$p/init.lua"
+    git clone -q "$PLUGIN_PROTO/$p" "$T/home/.local/share/nvim/site/pack/pckr/opt/$p"
   done
+  git clone -q "$PLUGIN_PROTO/pckr.nvim" "$T/home/.local/share/nvim/pckr/pckr.nvim"
   run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
   wg "already installed"       "Plugins already installed"     "$T/out.log"
   wng "bootstrap skipped"      "nvim --headless"               "$T/shim.log"
@@ -1350,6 +1457,10 @@ run_scenario nvim_checksum_mismatch      scenario_nvim_checksum_mismatch
 run_scenario nvim_install_ok             scenario_nvim_install_ok
 run_scenario yes_moves_foreign           scenario_yes_moves_foreign
 run_scenario strict_repairs_empty_clones scenario_strict_repairs_empty_clones
+run_scenario strict_lock_ok             scenario_strict_lock_ok
+run_scenario strict_lock_mismatch       scenario_strict_lock_mismatch
+run_scenario strict_lock_unlocked       scenario_strict_lock_unlocked
+run_scenario strict_lock_absent         scenario_strict_lock_absent
 run_scenario option_values_hardened      scenario_option_values_hardened
 run_scenario install_lua_unattended_answers scenario_install_lua_unattended_answers
 run_scenario update_origin_old_fork      scenario_update_origin_old_fork

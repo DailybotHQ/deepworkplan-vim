@@ -10,6 +10,47 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.5.1] - 2026-10-09
+
+### Fixed
+
+- **Plugins are pinned to commits.** v0.5.0 installed all 41 plugins and
+  pckr from each default branch, so two installs (or two image builds) of
+  one release could run different plugin code and every install took
+  whatever upstream had pushed last. The tracked `pckr/lockfile.lua` (pckr's
+  own lockfile path and format) now pins every plugin, dependencies
+  included, and pckr itself; each pin is applied as the plugin's `commit`,
+  so it holds on install and on every update, and pckr is checked out at its
+  pin by `lua/plugins.lua` and by `install.lua`.
+- **`--strict` verifies every plugin commit**: each installed plugin (and
+  pckr) must be checked out at its lock entry, every pinned plugin must be
+  present and every installed plugin must be pinned; the failure names the
+  plugin and both commits. Without `--strict` it is a warning. The
+  empty-clone check is unchanged. An install made by an older release is no
+  longer "already installed" until its plugins match the lock: rerunning the
+  installer moves them to their pins. A release without a lockfile (an older
+  `--version`) still installs, and the run says its commits are not
+  verified.
+
+### Added
+
+- `scripts/update-plugin-lock.sh` — the maintainer's lock refresh: syncs
+  every plugin to its branch tip in a throwaway `HOME`, writes the lock,
+  reinstalls from it and requires every commit to match, runs the smoke
+  suite and the installer harness, and with `--commit` commits the lock
+  alone (`chore(deps): refresh the plugin lock`).
+- Tests: `tests/smoke/plugin_lock.lua` fails when a plugin (or a dependency)
+  has no lock entry, the lock names an undeclared plugin, the file leaves
+  pckr's format, or a pin is not applied; installer harness 58 scenarios
+  (+4: pinned, drifted and repaired, unreadable lock, unlocked plugin,
+  missing pckr, lock-less release); the container test requires every lock
+  entry verified.
+
+### Changed
+
+- The curated plugin list moved unchanged from `lua/plugins.lua` to
+  `lua/plugin_specs.lua` (pure data); `lua/plugin_lock.lua` applies the pins.
+
 ## [v0.5.0] - 2026-10-09
 
 ### Added
@@ -270,7 +311,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.1...HEAD
+[v0.5.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...v0.5.0
 [v0.4.2]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...v0.4.2
 [v0.4.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.0...v0.4.1

@@ -83,6 +83,30 @@ A DCO sign-off is **not** required.
    are deleted on merge.
 4. Never rewrite published history (`main`, tags).
 
+## Plugin lock
+
+Every plugin in `lua/plugin_specs.lua` (dependencies included) and pckr
+itself is pinned to a commit in `pckr/lockfile.lua`; installs and updates
+check those commits out, and `install.sh --strict` refuses any other.
+Plugins move only through the refresh script:
+
+```bash
+bash scripts/update-plugin-lock.sh            # update + test; review the lock diff
+bash scripts/update-plugin-lock.sh --commit   # same, then commit the lock alone
+```
+
+It syncs every plugin to its branch tip in a throwaway `HOME` (your
+`~/.config/nvim` and `~/.local/share/nvim` are never touched), writes the
+lock, reinstalls from it and requires every commit to match, then runs the
+smoke suite and the installer harness. It needs `nvim`, `git`, `lua5.4` and
+network. Read the moved plugins' upstream changes before you open the PR:
+the lock is the line between upstream and every install.
+
+Adding or removing a plugin: edit `lua/plugin_specs.lua`, then run the
+script — `tests/smoke/plugin_lock.lua` fails while a plugin has no lock
+entry or the lock names one that is gone. A lock change reaches users in
+the next release (below).
+
 ## Releases
 
 A merge to `main` publishes a release only when the tree describes a new
