@@ -26,7 +26,8 @@
 #   2. Version  — this script's release, or the one --version / --ref asks
 #      for (X.Y.Z, vX.Y.Z, latest, '>=X.Y.Z' — stable tags only).
 #   3. Neovim   — with --nvim X.Y.Z, the official release tarball into
-#      ~/.local, verified against the sha256 Neovim publishes.
+#      ~/.local/opt/nvim-vX.Y.Z (linked as ~/.local/bin/nvim), verified
+#      against the sha256 Neovim publishes.
 #   4. Consent  — an existing, foreign Neovim config is NEVER overwritten.
 #      Interactively you are asked before it is moved to
 #      ~/.config/previous-deepworkplan-vim; without a terminal the script
@@ -34,10 +35,11 @@
 #   5. Clones (or updates, on re-run) the repository into ~/.config/nvim.
 #   6. Runs the repository's own `lua install.lua` (system packages,
 #      pckr.nvim, font — it owns every step, this wrapper owns none).
-#   7. Bootstraps plugins headlessly and checks them (--strict: any failure
-#      or missing plugin is an error).
+#   7. Bootstraps plugins headlessly and checks them — empty clones are
+#      moved aside and installed again (--strict: any failure or missing
+#      plugin is an error).
 #
-# Options (each with an environment twin; flags win):
+# Options (each with an environment twin; a flag beats every env value):
 #   --version <v>    DWP_VIM_VERSION   X.Y.Z, vX.Y.Z, latest or '>=X.Y.Z'
 #   --ref <ref>      DWP_VIM_REF       tag, branch or commit (main follows main)
 #   --dir <path>     DWP_VIM_DIR       destination (default ~/.config/nvim)
@@ -50,6 +52,7 @@
 #   DWP_VIM_SOURCE             repository URL or a local path (offline, mirrors)
 #   DWP_VIM_BOOTSTRAP_TIMEOUT  seconds for the headless plugin install (900)
 #   GITHUB_TOKEN               optional: authenticates --nvim's release lookup
+#                              (then removed from the environment of the run)
 #
 # Windows: use winget plus Git Bash, or run the steps above inside WSL,
 # where they work as-is:
@@ -88,7 +91,8 @@ Version (pick one; the default is this script's own release):
 Install:
   --dir <path>      config directory (default ~/.config/nvim)   env: DWP_VIM_DIR
   --skip-packages   install no system package (images, CI)       env: DWP_VIM_SKIP_PACKAGES=1
-  --nvim <X.Y.Z>    install that Neovim release into ~/.local, sha256-verified
+  --nvim <X.Y.Z>    install that Neovim release into ~/.local/opt/nvim-vX.Y.Z,
+                    linked as ~/.local/bin/nvim, sha256-verified
                                                                  env: DWP_VIM_NVIM
   --strict          fail (non-zero) when the headless plugin install fails or
                     leaves required plugins missing              env: DWP_VIM_STRICT=1
@@ -96,8 +100,11 @@ Install:
                     (backup: ~/.config/previous-deepworkplan-vim) env: DWP_VIM_YES=1
   -h, --help        show this help
 
-Precedence: flags > DWP_VIM_VERSION > DWP_VIM_REF > this script's release.
-A version and a ref that disagree are an error.
+Precedence: a flag beats every environment value; then DWP_VIM_VERSION,
+then DWP_VIM_REF, then this script's release. A version and a ref given at
+the same level (two flags, or two env values) that disagree are an error.
+Switch values: 1/true/yes/on or 0/false/no/off (any case); anything else
+is an error.
 
 Images and CI (download, verify, then run):
   bash install.sh --version 0.5.0 --nvim 0.12.5 --skip-packages --strict
@@ -110,26 +117,41 @@ usage_error() {
   exit 2
 }
 
-# Env twins of the switches: unset, empty, 0, false, no and off mean off.
-truthy() {
-  case "${1:-}" in
-    '' | 0 | false | no | off | FALSE | NO | OFF) return 1 ;;
-    *) return 0 ;;
+# Env twins of the switches: 1/true/yes/on mean on; unset, empty,
+# 0/false/no/off mean off (any case). Anything else is an error — never a
+# guess (DWP_VIM_YES=N must not mean yes).
+switch_env() { # switch_env <NAME> <value> -> prints 1 or 0 (bash 3.2: no ${v,,})
+  case "$2" in
+    1 | [Tt][Rr][Uu][Ee] | [Yy][Ee][Ss] | [Oo][Nn]) printf '1' ;;
+    '' | 0 | [Ff][Aa][Ll][Ss][Ee] | [Nn][Oo] | [Oo][Ff][Ff]) printf '0' ;;
+    *) usage_error "$1='$2' is not a switch value — use 1/true/yes/on or 0/false/no/off" ;;
   esac
 }
 
-OPT_VERSION="${DWP_VIM_VERSION:-}"
-VERSION_FROM="DWP_VIM_VERSION"
-OPT_REF="${DWP_VIM_REF:-}"
-REF_FROM="DWP_VIM_REF"
+# The token for --nvim's release lookup is captured once and removed from
+# the environment: install.lua, Neovim and plugin build hooks never see it.
+NVIM_API_TOKEN="${GITHUB_TOKEN:-}"
+unset GITHUB_TOKEN GH_TOKEN
+if [ -n "$NVIM_API_TOKEN" ] && ! [[ "$NVIM_API_TOKEN" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+  printf 'install.sh: GITHUB_TOKEN has unexpected characters — ignored\n' >&2
+  NVIM_API_TOKEN=""
+fi
+
+ENV_VERSION="${DWP_VIM_VERSION:-}"
+ENV_REF="${DWP_VIM_REF:-}"
+FLAG_VERSION=""
+FLAG_REF=""
 DEST="${DWP_VIM_DIR:-$HOME/.config/nvim}"
-SKIP_PACKAGES=0
-truthy "${DWP_VIM_SKIP_PACKAGES:-}" && SKIP_PACKAGES=1
-STRICT=0
-truthy "${DWP_VIM_STRICT:-}" && STRICT=1
+SKIP_PACKAGES="$(switch_env DWP_VIM_SKIP_PACKAGES "${DWP_VIM_SKIP_PACKAGES:-}")"
+STRICT="$(switch_env DWP_VIM_STRICT "${DWP_VIM_STRICT:-}")"
 NVIM_VERSION="${DWP_VIM_NVIM:-}"
-ASSUME_YES=0
-truthy "${DWP_VIM_YES:-}" && ASSUME_YES=1
+ASSUME_YES="$(switch_env DWP_VIM_YES "${DWP_VIM_YES:-}")"
+
+# A value option's value: never empty, never another option.
+opt_value() { # opt_value <option> <value>
+  [ -n "$2" ] || usage_error "$1 needs a value"
+  case "$2" in -*) usage_error "$1 needs a value (got the option '$2')" ;; esac
+}
 
 # Options are parsed here, so they also work as `bash -s -- <options>`
 # when the script arrives on stdin.
@@ -137,18 +159,20 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --version | --ref | --dir | --nvim)
       [ "$#" -ge 2 ] || usage_error "$1 needs a value"
+      opt_value "$1" "$2"
       case "$1" in
-        --version) OPT_VERSION="$2"; VERSION_FROM="--version" ;;
-        --ref) OPT_REF="$2"; REF_FROM="--ref" ;;
+        --version) FLAG_VERSION="$2" ;;
+        --ref) FLAG_REF="$2" ;;
         --dir) DEST="$2" ;;
         --nvim) NVIM_VERSION="$2" ;;
       esac
       shift 2
       ;;
     --version=* | --ref=* | --dir=* | --nvim=*)
+      opt_value "${1%%=*}" "${1#*=}"
       case "$1" in
-        --version=*) OPT_VERSION="${1#*=}"; VERSION_FROM="--version" ;;
-        --ref=*) OPT_REF="${1#*=}"; REF_FROM="--ref" ;;
+        --version=*) FLAG_VERSION="${1#*=}" ;;
+        --ref=*) FLAG_REF="${1#*=}" ;;
         --dir=*) DEST="${1#*=}" ;;
         --nvim=*) NVIM_VERSION="${1#*=}" ;;
       esac
@@ -162,6 +186,21 @@ while [ "$#" -gt 0 ]; do
     *) usage_error "unknown option: $1" ;;
   esac
 done
+
+# Precedence: a flag beats every environment value; DWP_VIM_VERSION beats
+# DWP_VIM_REF; with neither, this script's release. A version and a ref
+# given at the same level (two flags, or two env values) must agree.
+OPT_VERSION=""
+VERSION_FROM=""
+OPT_REF=""
+REF_FROM=""
+if [ -n "$FLAG_VERSION$FLAG_REF" ]; then
+  OPT_VERSION="$FLAG_VERSION"; VERSION_FROM="--version"
+  OPT_REF="$FLAG_REF"; REF_FROM="--ref"
+else
+  OPT_VERSION="$ENV_VERSION"; VERSION_FROM="DWP_VIM_VERSION"
+  OPT_REF="$ENV_REF"; REF_FROM="DWP_VIM_REF"
+fi
 
 # Strict validation: nothing below may reach git or a URL as an option.
 SEMVER='[0-9]+\.[0-9]+\.[0-9]+'
@@ -189,6 +228,9 @@ if [ -n "$NVIM_VERSION" ]; then
   NVIM_VERSION="${BASH_REMATCH[1]}"
 fi
 [ -n "$DEST" ] || usage_error "--dir needs a path"
+case "$DEST" in -*) usage_error "--dir/DWP_VIM_DIR must not start with '-' (got '$DEST')" ;; esac
+# Absolute, so the bootstrap's XDG_CONFIG_HOME (its parent) is absolute too.
+case "$DEST" in /*) ;; *) DEST="$PWD/$DEST" ;; esac
 if [ -n "$VERSION_MODE" ] && [ -n "$OPT_REF" ]; then
   if [ "$VERSION_MODE" != "exact" ] || { [ "$OPT_REF" != "v$VERSION_WANT" ] && [ "$OPT_REF" != "$VERSION_WANT" ]; }; then
     usage_error "$VERSION_FROM ($OPT_VERSION) and $REF_FROM ($OPT_REF) disagree — set one of them"
@@ -217,6 +259,11 @@ done
 MOVED_TO=""
 BACKUP_DIR="$HOME/.config/previous-deepworkplan-vim"
 BOOTSTRAP_TIMEOUT="${DWP_VIM_BOOTSTRAP_TIMEOUT:-900}"
+[[ "$BOOTSTRAP_TIMEOUT" =~ ^[0-9]+$ ]] ||
+  usage_error "DWP_VIM_BOOTSTRAP_TIMEOUT must be a number of seconds (got '$BOOTSTRAP_TIMEOUT')"
+case "$DEST" in
+  / | "$HOME" | "$HOME/") usage_error "refusing to install into $DEST — pick a dedicated directory with --dir" ;;
+esac
 
 # --- version selection ----------------------------------------------------
 
@@ -421,12 +468,14 @@ nvim_version_line() {
   printf '%s' "$line"
 }
 
-# Install the official Neovim release $1 into ~/.local (bin/nvim), verified
-# against the sha256 Neovim publishes for that release asset: the GitHub
-# release `digest`, else the asset's .sha256sum file (older releases).
-# Nothing is installed without a matching checksum.
+# Install the official Neovim release $1: unpacked into its own
+# ~/.local/opt/nvim-v$1 (an upgrade never mixes runtime files of two
+# versions) and linked as ~/.local/bin/nvim. Installed only when the
+# tarball's sha256 equals the one Neovim publishes for that asset: the
+# GitHub release `digest`, else the asset's .sha256sum file (older
+# releases). Nothing is installed without a matching checksum.
 install_nvim() {
-  local v="$1" os arch asset json line cur="" expect="" have tmp bin
+  local v="$1" os arch asset json line cur="" expect="" have tmp bin opt_dir stage listed=0
   case "$(uname -s)" in
     Linux*) os=linux ;;
     Darwin*) os=macos ;;
@@ -439,26 +488,35 @@ install_nvim() {
   esac
   asset="nvim-$os-$arch.tar.gz"
   bin="$HOME/.local/bin/nvim"
-  if [ "$(nvim_version_line "$bin")" = "NVIM v$v" ]; then
-    say "==> Neovim v$v already at $bin"
-    PATH="$HOME/.local/bin:$PATH"
-    export PATH
+  opt_dir="$HOME/.local/opt/nvim-v$v"
+  mkdir -p "$HOME/.local/bin" "$HOME/.local/opt"
+  if [ "$(nvim_version_line "$opt_dir/bin/nvim")" = "NVIM v$v" ]; then
+    link_nvim "$opt_dir" "$bin"
+    say "==> Neovim v$v already at $opt_dir"
     return 0
   fi
   command -v tar >/dev/null 2>&1 || die "--nvim needs tar"
-  say "==> Installing Neovim v$v ($asset) into $HOME/.local"
+  if [ "$NVIM_API_BASE" != "https://api.github.com/repos/neovim/neovim/releases/tags" ] ||
+    [ "$NVIM_DOWNLOAD_BASE" != "https://github.com/neovim/neovim/releases/download" ]; then
+    say "NOTE: --nvim trusts the mirror $NVIM_DOWNLOAD_BASE (checksums from $NVIM_API_BASE) as it would trust Neovim's releases."
+  fi
+  say "==> Installing Neovim v$v ($asset) into $opt_dir"
   # GitHub allows 60 unauthenticated API calls an hour per address; with
   # GITHUB_TOKEN set the call is authenticated (api.github.com only). The
   # token travels in curl's config on stdin — never in argv, never printed.
-  if [ -n "${GITHUB_TOKEN:-}" ] && [ "$NVIM_API_BASE" = "https://api.github.com/repos/neovim/neovim/releases/tags" ]; then
-    json="$(printf 'header = "Authorization: Bearer %s"\n' "$GITHUB_TOKEN" |
+  if [ -n "$NVIM_API_TOKEN" ] && [ "$NVIM_API_BASE" = "https://api.github.com/repos/neovim/neovim/releases/tags" ]; then
+    json="$(printf 'header = "Authorization: Bearer %s"\n' "$NVIM_API_TOKEN" |
       curl -fsSL -K - "$NVIM_API_BASE/v$v" 2>/dev/null || true)"
   else
     json="$(curl -fsSL "$NVIM_API_BASE/v$v" 2>/dev/null || true)"
   fi
   while IFS= read -r line; do
     case "$line" in
-      '"name"'*) cur="${line#*\"name\"*:*\"}"; cur="${cur%\"}" ;;
+      '"name"'*)
+        cur="${line#*\"name\"*:*\"}"
+        cur="${cur%\"}"
+        [ "$cur" = "$asset" ] && listed=1
+        ;;
       '"digest"'*)
         if [ "$cur" = "$asset" ]; then
           expect="${line##*sha256:}"
@@ -468,33 +526,73 @@ install_nvim() {
         ;;
     esac
   done < <(printf '%s\n' "$json" | grep -oE '"(name|digest)"[[:space:]]*:[[:space:]]*"[^"]*"' || true)
+  if [ -n "$json" ] && [ "$listed" = 0 ]; then
+    die "Neovim v$v publishes no $asset (releases before 0.10.4 named their assets differently) — choose a newer --nvim"
+  fi
   if [ -z "$expect" ]; then
     line="$(curl -fsSL "$NVIM_DOWNLOAD_BASE/v$v/$asset.sha256sum" 2>/dev/null || true)"
     expect="${line%%[[:space:]]*}"
   fi
-  [[ "$expect" =~ ^[0-9a-f]{64}$ ]] ||
-    die "no published sha256 for $asset of Neovim v$v — refusing to install an unverified binary${json:+}${json:-" (the release API at $NVIM_API_BASE did not answer: offline or rate-limited? set GITHUB_TOKEN)"}"
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/dwp-vim-nvim.XXXXXX")"
-  curl -fsSL -o "$tmp/$asset" "$NVIM_DOWNLOAD_BASE/v$v/$asset" ||
+  if ! [[ "$expect" =~ ^[0-9a-f]{64}$ ]]; then
+    if [ -z "$json" ]; then
+      die "no published sha256 for $asset of Neovim v$v — refusing to install an unverified binary (the release API at $NVIM_API_BASE did not answer: offline or rate-limited? set GITHUB_TOKEN)"
+    fi
+    die "no published sha256 for $asset of Neovim v$v — refusing to install an unverified binary"
+  fi
+  # Staged on the same filesystem as the final directory, so the last step
+  # is an atomic rename; every failure removes exactly what it created.
+  tmp="$(mktemp -d "$HOME/.local/opt/.nvim-v$v.XXXXXX")"
+  nvim_cleanup() {
+    rm -f -- "$tmp/$asset"
+    rmdir -- "$tmp/stage" 2>/dev/null || true
+    rmdir -- "$tmp" 2>/dev/null || true
+  }
+  if ! curl -fsSL -o "$tmp/$asset" "$NVIM_DOWNLOAD_BASE/v$v/$asset"; then
+    nvim_cleanup
     die "could not download $asset for Neovim v$v"
+  fi
   have="$(sha256_of "$tmp/$asset")"
   if [ "$have" != "$expect" ]; then
-    rm -f -- "$tmp/$asset"
-    rmdir -- "$tmp" 2>/dev/null || true
+    nvim_cleanup
     die "checksum mismatch for $asset (Neovim v$v): expected $expect, got $have — nothing was installed"
   fi
-  mkdir -p "$HOME/.local"
-  tar -xzf "$tmp/$asset" -C "$HOME/.local" --strip-components=1 ||
-    die "could not unpack $asset into $HOME/.local"
+  stage="$tmp/stage"
+  mkdir -p "$stage"
+  if ! tar -xzf "$tmp/$asset" -C "$stage" --strip-components=1; then
+    rm -f -- "$tmp/$asset"
+    die "could not unpack $asset (partial files are in $tmp; nothing was installed)"
+  fi
   rm -f -- "$tmp/$asset"
+  [ "$(nvim_version_line "$stage/bin/nvim")" = "NVIM v$v" ] ||
+    die "the unpacked $asset does not report Neovim v$v (left in $stage; nothing was installed)"
+  if [ -e "$opt_dir" ]; then
+    # A previous, broken attempt: moved aside, never deleted.
+    mv -- "$opt_dir" "$(mktemp -d "$HOME/.local/opt/.nvim-v$v.previous.XXXXXX")/" ||
+      die "could not move the broken $opt_dir aside"
+  fi
+  mv -- "$stage" "$opt_dir" || die "could not move Neovim into $opt_dir"
   rmdir -- "$tmp" 2>/dev/null || true
-  [ "$(nvim_version_line "$bin")" = "NVIM v$v" ] ||
-    die "Neovim v$v was unpacked but $bin does not report it"
-  PATH="$HOME/.local/bin:$PATH"
-  export PATH
-  say "==> Neovim v$v installed at $bin (sha256 verified)"
+  link_nvim "$opt_dir" "$bin"
+  say "==> Neovim v$v installed at $opt_dir, linked as $bin (sha256 verified)"
 }
 
+# ~/.local/bin/nvim -> the versioned install; a real file there (an older
+# install) is moved aside, never overwritten.
+link_nvim() { # link_nvim <opt-dir> <bin>
+  if [ -e "$2" ] && [ ! -L "$2" ]; then
+    mv -- "$2" "$(mktemp "$2.previous.XXXXXX")" || die "could not move the existing $2 aside"
+  fi
+  ln -sfn -- "$1/bin/nvim" "$2" || die "could not link $2"
+  case ":$ORIGINAL_PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) NVIM_PATH_HINT=1 ;;
+  esac
+  PATH="$HOME/.local/bin:$PATH"
+  export PATH
+}
+
+ORIGINAL_PATH="$PATH"
+NVIM_PATH_HINT=0
 if [ -n "$NVIM_VERSION" ]; then
   install_nvim "$NVIM_VERSION"
 fi
@@ -809,6 +907,28 @@ verify_plugins() {
   fi
   return 0
 }
+# Empty clones (only .git) are moved aside — never deleted — so the sync
+# clones them again; pckr would otherwise take them for installed.
+repair_empty_clones() {
+  local d e found aside=""
+  for d in "$PCKR_OPT"/*/; do
+    [ -d "$d" ] || continue
+    d="${d%/}"
+    found=0
+    for e in "$d"/* "$d"/.[!.]* "$d"/..?*; do
+      [ -e "$e" ] || continue
+      [ "${e##*/}" = ".git" ] && continue
+      found=1
+      break
+    done
+    [ "$found" = 1 ] && continue
+    [ -n "$aside" ] || aside="$(mktemp -d "$DATA_HOME/$BOOTSTRAP_APPNAME/pckr-empty-clones.XXXXXX")"
+    mv -- "$d" "$aside/" || die "could not move the empty clone $d aside"
+  done
+  if [ -n "$aside" ]; then
+    say "==> Moved empty plugin clones aside to $aside; installing them again"
+  fi
+}
 strict_fail() {
   if [ -n "${BOOTSTRAP_LOG:-}" ] && [ -f "$BOOTSTRAP_LOG" ]; then
     say "---- headless plugin install log ($BOOTSTRAP_LOG) ----" >&2
@@ -825,9 +945,12 @@ if ! command -v nvim >/dev/null 2>&1; then
   fi
   say "NOTE: nvim is not on PATH in this shell yet (a new shell should find it)."
   say "      On first launch plugins install themselves; quit when that finishes, then reopen."
-elif [ -f "$MARKER" ] || [ -d "$PCKR_OPT/mason.nvim" ]; then
+elif VERIFY_PROBLEMS="" && verify_plugins; then
+  # Decided by the plugins themselves, not a marker or one directory: an
+  # empty clone (left by the pre-0.5.0 headless race) is not "installed".
   say "==> Plugins already installed"
 else
+  repair_empty_clones
   say "==> Installing plugins (headless; this can take a few minutes)"
   BOOTSTRAP_LOG="$(mktemp "${TMPDIR:-/tmp}/dwp-vim-bootstrap.XXXXXX")"
   # timeout(1) is not on macOS by default; the sync callback exits nvim
@@ -838,12 +961,12 @@ else
   if command -v timeout >/dev/null 2>&1; then
     timeout "$BOOTSTRAP_TIMEOUT" env \
       XDG_CONFIG_HOME="$(dirname "$DEST")" \
-      NVIM_APPNAME="$BOOTSTRAP_APPNAME" \
+      NVIM_APPNAME="$BOOTSTRAP_APPNAME" DWP_VIM_BOOTSTRAP=1 \
       nvim --headless </dev/null >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   else
     env \
       XDG_CONFIG_HOME="$(dirname "$DEST")" \
-      NVIM_APPNAME="$BOOTSTRAP_APPNAME" \
+      NVIM_APPNAME="$BOOTSTRAP_APPNAME" DWP_VIM_BOOTSTRAP=1 \
       nvim --headless </dev/null >"$BOOTSTRAP_LOG" 2>&1 || bootstrap_rc=$?
   fi
   if [ "$bootstrap_rc" -eq 0 ]; then
@@ -886,6 +1009,9 @@ say "  Plan browser  Space P"
 say "  Version       $REF"
 say "  Update        run a newer release's install.sh (each one pins its release; DWP_VIM_REF=main follows main)"
 say "  Remove        lua '$DEST/delete.lua'  (lists every path first, asks, keeps Neovim)"
+if [ "$NVIM_PATH_HINT" = 1 ]; then
+  say "  PATH          add $HOME/.local/bin to your PATH to use the Neovim --nvim installed"
+fi
 }
 
 main "$@"

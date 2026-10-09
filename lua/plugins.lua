@@ -135,7 +135,9 @@ require("pckr").add({
 -- require-based probe would be false on EVERY launch and re-sync (with
 -- its input-stealing display window) on every start.
 local pckr_opt = vim.fn.stdpath("data") .. "/site/pack/pckr/opt"
-if vim.fn.isdirectory(pckr_opt .. "/mason.nvim") == 0 then
+-- install.sh sets DWP_VIM_BOOTSTRAP=1 for its headless run, which also
+-- repairs installs whose plugins are incomplete (mason.nvim may exist).
+if vim.env.DWP_VIM_BOOTSTRAP == "1" or vim.fn.isdirectory(pckr_opt .. "/mason.nvim") == 0 then
   vim.api.nvim_create_autocmd("VimEnter", {
     once = true,
     callback = function()
@@ -147,9 +149,9 @@ if vim.fn.isdirectory(pckr_opt .. "/mason.nvim") == 0 then
         return
       end
       -- Headless (install.sh bootstrap): run a full sync and exit on its
-      -- completion callback — no quit-and-reopen dance. The defer lets any
-      -- installs the spec-processing autoinstall already started finish
-      -- before we quit.
+      -- completion callback — no quit-and-reopen dance. Headless runs have
+      -- autoinstall off (above), so this sync performs every install; the
+      -- short defer only lets its final output flush.
       if #vim.api.nvim_list_uis() == 0 then
         actions.sync(nil, nil, function()
           vim.defer_fn(function()

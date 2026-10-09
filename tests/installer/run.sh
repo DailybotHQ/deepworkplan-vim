@@ -119,6 +119,8 @@ nvim_api_json() { # nvim_api_json <digest-or-empty>
 nvim_api_json "$NVIM_FIX_SHA" >"$NVIM_FIX/api-good/v0.12.5"
 nvim_api_json "0000000000000000000000000000000000000000000000000000000000000000" >"$NVIM_FIX/api-bad/v0.12.5"
 nvim_api_json "" >"$NVIM_FIX/api-none/v0.12.5"
+mkdir -p "$NVIM_FIX/api-nodigest"
+printf '{\n  "tag_name": "v0.12.5",\n  "assets": [\n    {\n      "name": "nvim-linux-x86_64.tar.gz",\n      "uploader": {"login": "github-actions[bot]"},\n      "digest": null\n    }\n  ]\n}\n' >"$NVIM_FIX/api-nodigest/v0.12.5"
 
 # NEUTRAL_DIR: shims visible in every scenario (OS identity only).
 NEUTRAL_DIR="$WORK/neutral-bin"
@@ -879,13 +881,25 @@ scenario_version_missing() {
 }
 
 scenario_version_ref_conflict() {
-  # A version and a ref that disagree are an error (usage, exit 2).
+  # A version and a ref at the same level that disagree are an error (two
+  # flags, or two env values); a flag beats any env value.
   local T; T="$(scen_root)"
   install -m 755 "$SHIMS/curl" "$T/bin/curl"
-  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=main -- --version 0.4.2
-  wg "conflict named" "--version (0.4.2) and DWP_VIM_REF (main) disagree" "$T/out.log"
-  wx "exit 2"         test "$RC" -eq 2
-  wx "nothing cloned" test ! -e "$T/home/.config/nvim"
+  run_install_args "$T" "$T/flags.log" DWP_VIM_SOURCE="$FIXTURE" -- --ref main --version 0.4.2
+  wg "flags conflict named" "--version (0.4.2) and --ref (main) disagree" "$T/flags.log"
+  wx "flags conflict: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/env.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=main DWP_VIM_VERSION=0.4.2 --
+  wg "env conflict named" "DWP_VIM_VERSION (0.4.2) and DWP_VIM_REF (main) disagree" "$T/env.log"
+  wx "env conflict: exit 2" test "$RC" -eq 2
+  wx "nothing cloned"     test ! -e "$T/home/.config/nvim"
+  # A flag beats an env value of the other kind (v0.4.2 callers keep
+  # DWP_VIM_REF exported and add --version).
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  run_install_args "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=main -- --version 0.4.2
+  wg "flag wins"          "DeepWorkPlan Vim v0.4.2 (resolved from '0.4.2' via --version)" "$T2/out.log"
+  wx "flag wins: exit 0"  test "$RC" -eq 0
 }
 
 scenario_version_bad_string() {
@@ -895,7 +909,7 @@ scenario_version_bad_string() {
     i=$((i + 1))
     run_install_args "$T" "$T/out$i.log" DWP_VIM_SOURCE="$FIXTURE" -- --version "$v"
     wx "rejected: $v (exit 2)" test "$RC" -eq 2
-    wg "says why: $v" "is not a version" "$T/out$i.log"
+    wx "says why: $v" grep -qE "is not a version|needs a value" "$T/out$i.log"
   done
   run_install_args "$T" "$T/ref.log" DWP_VIM_SOURCE="$FIXTURE" -- --ref "--upload-pack=x"
   wx "bad --ref rejected (exit 2)" test "$RC" -eq 2
@@ -984,7 +998,7 @@ scenario_nvim_checksum_mismatch() {
   # or no published checksum at all aborts with nothing installed.
   local T; T="$(scen_root)"
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
-  real_tools "$T/bin" curl tar gzip sha256sum shasum perl mktemp rmdir
+  real_tools "$T/bin" curl tar gzip sha256sum shasum perl mktemp rmdir ln
   run_install_args "$T" "$T/bad.log" DWP_VIM_SOURCE="$FIXTURE" \
     DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-bad" -- --nvim 0.12.5 --skip-packages
   wg "mismatch named"   "checksum mismatch for nvim-linux-x86_64.tar.gz" "$T/bad.log"
@@ -992,9 +1006,14 @@ scenario_nvim_checksum_mismatch() {
   wx "nothing installed" test ! -e "$T/home/.local/bin/nvim"
   wx "nothing cloned"    test ! -e "$T/home/.config/nvim"
   run_install_args "$T" "$T/none.log" DWP_VIM_SOURCE="$FIXTURE" \
-    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-none" -- --nvim 0.12.5 --skip-packages
+    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-nodigest" -- --nvim 0.12.5 --skip-packages
   wg "no checksum named" "no published sha256 for nvim-linux-x86_64.tar.gz" "$T/none.log"
   wx "no checksum: rc non-zero" test "$RC" -ne 0
+  run_install_args "$T" "$T/noasset.log" DWP_VIM_SOURCE="$FIXTURE" \
+    DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-none" -- --nvim 0.12.5 --skip-packages
+  wg "asset naming named" "publishes no nvim-linux-x86_64.tar.gz" "$T/noasset.log"
+  wx "no asset: rc non-zero" test "$RC" -ne 0
+  wx "no leftover staging" test -z "$(ls -A "$T/home/.local/opt" 2>/dev/null)"
   wx "still nothing installed" test ! -e "$T/home/.local/bin/nvim"
 }
 
@@ -1003,11 +1022,17 @@ scenario_nvim_install_ok() {
   # the run, used by the --strict bootstrap; a rerun skips the download.
   local T; T="$(scen_root)"
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
-  real_tools "$T/bin" curl tar gzip sha256sum shasum perl mktemp rmdir
+  real_tools "$T/bin" curl tar gzip sha256sum shasum perl mktemp rmdir ln
+  # An older non-symlink nvim in ~/.local/bin is moved aside, not overwritten.
+  mkdir -p "$T/home/.local/bin"
+  printf '#!/bin/sh\necho old\n' >"$T/home/.local/bin/nvim"
   run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" \
     DWP_VIM_NVIM_DOWNLOAD_BASE="file://$NVIM_FIX/dl" DWP_VIM_NVIM_API_BASE="file://$NVIM_FIX/api-good" -- \
     --version latest --nvim 0.12.5 --skip-packages --strict
-  wg "verified install"  "Neovim v0.12.5 installed at $T/home/.local/bin/nvim (sha256 verified)" "$T/out.log"
+  wg "verified install"  "Neovim v0.12.5 installed at $T/home/.local/opt/nvim-v0.12.5, linked as $T/home/.local/bin/nvim (sha256 verified)" "$T/out.log"
+  wg "mirror trust noted" "NOTE: --nvim trusts the mirror" "$T/out.log"
+  wx "bin is a link to the versioned dir" test "$(readlink "$T/home/.local/bin/nvim")" = "$T/home/.local/opt/nvim-v0.12.5/bin/nvim"
+  wx "existing nvim moved aside" test -n "$(ls "$T/home/.local/bin/" | grep '^nvim.previous.')"
   wg "bootstrap via it"  "nvim --headless"     "$T/shim.log"
   wg "plugins verified"  "Plugins verified"    "$T/out.log"
   wx "exit 0"            test "$RC" -eq 0
@@ -1047,6 +1072,63 @@ scenario_install_lua_unattended_answers() {
   wg "images' answers: same result"       "CUSTOM=false EXTRAS=zenity,shfmt" "$T/piped.log"
 }
 
+scenario_strict_repairs_empty_clones() {
+  # An install left with empty clones (pre-0.5.0 race) is repaired: the
+  # empty clones are moved aside (never deleted), the bootstrap runs with
+  # DWP_VIM_BOOTSTRAP=1 and --strict then passes.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
+  git clone -q "$FIXTURE" "$T/home/.config/nvim"
+  local O="$T/home/.local/share/nvim/site/pack/pckr/opt"
+  mkdir -p "$O/mason.nvim/.git" "$O/alpha-nvim/.git"
+  touch "$T/home/.local/share/nvim/.keep"
+  run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
+  wg "empty clones moved"  "Moved empty plugin clones aside" "$T/out.log"
+  wg "bootstrap ran"       "nvim --headless"                 "$T/shim.log"
+  wg "verified"            "Plugins verified"                "$T/out.log"
+  wx "exit 0"              test "$RC" -eq 0
+  wx "moved, not deleted"  test -d "$(ls -d "$T/home/.local/share/nvim"/pckr-empty-clones.*/mason.nvim 2>/dev/null | head -n 1)"
+}
+
+scenario_option_values_hardened() {
+  # Empty or option-like values, unknown switch values, a bad timeout and
+  # a hostile token never pass silently; a relative --dir becomes absolute.
+  local T; T="$(scen_root)"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install_args "$T" "$T/a.log" -- --version=
+  wg "empty --version= refused" "--version needs a value" "$T/a.log"
+  wx "empty value: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/b.log" -- --dir --yes
+  wg "option as --dir refused" "--dir needs a value (got the option '--yes')" "$T/b.log"
+  wx "option as value: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/c.log" DWP_VIM_YES=N --
+  wg "DWP_VIM_YES=N refused" "DWP_VIM_YES='N' is not a switch value" "$T/c.log"
+  wx "bad switch: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/d.log" DWP_VIM_BOOTSTRAP_TIMEOUT='-k 1' --
+  wg "bad timeout refused" "DWP_VIM_BOOTSTRAP_TIMEOUT must be a number" "$T/d.log"
+  wx "bad timeout: exit 2" test "$RC" -eq 2
+  run_install_args "$T" "$T/e.log" -- --dir "$T/home"
+  wg "HOME refused as dest" "refusing to install into $T/home" "$T/e.log"
+  wx "home dest: exit 2" test "$RC" -eq 2
+  wx "nothing cloned" test ! -e "$T/home/.config/nvim"
+  # Off values in any case are off; a relative --dir is made absolute.
+  local T2; T2="$(scen_root)"
+  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+  RC=0
+  ( cd "$T2/home" && env -i HOME="$T2/home" PATH="$NEUTRAL_DIR:$T2/bin:$BASE_BIN" \
+      SHIM_LOG="$T2/shim.log" SHIM_BIN="$T2/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
+      DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_SKIP_PACKAGES=Off GITHUB_TOKEN='x"
+output = /tmp/pwned' \
+      bash "$REPO/install.sh" --dir rel-nvim </dev/null >"$T2/out.log" 2>&1 ) || RC=$?
+  wx "relative dir made absolute" grep -qE "is installed at /.*/rel-nvim\$" "$T2/out.log"
+  wg "hostile token ignored" "GITHUB_TOKEN has unexpected characters — ignored" "$T2/out.log"
+  wng "Off is off"         "no system packages will be installed" "$T2/out.log"
+  wx "exit 0"              test "$RC" -eq 0
+}
+
 scenario_bootstrap_already_installed() {
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
@@ -1056,6 +1138,11 @@ scenario_bootstrap_already_installed() {
   git clone -q "$FIXTURE" "$T/home/.config/nvim"
   mkdir -p "$T/home/.local/share/nvim/pckr"
   touch "$T/home/.local/share/nvim/pckr/.dwp-vim-bootstrapped"
+  local p
+  for p in alpha-nvim nvim-cmp mason.nvim; do
+    mkdir -p "$T/home/.local/share/nvim/site/pack/pckr/opt/$p/.git"
+    echo x >"$T/home/.local/share/nvim/site/pack/pckr/opt/$p/init.lua"
+  done
   run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
   wg "already installed"       "Plugins already installed"     "$T/out.log"
   wng "bootstrap skipped"      "nvim --headless"               "$T/shim.log"
@@ -1249,6 +1336,8 @@ run_scenario strict_missing_plugins      scenario_strict_missing_plugins
 run_scenario nvim_checksum_mismatch      scenario_nvim_checksum_mismatch
 run_scenario nvim_install_ok             scenario_nvim_install_ok
 run_scenario yes_moves_foreign           scenario_yes_moves_foreign
+run_scenario strict_repairs_empty_clones scenario_strict_repairs_empty_clones
+run_scenario option_values_hardened      scenario_option_values_hardened
 run_scenario install_lua_unattended_answers scenario_install_lua_unattended_answers
 run_scenario update_origin_old_fork      scenario_update_origin_old_fork
 run_scenario update_origin_old_fork_consent scenario_update_origin_old_fork_consent

@@ -49,15 +49,18 @@ apt-get update -qq
 apt-get install -y -qq --no-install-recommends \
   git curl ca-certificates lua5.4 tar gzip gcc make libc6-dev nodejs npm fontconfig >/dev/null
 useradd -m -s /bin/bash dev
-runuser -u dev -- env RELEASE_VERSION="$RELEASE_VERSION" NVIM="$NVIM" GITHUB_TOKEN="${GITHUB_TOKEN:-}" \
+runuser -u dev -- env RELEASE_VERSION="$RELEASE_VERSION" NVIM="$NVIM" DWP_TEST_TOKEN="${GITHUB_TOKEN:-}" \
   bash -euo pipefail -c '
+  # The token reaches only the install step (its Neovim release lookup).
+  tok="$DWP_TEST_TOKEN"
+  unset DWP_TEST_TOKEN
   export PNPM_HOME="$HOME/.local/share/pnpm"
   export PATH="$PNPM_HOME/bin:$HOME/.local/bin:$PATH"
   npm install -g --prefix "$PNPM_HOME" pnpm@10 >/dev/null 2>&1
   # The source must belong to this user (git refuses foreign-owned repos).
   cp -R /fixture/src.git "$HOME/src.git"
   # The one-liner, with a local file standing in for the download:
-  cat /fixture/install.sh | DWP_VIM_SOURCE="$HOME/src.git" \
+  cat /fixture/install.sh | DWP_VIM_SOURCE="$HOME/src.git" GITHUB_TOKEN="$tok" \
     bash -s -- --version "$RELEASE_VERSION" --nvim "$NVIM" --skip-packages --strict
   echo "CHECK user=$(id -un) uid=$(id -u)"
   echo "CHECK tty=$( [ -t 0 ] && echo yes || echo no )"
@@ -76,7 +79,7 @@ want "exit 0"                  "CHECK user=dev"
 want "non-root user"           "uid=1000"
 want "no terminal"             "CHECK tty=no"
 want "version resolved"        "DeepWorkPlan Vim $RELEASE_REF (resolved from '${RELEASE_REF#v}' via --version)"
-want "Neovim sha256-verified"  "Neovim v$NVIM installed at /home/dev/.local/bin/nvim (sha256 verified)"
+want "Neovim sha256-verified"  "Neovim v$NVIM installed at /home/dev/.local/opt/nvim-v$NVIM, linked as /home/dev/.local/bin/nvim (sha256 verified)"
 want "plugins verified"        "Plugins verified"
 want "on the release tag"      "CHECK tag=$RELEASE_REF"
 want "nvim on the version"     "CHECK nvim=NVIM v$NVIM"

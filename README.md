@@ -87,14 +87,17 @@ bash install.sh --version '>=0.5.0'      # newest stable release at or above the
 bash install.sh --help                   # every option and its env twin
 ```
 
-Precedence: flags, then `DWP_VIM_VERSION`, then `DWP_VIM_REF`, then the
-installer's own release; a version and a ref that disagree are an error, and
-a version that does not exist lists the newest releases.
+Precedence: a flag beats every environment value; then `DWP_VIM_VERSION`,
+then `DWP_VIM_REF`, then the installer's own release. A version and a ref
+given at the same level (two flags, or two env values) that disagree are an
+error, and a version that does not exist lists the newest releases. Switch
+values are `1/true/yes/on` or `0/false/no/off` (any case).
 
 **Docker images and CI** — the container mode replaces the clone +
 `install.lua` + headless sync + plugin-check block with one step. It runs as
 a non-root user without a terminal, installs Neovim from the official
-release tarball (sha256-verified), installs no system package (the image
+release tarball (sha256-verified, into `~/.local/opt/nvim-vX.Y.Z`, linked as
+`~/.local/bin/nvim`), installs no system package (the image
 already has git, curl, Lua, a C compiler, Node.js and pnpm), and fails the
 build when the plugins did not install:
 

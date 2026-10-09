@@ -53,7 +53,7 @@
       "mirror_url": "https://deepworkplan.com/vim/install.sh",
       "mirror_note": "the website's copy; from v0.4.1 it is byte-identical to the release's install.sh — use it only when its sha256 equals script.sha256, otherwise use url",
       "sha256_file": "install.sh.sha256 (next to install.sh on the website and on the release)",
-      "sha256": "339e1244233daea242ae901e629cb26aca616cb21e3720878fa0177b090ae88a"
+      "sha256": "4890c140528d6b8d19b6bbc4102051e0b9dce2e26f43a693bdeab2e1cd8e196b"
     },
     "steps": [
       "download script.url (or mirror_url, or release_asset_url) to a local file named install.sh",

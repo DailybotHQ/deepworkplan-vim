@@ -20,7 +20,7 @@ answer).
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (52 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (54 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -51,14 +51,16 @@ shim per scenario; real `git`/coreutils for everything else):
 | `version_latest` | `--version latest` through `bash -s --` from a pipe = the newest stable tag; the fixture's newer `v9.9.9-rc.1` is ignored |
 | `version_floor` | `'>=0.4.1'` = the newest stable release at or above the floor; `'>=99.0.0'` fails listing the newest releases |
 | `version_missing` | `--version 9.9.9`: non-zero, the newest releases listed, nothing cloned |
-| `version_ref_conflict` | `DWP_VIM_REF=main` + `--version 0.4.2`: exit 2 naming both |
+| `version_ref_conflict` | `--ref main --version 0.4.2` and `DWP_VIM_REF=main DWP_VIM_VERSION=0.4.2`: exit 2 naming both; `DWP_VIM_REF=main` + `--version 0.4.2`: the flag wins |
 | `version_bad_string` | `1.2`, `--upload-pack=…`, `>=1.2.3;id`, `latest-ish`, `v1.2.3.4`, a bad `--ref` and `--nvim`: exit 2, git never runs |
 | `flag_unknown` | an unknown option or a missing value: the usage, exit 2 |
 | `flag_help` | `--help`: the usage (options + env twins), exit 0, nothing installed |
 | `strict_bootstrap_failure` | `--strict`: a failed bootstrap exits non-zero with the log; without it a warning; `--strict` without nvim on PATH fails |
 | `strict_missing_plugins` | `--strict` verifies the plugins: a missing `mason.nvim` and an empty clone each fail with the list; all present passes |
-| `nvim_checksum_mismatch` | `--nvim`: a wrong published digest and no published checksum both abort with nothing installed (file:// fixture of the release API and tarball) |
-| `nvim_install_ok` | `--nvim` with the right digest: unpacked into `~/.local`, used by the `--strict` bootstrap; a rerun skips the download |
+| `nvim_checksum_mismatch` | `--nvim`: a wrong published digest, an asset listed without a digest, and a release without the asset (old naming) all abort with nothing installed and no staging left (file:// fixture of the release API and tarball) |
+| `nvim_install_ok` | `--nvim` with the right digest: unpacked into `~/.local/opt/nvim-v0.12.5`, `~/.local/bin/nvim` linked to it (an existing non-link `nvim` moved aside), mirror trust noted, used by the `--strict` bootstrap; a rerun skips the download |
+| `strict_repairs_empty_clones` | empty clones (only `.git`, as left by the pre-0.5.0 race) are moved aside (not deleted), the bootstrap runs with `DWP_VIM_BOOTSTRAP=1`, `--strict` passes |
+| `option_values_hardened` | `--version=` empty, `--dir --yes`, `DWP_VIM_YES=N`, a non-numeric timeout and `--dir $HOME` exit 2; `DWP_VIM_SKIP_PACKAGES=Off` is off; a relative `--dir` becomes absolute; a `GITHUB_TOKEN` carrying curl config is ignored (no file written) |
 | `yes_moves_foreign` | `DWP_VIM_YES=1` moves a foreign config aside without a terminal |
 | `install_lua_unattended_answers` | real `cli.lua`: stdin `/dev/null` gives the same answers as the images' `printf 'n\n\n'` (custom dir No, extras default) |
 | `update_origin_old_fork` | Field bug of v0.4.1: an install whose origin is the older `mu-vim` fork is not updated in place — without a terminal the run names the origin, offers backup + fresh install or how to keep it, fetches nothing, changes nothing (HEAD, branch, no backup) — also when the script is piped; only the origin advice is given (no stash); origins with user:password (even an unescaped `@`), a token alone, or a query token are printed redacted, an `@` in the path kept |
@@ -79,7 +81,7 @@ shim per scenario; real `git`/coreutils for everything else):
 | `bootstrap_xdg_custom_dir` | Custom `DWP_VIM_DIR`: `XDG_CONFIG_HOME` = parent + `NVIM_APPNAME` = basename composition reaches nvim; FIXED(I-19): the idempotence marker is written after a clean bootstrap |
 | `update_diverged_local` | FIXED(R2, final review), tag path (the default): a local commit no remote branch or tag holds dies loudly ("update skipped… local commits") — rc non-zero, no success banner, no system setup, local commit intact |
 | `delete_foreign_config` | FIXED(I-3)+(I-4)+(R1, final review), real `delete.lua` under the host's real `lua5.4`: a foreign config_dir — including a packer-style one carrying `lua/plugins.lua` but no `install.lua` — is listed as "left in place", never a removal target; a piped confirm (no tty, EOF) keeps the default (No) so the uninstall aborts without deleting |
-| `bootstrap_already_installed` | Existing marker short-circuits: "Plugins already installed", no nvim invocation |
+| `bootstrap_already_installed` | Verified plugins (alpha-nvim, nvim-cmp, mason.nvim with content) short-circuit: "Plugins already installed", no nvim invocation |
 | `lua_failure_handoff` | UX2-03: a failing system-setup leg ends with a paste-able agent handoff naming the `fails.log` path, **added** to the kept log + issues lines; rc non-zero |
 | `delete_one_liner` | UX2-04, real `lua5.4`: the advertised one-liner — `delete.lua` by absolute path from an unrelated cwd — removes a synthetic install after piped consent `y` (config + data dirs gone, rc 0) |
 | `consent_eof_safe` | R4, real `lua5.4` probes: line-mode EOF is reported as `eof` (distinct from an explicit empty line = `default`, typed `y`/`n` = `yes`/`no`); `replace_old` aborts on `eof` — nothing moved or deleted (probe simulates the Windows `can_ask=true` condition); the Unix no-tty gate stays |
@@ -116,7 +118,7 @@ breaks them is a regression, not a pin.
 
 ```
 tests/installer/
-├── run.sh                  # the harness (52 scenarios + shared setup)
+├── run.sh                  # the harness (54 scenarios + shared setup)
 ├── container.sh            # the image one-liner in a Debian container (Docker + network)
 ├── lua/pnpm_fallback.lua   # real installer.lua ensure_pnpm() under a stubbed util
 └── shims/

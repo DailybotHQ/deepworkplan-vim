@@ -113,7 +113,7 @@ container, no network, no Neovim, no real `install.lua` leg. Branch-independent:
 the fixture's `main` is the commit under test and carries the release tag
 baked into `install.sh` (annotated, like real releases); git may use the
 file protocol only and no system gitconfig, so nothing reaches the network
-or reads host config. 52 scenarios: version selection (exact, v-prefix,
+or reads host config. 54 scenarios: version selection (exact, v-prefix,
 latest through `bash -s --`, floor, missing, conflict, bad strings), options
 (unknown, help), `--strict` (failed bootstrap, missing plugins, empty clones),
 `--nvim` (checksum mismatch, no checksum, verified install and its rerun),
@@ -137,7 +137,7 @@ uninstall one-liner verification, and the consent-EOF tri-state probes
 probes (BSD/no-realpath hosts still resolve paths). The three former KNOWN-DEFECT pins (audit
 I-1, I-2, I-19) were flipped to fixed-behavior assertions by the
 remediation; any regression there fails the suite. Success sentinel:
-`INSTALLER HARNESS: OK (52 scenarios)`. The image one-liner in a real
+`INSTALLER HARNESS: OK (54 scenarios)`. The image one-liner in a real
 container (needs Docker and network): `bash tests/installer/container.sh` —
 sentinel `CONTAINER INSTALL: OK`. Scope and bounds:
 [`tests/installer/README.md`](../tests/installer/README.md). Required for
