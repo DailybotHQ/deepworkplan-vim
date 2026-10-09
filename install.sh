@@ -202,7 +202,7 @@ ask_consent() {
   local answer=""
   # Probe with a real open: without a controlling terminal /dev/tty passes
   # [ -r ] (the node is world-writable) yet fails to open.
-  if : </dev/tty 2>/dev/null; then
+  if { : </dev/tty; } 2>/dev/null; then
     printf '%s [y/N]: ' "$1" >/dev/tty
     IFS= read -r answer </dev/tty || return 1
   elif [ -t 0 ]; then
@@ -379,7 +379,7 @@ say "==> Running the system setup ($LUA install.lua)"
 # install.lua may ask questions: it reads the terminal when there is one,
 # never the pipe that may be carrying this script.
 LUA_STDIN=/dev/null
-if : </dev/tty 2>/dev/null; then
+if { : </dev/tty; } 2>/dev/null; then
   LUA_STDIN=/dev/tty
 fi
 if (cd "$DEST" && "$LUA" install.lua) <"$LUA_STDIN"; then
