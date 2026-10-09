@@ -6,7 +6,7 @@ DWP standard: 6.0.0 (onboarded 2026-10-03; upgraded 2026-10-03; skill 6.0.2)
 
 ## Product
 
-DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: `curl -fsSL https://deepworkplan.com/vim/install.sh | bash` (or manually: clone to `~/.config/nvim` and `lua install.lua`). This repo **is** the config; do not nest a second clone inside Docker.
+DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install, pinned to the release tag: `curl -fsSL https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.4.0/install.sh | DWP_VIM_REF=v0.4.0 bash` (or manually: clone to `~/.config/nvim` and `lua install.lua`). This repo **is** the config; do not nest a second clone inside Docker.
 
 Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 6.0.2 per the provenance line above.
 
@@ -24,14 +24,16 @@ Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v
 | [docs/AI_AGENT_ONBOARDING.md](docs/AI_AGENT_ONBOARDING.md) | First-session checklist |
 | [docs/AI_AGENT_COLLAB.md](docs/AI_AGENT_COLLAB.md) | Handoffs, reporting, review, mesh etiquette |
 | [lua/README.md](lua/README.md) · [utilities/](utilities/README.md) · [docker/](docker/README.md) · [tests/](tests/README.md) · [snippets/](snippets/README.md) · [dicts/](dicts/README.md) · [addon/](addon/README.md) | Per-module docs (`addon/` = the machine-readable addon surface) |
-| [CHANGELOG.md](CHANGELOG.md) | What each release tag ships |
+| [CHANGELOG.md](CHANGELOG.md) | What each release tag ships (Keep a Changelog; the release notes) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Setup, gate, commits, PR and release flow · private vulnerability reporting · Contributor Covenant 2.1 |
 | [.agents/docs/skills_agents_catalog.md](.agents/docs/skills_agents_catalog.md) · [COMMANDS_REFERENCE.md](.agents/docs/COMMANDS_REFERENCE.md) | Skills/agents/commands catalogs |
 
 Repo shape (2 levels): `init.lua` + `lua/{mapping,lsp,scheme,setUp}` (editor
 config) · `utilities/installation` (installer) · `install.lua`/`delete.lua` ·
 `dev.sh` + `docker/local` (contributor container + Herdr) · `tests/` (Go
 mapping contracts, smokes, installer harness) · `addon/` (machine-readable
-addon surface) · `snippets/` `dicts/` (data) · `.agents/` (harness) ·
+addon surface) · `scripts/` (public-hygiene check, release notes/assets) ·
+`.github/` (CI, auto-release, issue/PR templates, Dependabot) · `snippets/` `dicts/` (data) · `.agents/` (harness) ·
 `.dwp/` (plan output, gitignored) · `tmp/` (scratch, gitignored).
 
 ## Deep Work Plans — invocation

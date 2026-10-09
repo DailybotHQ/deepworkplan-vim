@@ -1,0 +1,60 @@
+name: Bug report
+description: Something in the editor, the installer or the contributor container does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Security problems do not go here** — see SECURITY.md.
+        Remove tokens, private hostnames and personal paths from anything you paste.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Install with ...
+        2. Open nvim and press ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: DeepWorkPlan Vim version
+      description: The release tag (e.g. v0.4.0) or the commit (`git -C ~/.config/nvim rev-parse --short HEAD`).
+    validations:
+      required: true
+  - type: input
+    id: nvim
+    attributes:
+      label: Neovim version
+      description: Output of `nvim --version | head -1`.
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS, Linux, WSL, Windows (Git Bash), Contributor container]
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Editor / keymaps, Plan browser, Installer (install.sh / install.lua), Uninstaller (delete.lua), Contributor container / Herdr mesh, Documentation, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Relevant output (`:messages`, the installer's `fails.log`). Redact anything private.
+      render: text

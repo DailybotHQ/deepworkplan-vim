@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose an improvement to the editor, the installer or the tooling.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is one curated configuration, not a framework: proposals that keep startup fast,
+        stay consent-first and work for both people and coding agents fit best (docs/PRODUCT_SPEC.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The change you have in mind (keys, commands, behavior).
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Fit
+      options:
+        - label: I checked the command index (`SPC h h`) and the docs for an existing way to do this.
