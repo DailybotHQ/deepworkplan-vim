@@ -61,13 +61,56 @@ Status of each gate on a bare dev host (bash + lua only): the first four run;
 the last two need a container or Go. See [TESTING_GUIDE.md](TESTING_GUIDE.md)
 for the evidence and the fallback.
 
+## dwp runtime smokes (host)
+
+```bash
+bash tests/smoke/run.sh
+```
+
+Headless Neovim over the repo's `lua/` tree with a minimal runtime — no
+container, no plugin sync, no network. Five sections (model, sidebar,
+reader, statusline, greeter, render, consistency, self-contained, addon surface; 561 assertions) over the committed fixtures
+in `tests/fixtures/dwp_plans/`. Required for any change under `lua/dwp/`;
+per-section scope and honest non-coverage: `tests/smoke/README.md`. Read
+the output for the `assertions OK` sentinel — nvim exits 0 even after a
+mid-script crash, so the exit code alone is not a pass.
+
 ## Installer smokes (multi-distro)
 
 ```bash
 docker compose -f compose.yml run --rm <service>   # root compose.yml — distro installer smokes
 ```
 
-Run from the repo root; consult `compose.yml` for the service names.
+Run from the repo root; consult `compose.yml` for the service names. The
+apk/emerge/zypper legs are smoke-only — outside the supported set
+(brew, pacman, apt-get, dnf; +WSL-as-Linux) the installer is expected to
+refuse, and the legs prove that refusal is clean.
+
+## Installer compatibility harness (host)
+
+```bash
+bash tests/installer/run.sh
+```
+
+Runs the real `install.sh` in synthetic roots against PATH shims — bash,
+git, coreutils, `script` for the one pty scenario (util-linux or BSD/macOS),
+and a real `lua5.4` on PATH for the four `delete.lua`/probe scenarios; no
+container, no network, no Neovim, no real `install.lua` leg. Branch-independent:
+the fixture's `main` is the commit under test. 21 scenarios: the four
+package-manager legs and their sudo policy, the consent/backup envelope
+(piped abort, pty consent, backup collision, DEST-is-file),
+clone-vs-update (including the diverged-local die), OS refusals
+(MINGW/unknown), the XDG/`NVIM_APPNAME` bootstrap composition, the
+real-Lua uninstaller guards, the failing-setup agent handoff, and the
+uninstall one-liner verification, and the consent-EOF tri-state probes
+(absent input aborts, never auto-answers), and the realpath fallback
+probes (BSD/no-realpath hosts still resolve paths). The three former KNOWN-DEFECT pins (audit
+I-1, I-2, I-19) were flipped to fixed-behavior assertions by the
+remediation; any regression there fails the suite. Success sentinel:
+`INSTALLER HARNESS: OK (21 scenarios)`. Scope and bounds:
+[`tests/installer/README.md`](../tests/installer/README.md). Required for
+any change to `install.sh`, `install.lua`, `delete.lua` or
+`utilities/installation/`.
 
 ## DWP harness (plan work)
 

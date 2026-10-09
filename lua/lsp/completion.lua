@@ -15,8 +15,6 @@ local select_opts = { behavior = cmp.SelectBehavior.Select }
 
 cmp.setup.cmdline("/", {
 	sources = cmp.config.sources({
-		{ name = "nvim_lsp_document_symbol" },
-	}, {
 		{ name = "buffer" },
 	}),
 })
@@ -35,26 +33,15 @@ cmp.setup({
 			luasnip.lsp_expand(args.body)
 		end,
 	},
+	-- Only sources whose cmp plugins are actually installed (plugins.lua):
+	-- nvim_lsp, luasnip, buffer, path. Entries for missing plugins
+	-- (treesitter, dictionary, spell, calc, nvim_lua, signature_help,
+	-- document_symbol) were dead config — removed.
 	sources = {
-		{ name = "nvim_lsp_signature_help" },
-		{ name = "treesitter" },
-		{ name = "dictionary" },
-		{ name = "nvim_lua" },
 		{ name = "nvim_lsp" },
 		{ name = "luasnip" },
 		{ name = "buffer" },
-		{
-			name = "spell",
-			option = {
-				keep_all_entries = false,
-				enable_in_context = function()
-					--return require("cmp.config.context").in_treesitter_capture("spell")
-					return false
-				end,
-			},
-		},
 		{ name = "path" },
-		{ name = "calc" },
 	},
 	window = {
 		completion = {

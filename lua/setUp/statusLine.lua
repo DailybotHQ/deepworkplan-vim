@@ -125,6 +125,17 @@ require("lualine").setup({
 				color = { fg = colors.branch, gui = "bold" },
 			},
 			{
+				-- Active plan, always clickable (opens the plans sidebar).
+				-- Lazy: dwp.statusline loads on first draw, never at boot;
+				-- segment() reads an event-fed cache, never the filesystem.
+				function()
+					return require("dwp.statusline").segment()
+				end,
+				cond = function()
+					return require("dwp.statusline").has_plan()
+				end,
+			},
+			{
 				"diff",
 				symbols = { added = " ", modified = "柳", removed = " " },
 				diff_color = {

@@ -1,0 +1,12 @@
+{
+  "schema": "https://deepworkplan.com/schema/plan-state/v6.json",
+  "plan": "PLAN_992_fixture_done",
+  "blocker": null,
+  "tasks": [
+    { "id": "T-collect", "title": "Collect requirements", "status": "completed", "started_seq": 2 },
+    { "id": "T-design", "title": "Draft the design", "status": "completed" },
+    { "id": "T-implement", "title": "Implement the change", "status": "completed" },
+    { "id": "T-validate", "title": "Validate the change", "status": "completed" },
+    { "id": "T-ship", "title": "Ship the change", "status": "completed" }
+  ]
+}

@@ -61,9 +61,13 @@ local function font_file()
   return util.path_join(util.home(), ".local", "share", "fonts", "iosevka_nerd_font.ttf")
 end
 
+-- Identity requires BOTH marker files, matching install.sh's is_ours
+-- content check: a packer-style foreign config that happens to carry
+-- lua/plugins.lua (and no install.lua) must not be queued for
+-- deletion (final-review finding R1).
 local function looks_like_dwpvim(dir)
   return util.file_exists(util.path_join(dir, "install.lua"))
-    or util.file_exists(util.path_join(dir, "lua", "plugins.lua"))
+    and util.file_exists(util.path_join(dir, "lua", "plugins.lua"))
 end
 
 local HOME = util.home()
@@ -84,10 +88,18 @@ local targets = {
   { path = previous_dir, why = "Backup of the previous config" },
   { path = themes_dir, why = "Shared palettes and last theme (~/.config/muvim)" },
   { path = font_file(), why = "Iosevka Nerd Font copied by install.lua" },
-  { path = config_dir, why = "DeepWorkPlan Vim config (this repo if you cloned it here)" },
 }
 
-io.write("This removes DeepWorkPlan Vim config, Mason, plugins, and themes.\n")
+-- The config directory is removed only when it IS a DeepWorkPlan Vim
+-- checkout. A foreign config sitting at the same path is never deleted
+-- by this uninstaller — it is listed and left in place.
+if looks_like_dwpvim(config_dir) then
+  table.insert(targets, { path = config_dir, why = "DeepWorkPlan Vim config (this repo if you cloned it here)" })
+elseif util.path_exists(config_dir) then
+  io.write("NOTE: " .. config_dir .. " does not look like a DeepWorkPlan Vim config — left in place.\n")
+end
+
+io.write("This removes DeepWorkPlan Vim data, Mason, plugins, and themes.\n")
 io.write("Neovim itself (the binary) is not uninstalled.\n\n")
 for _, item in ipairs(targets) do
   local mark = util.path_exists(item.path) and "*" or " "

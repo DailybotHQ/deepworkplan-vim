@@ -1,6 +1,8 @@
 local alpha = require("alpha")
 local function button(sc, txt, keybind)
-	local sc_ = sc:gsub("%s", ""):gsub("SPC", "<leader>")
+	-- The shortcut label doubles as the binding source: first-exposure
+	-- labels spell "Space" (UX2-01), so both spellings derive <leader>.
+	local sc_ = sc:gsub("%s", ""):gsub("SPC", "<leader>"):gsub("Space", "<leader>")
 
 	local opts = {
 		position = "center",
@@ -20,6 +22,15 @@ local function button(sc, txt, keybind)
 		type = "button",
 		val = txt,
 		on_press = function()
+			-- Enter runs the button's own Ex command directly. Feeding the
+			-- leader chord instead relies on pending-map resolution, which
+			-- can swallow the space on dashboard buffers in some terminals;
+			-- the chord stays available as its normal-mode mapping anyway.
+			if keybind then
+				local cmd = vim.api.nvim_replace_termcodes(keybind, true, false, true)
+				vim.api.nvim_feedkeys(cmd, "m", false)
+				return
+			end
 			local key = vim.api.nvim_replace_termcodes(sc_, true, false, true)
 			vim.api.nvim_feedkeys(key, "normal", false)
 		end,
@@ -69,11 +80,12 @@ default.header = {
 default.buttons = {
 	type = "group",
 	val = {
-		button("SPC h h", "  Commands  ", ":lua require('mapping.glossary').open()<CR>"),
-		button("SPC f f", "  Find File  ", ":Telescope find_files<CR>"),
-		button("SPC f o", "  Recent File  ", ":Telescope oldfiles<CR>"),
-		button("SPC f w", "  Find Word  ", ":Telescope live_grep<CR>"),
-		button("SPC b m", "  Bookmarks  ", ":Telescope marks<CR>"),
+		button("Space P", "  Plans  ", ":lua require('dwp.sidebar').toggle()<CR>"),
+		button("Space h h", "  Commands  ", ":lua require('mapping.glossary').open()<CR>"),
+		button("Space f f", "  Find File  ", ":Telescope find_files<CR>"),
+		button("Space f o", "  Recent File  ", ":Telescope oldfiles<CR>"),
+		button("Space f w", "  Find Word  ", ":Telescope live_grep<CR>"),
+		button("Space b m", "  Bookmarks  ", ":Telescope marks<CR>"),
 	},
 	opts = {
 		spacing = 1,
@@ -89,6 +101,73 @@ default.brand = {
 	},
 }
 
+-- Plans overview (Phase 2): the top plans at a glance above the buttons,
+-- one gesture from the reader (Enter on a plan row) and one from the
+-- sidebar (the [e] button; alpha text rows carry no on_press, so each
+-- row is a button — the capability that decided the wiring). Defensive
+-- by contract: any failure building the section omits it; the dashboard
+-- always boots. Built when the dashboard first DRAWS, not at require
+-- time: the plans scan costs tens of ms and must not tax boots that
+-- never open the dashboard (startup ceiling; UX_AUDIT §10, D-5).
+default.plans_section = { type = "group", val = function()
+	if default._plans_built then
+		return default._plans_built
+	end
+	local el = {}
+	local built, section = pcall(require, "dwp.greeter_plans")
+	if built and type(section) == "table" then
+		local ok, data = pcall(section.build)
+		if ok and type(data) == "table" then
+			if #data.plan_lines == 0 then
+				el[#el + 1] = {
+					type = "text",
+					val = data.empty_line,
+					opts = { position = "center", hl = "Comment" },
+				}
+			else
+				el[#el + 1] = {
+					type = "text",
+					val = data.header,
+					opts = { position = "center", hl = "AlphaHeader" },
+				}
+				for _, row in ipairs(data.plan_lines) do
+					el[#el + 1] = {
+						type = "button",
+						val = row.text,
+						-- Reader and sidebar load on first use only — the
+						-- dashboard build stays free of their requires.
+						on_press = function()
+							require("dwp.reader").open(row.record)
+						end,
+						opts = {
+							position = "center",
+							hl = "AlphaButtons",
+							cursor = 3,
+							width = 60,
+							align_shortcut = "right",
+						},
+					}
+				end
+				el[#el + 1] = {
+					type = "text",
+					val = data.hint,
+					opts = { position = "center", hl = "Comment" },
+				}
+				if data.hint_click then
+					el[#el + 1] = {
+						type = "text",
+						val = data.hint_click,
+						opts = { position = "center", hl = "Comment" },
+					}
+				end
+				el[#el + 1] = button("e", "  Open plans sidebar  ", ":lua require('dwp.sidebar').toggle()<CR>")
+			end
+		end
+	end
+	default._plans_built = el
+	return el
+end, opts = { spacing = 1 } }
+
 alpha.setup({
 	layout = {
 		{ type = "padding", val = 2 },
@@ -96,8 +175,20 @@ alpha.setup({
 		{ type = "padding", val = 1 },
 		default.brand,
 		{ type = "padding", val = 2 },
+		default.plans_section,
+		{ type = "padding", val = 1 },
 		default.buttons,
 	},
 	opts = {},
 })
-alpha.start(true)
+-- The dashboard draws on VimEnter, not at require time: alpha.start(true)
+-- is designed for the VimEnter moment (it checks whether a file was
+-- opened), and starting at require made every boot — even +qa! boots
+-- that never show a dashboard — pay the alpha layout plus the plans
+-- scan (startup ceiling; UX_AUDIT §10, D-5).
+vim.api.nvim_create_autocmd("VimEnter", {
+	once = true,
+	callback = function()
+		alpha.start(true)
+	end,
+})

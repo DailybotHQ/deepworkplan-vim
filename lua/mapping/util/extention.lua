@@ -24,8 +24,8 @@ end
 
 local serviceActions = {
   markdown = function()
-    print("Check your browser")
-    execute(":MarkdownPreviewToggle")
+    -- Same implementation as SPC m p (mapping/markdown.lua).
+    require("mapping.markdown").preview()
   end,
   html = function()
     execute(":Bracey")
@@ -81,10 +81,6 @@ setmetatable(serviceActions, {
     return "Option not supported"
   end,
 })
-
-extentions.HelpMapping = function()
-  vim.cmd("Telescope keymaps")
-end
 
 extentions.HandleGitCustomActions = function(action)
   local branch = vim.fn.system("git branch --show-current | tr -d '\n'")

@@ -1,0 +1,2 @@
+{"type":"approval","seq":1,"task":null,"plan":"PLAN_992_fixture_done","contract_id":"fixture0000000000000000000000000000000000000000000000000000000002"}
+{"type":"task_start","seq":2,"task":"T-collect","plan":"PLAN_992_fixture_done"}

@@ -6,9 +6,9 @@ DWP standard: 6.0.0 (onboarded 2026-10-03; upgraded 2026-10-03; skill 6.0.2)
 
 ## Product
 
-DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: clone to `~/.config/nvim` and `lua install.lua`. This repo **is** the config; do not nest a second clone inside Docker.
+DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: `curl -fsSL https://deepworkplan.com/vim/install.sh | bash` (or manually: clone to `~/.config/nvim` and `lua install.lua`). This repo **is** the config; do not nest a second clone inside Docker.
 
-Roadmap: optional DWP **v7** addon. Not v6. (That line is about the *editor* being offered as an onboard addon upstream; the harness in this repo runs skill 6.0.2 per the provenance line above.)
+Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 6.0.2 per the provenance line above.
 
 ## Documentation index
 
@@ -29,7 +29,8 @@ Roadmap: optional DWP **v7** addon. Not v6. (That line is about the *editor* bei
 Repo shape (2 levels): `init.lua` + `lua/{mapping,lsp,scheme,setUp}` (editor
 config) · `utilities/installation` (installer) · `install.lua`/`delete.lua` ·
 `dev.sh` + `docker/local` (contributor container + Herdr) · `tests/` (Go
-mapping contracts) · `snippets/` `dicts/` (data) · `.agents/` (harness) ·
+mapping contracts, smokes, installer harness) · `addon/` (machine-readable
+addon surface) · `snippets/` `dicts/` (data) · `.agents/` (harness) ·
 `.dwp/` (plan output, gitignored) · `tmp/` (scratch, gitignored).
 
 ## Deep Work Plans — invocation
@@ -85,6 +86,8 @@ Install Herdr on the host: https://herdr.dev/docs/install/ — show the command;
 | Syntax-check launcher | `bash -n dev.sh` | full |
 | Syntax-check entrypoint | `bash -n docker/local/dwpvim/entrypoint.sh` | full |
 | Parse-check all Lua | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | full (scoped: `luac5.4 -p <file>`) |
+| dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter/render/consistency/self-contained/addon-surface over fixtures (render proves screen-grid output; consistency proves one vocabulary across surfaces; self-contained keeps `lua/dwp` requiring only `dwp.*`; addon-surface proves `addon/surface.json` true of the tree) |
+| Installer compat harness | `bash tests/installer/run.sh` | full — host-runnable (bash + git + coreutils + `script` (util-linux or BSD/macOS) + `lua5.4`; any branch); real install.sh over PATH shims: manager legs, sudo policy, consent/backup envelope, clone-vs-update incl. diverged-local die, XDG/APPNAME composition, real-Lua uninstaller guards |
 | Mapping-contract tests | `bash tests/run.sh` | full — needs Podman or Docker |
 | Mapping tests, Go host | `cd tests && go test -count=1 -parallel 8 .` | full — needs Go (not on this host; unverified here) |
 

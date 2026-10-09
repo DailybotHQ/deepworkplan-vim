@@ -1,0 +1,4 @@
+{"type":"approval","seq":1,"task":null,"plan":"PLAN_991_fixture_running","contract_id":"fixture0000000000000000000000000000000000000000000000000000000001"}
+{"type":"task_start","seq":2,"task":"T-collect","plan":"PLAN_991_fixture_running"}
+{"type":"gate_run","seq":3,"task":"T-collect","plan":"PLAN_991_fixture_running"}
+{"type":"task_start","seq":4,"task":"T-design","plan":"PLAN_991_fixture_running"}

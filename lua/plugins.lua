@@ -96,6 +96,17 @@ require("pckr").add({
     end,
   },
   {
+    "MeanderingProgrammer/render-markdown.nvim",
+    requires = {
+      "nvim-treesitter/nvim-treesitter",
+      "nvim-tree/nvim-web-devicons",
+    },
+    ft = { "markdown" },
+    config = function()
+      require("setUp.markdown")
+    end,
+  },
+  {
     "turbio/bracey.vim",
     run = "pnpm install --prefix server",
     cmd = "Bracey",
@@ -108,20 +119,41 @@ require("pckr").add({
 
 })
 
--- First launch: mason is missing until plugins are cloned.
--- Call pckr.sync() in Lua; :Pckr is not always registered yet on VimEnter.
-if not pcall(require, "mason") then
+-- First launch: no plugins cloned yet. Detected on the filesystem — the
+-- same check install.sh uses — because `require('mason')` cannot work
+-- here: plugins only reach the runtimepath once pckr loads them, so a
+-- require-based probe would be false on EVERY launch and re-sync (with
+-- its input-stealing display window) on every start.
+local pckr_opt = vim.fn.stdpath("data") .. "/site/pack/pckr/opt"
+if vim.fn.isdirectory(pckr_opt .. "/mason.nvim") == 0 then
   vim.api.nvim_create_autocmd("VimEnter", {
     once = true,
     callback = function()
+      -- require('pckr') exports only add/setup; the operations live in
+      -- pckr.actions (async.sync-wrapped: the third argument is the
+      -- completion callback).
+      local ok, actions = pcall(require, "pckr.actions")
+      if not ok then
+        return
+      end
+      -- Headless (install.sh bootstrap): run a full sync and exit on its
+      -- completion callback — no quit-and-reopen dance. The defer lets any
+      -- installs the spec-processing autoinstall already started finish
+      -- before we quit.
+      if #vim.api.nvim_list_uis() == 0 then
+        actions.sync(nil, nil, function()
+          vim.defer_fn(function()
+            print("pckr: plugins installed")
+            vim.cmd("qa!")
+          end, 1000)
+        end)
+        return
+      end
       vim.notify(
         "Installing plugins. Quit Neovim when it finishes, then open it again.",
         vim.log.levels.INFO
       )
-      local ok, pckr = pcall(require, "pckr")
-      if ok and type(pckr.sync) == "function" then
-        pckr.sync()
-      end
+      actions.sync()
     end,
   })
 end

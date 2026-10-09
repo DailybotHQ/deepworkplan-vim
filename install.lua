@@ -36,7 +36,6 @@ if util.is_windows() then
   PREVIOUS_DIR = util.path_join(util.data_home(), "previous-deepworkplan-vim")
 end
 local FONT_SOURCE = SCRIPT_DIR .. "/utilities/installation/iosevka_nerd_font.ttf"
-local MARKER = util.path_join(util.data_home(), "nvim", "deepworkplan-vim-installed")
 
 local FAIL_COUNT = 0
 
@@ -66,15 +65,6 @@ local function log_fail(msg)
   FAIL_COUNT = FAIL_COUNT + 1
 end
 
-local function mark_as_run()
-  util.mkdir_p(util.path_join(util.data_home(), "nvim"))
-  local f = io.open(MARKER, "w")
-  if f then
-    f:write(tostring(os.time()))
-    f:close()
-  end
-end
-
 local function expand_path(path)
   local home = HOME
   if path:sub(1, 1) == "~" then
@@ -85,12 +75,15 @@ end
 
 -- Ask for sudo while the terminal is still in cooked mode, before any
 -- stty raw prompts. Later sudo calls reuse the cached credentials.
+-- Root (containers) and DWP_VIM_SKIP_PACKAGES=1 (deps baked into an
+-- image) both skip this gate.
+local skip_packages = (os.getenv("DWP_VIM_SKIP_PACKAGES") or "") ~= ""
 local manager, manager_err = util.get_package_manager()
 if manager == nil then
   io.stderr:write((manager_err or "No package manager") .. "\n")
 end
 
-if manager and util.needs_sudo(manager) then
+if not skip_packages and manager and util.needs_sudo(manager) and not util.is_root() then
   io.write("Administrator privileges are required to install system packages.\n")
   if not exec_ok("sudo -v") then
     io.stderr:write("Could not validate sudo credentials. Aborting.\n")
@@ -117,9 +110,10 @@ if not util.is_absolute(INSTALL_DIR) then
 end
 
 local greeted_ok = greeter.greeter()
-if greeted_ok then
-  os.execute("sleep 5")
-else
+if not greeted_ok then
+  -- (The banner used to hold the screen for 5 s here — dead time on
+  -- every install and re-run; audit I-14. The setup output that
+  -- follows keeps it on screen long enough to read.)
   log_fail("Something went wrong while greeting")
 end
 
@@ -140,7 +134,12 @@ else
   end
 end
 
-if manager == nil then
+if skip_packages then
+  io.write("DWP_VIM_SKIP_PACKAGES is set: system packages are assumed present (container image, CI). Installing pckr and the font only.\n")
+  if not installer.install_pckr(SCRIPT_DIR) then
+    log_fail("Could not clone pckr.nvim")
+  end
+elseif manager == nil then
   log_fail(manager_err or "Could not detect a package manager")
 else
   io.write("Detected package manager: " .. manager .. "\n")
@@ -151,14 +150,15 @@ else
   end
   local chosen_extras = cli.multi_select("Optional extra packages:", extra_options)
 
-  if installer.installDependencies(manager, chosen_extras) then
+  if installer.installDependencies(manager, chosen_extras, SCRIPT_DIR) then
     done.installation_success()
   else
     log_fail("installDependencies failed for manager: " .. manager)
   end
 end
 
-mark_as_run()
+-- (No install marker is written here: the appname-composed marker that
+-- install.sh maintains after the headless bootstrap is the real one.)
 
 if installer.install_font(FONT_SOURCE) then
   io.write("Font installed.\n")

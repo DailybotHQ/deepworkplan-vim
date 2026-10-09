@@ -28,11 +28,34 @@ updates flow through pckr, not through this repo's git.
 
 ```
 lua/                 the editor config (see lua/README.md)
+lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
+                     state (machine states + rich plain-language model),
+                     sidebar (SPC P), reader (Enter on a plan),
+                     statusline (clickable active-plan segment),
+                     greeter_plans (dashboard top-3 overview)
+                     (sidebar/reader/statusline lazy — mapping and click
+                     callbacks require them on first use; plans/state/
+                     greeter_plans load when the dashboard first DRAWS,
+                     not at boot — alpha starts on VimEnter and the
+                     overview builds on first draw, so non-dashboard
+                     boots never pay the scan: PLAN_003's probe reads
+                     −12.7 ms vs the pre-Phase-2 baseline, i.e. faster
+                     than before the UI existed)
 utilities/           installer modules + snippet getters + spelling helpers
 docker/              contributor container (docker/local/) + image custom commands
 tests/               Go mapping-contract suite (parses Lua/VimScript; no Neovim)
+                     + smoke suite (tests/smoke/: host-runnable headless
+                     nvim over fixtures — model, sidebar, reader,
+                     statusline, greeter, render/consistency proofs,
+                     lua/dwp self-containment, addon surface)
+addon/               surface.json: machine-readable addon surface (interface 1,
+                     version, detection, tag-pinned install + sha256, read-only
+                     plan reader, shipped features) — read by the DWP `vim`
+                     addon; addon/README.md explains it
 snippets/ dicts/     data: snippet sources, spell dictionaries
 dev.sh               launcher: compose up/down/shell/build/rebuild + herdr agents/ask
+install.sh           curl-able entry: preflight, consent, clone/update, then lua
+                     install.lua + headless plugin bootstrap (thin wrapper)
 install.lua          multi-distro installer (runs on user machines, sudo for packages)
 delete.lua           uninstaller
 ```
@@ -41,12 +64,20 @@ delete.lua           uninstaller
 
 `docker/local/docker-compose.yaml` builds the `dwpvim` image: Neovim 0.12.5,
 Herdr, user `dev` (uid 1000), workdir `/workspace` mounted over
-`~/.config/nvim`. Host `~/.ssh` is mounted **read-only** at `.ssh_host` and
-Herdr SSH publishes on `127.0.0.1:22035`. Coding CLIs (Claude, Codex, Cursor,
-Grok, …) are **opt-in build args, default false**. `entrypoint.sh` performs
-symlink surgery so CLI auth (`~/.claude*`, etc.) survives container
-recreations via persistent volumes. `.env` files are created 0600 from
-committed `.env.example` placeholders by `dev.sh` (`ensure_env_from_examples`).
+`~/.config/nvim`. The build context is the repository root (kept lean by
+`.dockerignore`), and the image bakes a first-launch-ready editor: one
+headless `nvim --headless` sync installs the pckr plugins (the same
+self-exiting bootstrap install.sh uses), plus pnpm + biome (user prefix,
+`PNPM_HOME`), and the Iosevka Nerd Font — mirroring
+`utilities/installation/installer.lua`. The config itself is not baked: the
+entrypoint links `~/.config/nvim` to `/workspace`, and `install.sh` (the host
+installer) never enters the image. Host `~/.ssh` is mounted **read-only** at
+`.ssh_host` and Herdr SSH publishes on `127.0.0.1:22035`. Coding CLIs
+(Claude, Codex, Cursor, Grok, …) are **opt-in build args, default false**.
+`entrypoint.sh` performs symlink surgery so CLI auth (`~/.claude*`, etc.)
+survives container recreations via persistent volumes. `.env` files are
+created 0600 from committed `.env.example` placeholders by `dev.sh`
+(`ensure_env_from_examples`).
 
 ## Mesh
 
@@ -62,6 +93,13 @@ asserts a three-flavor contract: `shared` mappings must exist in every flavor;
 `current` adds Lua-only expectations; `vim-family` covers mini/VimScript. It
 never starts Neovim — fast, deterministic, container-friendly. The root
 `compose.yml` runs multi-distro installer smokes.
+
+`tests/smoke/` is the complementary **runtime** suite: headless Neovim
+(`bash tests/smoke/run.sh`, bash + nvim only, no container) over
+committed synthetic plans — the model, each surface, what actually
+lands on the **screen grid** (`dwp_render.lua`, `vim.fn.screenstring`),
+and cross-surface consistency (`dwp_consistency.lua`: one record must
+tell the same story in sidebar, reader, statusline and greeter).
 
 ## Release flow
 

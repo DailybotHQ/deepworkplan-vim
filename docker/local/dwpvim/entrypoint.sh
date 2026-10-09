@@ -373,36 +373,27 @@ setup_ssh_keys_for_user() {
 setup_ssh_keys_for_user "/home/dev"
 chown -R dev:dev /home/dev/.ssh 2>/dev/null || true
 
-# Public Herdr peer mesh. Prefer herdr-peers; fall back to legacy host-kit names.
+# Herdr peer mesh: one neutral, optional include. When the host provides
+# ~/.ssh/config.d/herdr-peers (mounted read-only as ~/.ssh_host), it is
+# included; otherwise nothing is added.
 install_herdr_peer_mesh() {
   local home="$1"
   local user="$2"
   local ssh_config="${home}/.ssh/config"
   local peers_file=""
-  for candidate in \
-      "${home}/.ssh_host/config.d/herdr-peers" \
-      "${home}/.ssh_host/config.d/dailybot-peers"; do
-    if [ -f "${candidate}" ]; then
-      peers_file="${candidate}"
-      break
-    fi
-  done
+  if [ -f "${home}/.ssh_host/config.d/herdr-peers" ]; then
+    peers_file="${home}/.ssh_host/config.d/herdr-peers"
+  fi
   local include_line=""
   if [ -n "${peers_file}" ]; then
-    include_line="Include ${peers_file/#$home/~}"
-    # Prefer a stable public include path when the public file exists.
-    if [ -f "${home}/.ssh_host/config.d/herdr-peers" ]; then
-      include_line='Include ~/.ssh_host/config.d/herdr-peers'
-    else
-      include_line='Include ~/.ssh_host/config.d/dailybot-peers'
-    fi
+    include_line='Include ~/.ssh_host/config.d/herdr-peers'
   fi
   local src="${home}/.herdr_client_host/endpoints.json"
   local dest_dir="${home}/.local/state/herdr/client"
   local dest="${dest_dir}/endpoints.json"
 
   if [ -z "${peers_file}" ]; then
-    echo "herdr peers: no herdr-peers (or legacy peers) file; skip include"
+    echo "herdr peers: no ~/.ssh/config.d/herdr-peers on the host; skip include"
   elif [ -f "${ssh_config}" ]; then
     if ! grep -qxF "${include_line}" "${ssh_config}"; then
       local tmp

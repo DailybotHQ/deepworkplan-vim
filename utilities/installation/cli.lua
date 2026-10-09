@@ -175,8 +175,38 @@ end
 
 -- --- confirm: Yes/No shortcut ---------------------------------------------
 --
--- Returns true/false. default_yes controls which option is listed first.
+-- Returns (value, source). value is true/false; source says how the
+-- question was answered: "yes"/"no" (typed), "default" (an explicit
+-- empty line — a human accepted the default), "eof" (input ended before
+-- anyone answered — a piped run), or "answered" (raw-mode key press).
+-- A confirm whose either branch can move or delete an existing config
+-- must treat "eof" as unanswered and abort — never auto-take a branch
+-- (R4, PLAN_004 final review).
 function M.confirm(question, default_yes)
+  if not can_use_raw() then
+    -- Line-mode fallback (no /dev/tty). Only an explicit "y" affirms and
+    -- only an explicit "n" declines; an explicit empty line keeps the
+    -- DEFAULT; EOF is reported as "eof" so the caller can refuse to
+    -- answer at all — a piped run can never trip a destructive answer.
+    local hint = default_yes == false and "[y/N]" or "[Y/n]"
+    io.write(question .. " " .. hint .. ": ")
+    io.flush()
+    local answer = io.read("*l")
+    if answer == nil then
+      return default_yes ~= false, "eof"
+    end
+    if not answer:match("%S") then
+      return default_yes ~= false, "default"
+    end
+    local c = answer:match("^%s*(%a)")
+    if c == "y" or c == "Y" then
+      return true, "yes"
+    end
+    if c == "n" or c == "N" then
+      return false, "no"
+    end
+    return default_yes ~= false, "default"
+  end
   local options
   if default_yes == false then
     options = {
@@ -190,7 +220,10 @@ function M.confirm(question, default_yes)
     }
   end
   local value = M.select(question, options)
-  return value
+  -- Raw mode implies a real terminal; select maps a closed stream to
+  -- Enter, which lands on the default (the first option) — for the only
+  -- mutating confirm that branch is the non-destructive one.
+  return value, "answered"
 end
 
 -- --- multi_select: pick several options (checklist) -----------------------

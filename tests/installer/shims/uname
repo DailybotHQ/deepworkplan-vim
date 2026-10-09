@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# tests/installer/shims/uname — deterministic OS string (default Linux).
+printf '%s\n' "${FAKE_UNAME:-Linux}"

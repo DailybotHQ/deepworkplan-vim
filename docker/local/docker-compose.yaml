@@ -17,8 +17,8 @@ services:
     container_name: deepworkplan-vim
     init: true
     build:
-      context: .
-      dockerfile: ./dwpvim/Dockerfile
+      context: ../..
+      dockerfile: ./docker/local/dwpvim/Dockerfile
       args:
         INSTALL_CLAUDE_CLI: ${INSTALL_CLAUDE_CLI:-false}
         INSTALL_CURSOR_CLI: ${INSTALL_CURSOR_CLI:-false}

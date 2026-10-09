@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# tests/installer/shims/id — fake uid for sudo-branch selection.
+if [ "${1:-}" = "-u" ]; then
+  printf '%s\n' "${FAKE_UID:-0}"
+  exit 0
+fi
+printf 'uid=%s(user) gid=0(root) groups=0(root)\n' "${FAKE_UID:-0}"

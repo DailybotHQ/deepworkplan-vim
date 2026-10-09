@@ -33,6 +33,25 @@ review severities.
   (apt/dnf/pacman); config writes happen as the user.
 - The user's previous config is moved to `~/.config/previous-deepworkplan-vim`,
   never deleted; reruns are idempotent.
+- An existing config is only ever touched with real consent: `install.sh`
+  aborts when piped without a terminal, and `install.lua`'s replace-old step
+  refuses the same way (no auto-Yes headless). On a consent question whose
+  either branch can move or delete an existing config, absent input (EOF —
+  a piped run, Windows included) is not an answer: the run aborts with the
+  move-aside instructions instead of auto-taking a branch. An explicit
+  empty line still accepts the stated default; declining requires a typed
+  answer.
+- "Is this ours" is decided by the checkout's contents (`install.lua` +
+  `lua/plugins.lua`, remote-URL substring as fallback), so clones from
+  mirrors or renamed forks update in place instead of being treated as
+  foreign configs. Updates pull from `origin`, or from `DWP_VIM_SOURCE`
+  when set (offline installs).
+- The uninstaller (`delete.lua`) removes the config directory only when it
+  looks like a DeepWorkPlan Vim checkout — BOTH marker files
+  (`install.lua` AND `lua/plugins.lua`, the same pair `install.sh`'s
+  `is_ours` requires) — a foreign config at the same path (including a
+  packer-style one carrying only `lua/plugins.lua`) is listed and left
+  in place.
 - Any destructive path operation (`rm`, `rm -rf`, symlink replacement in
   `entrypoint.sh`) must be guarded by existence checks — a wrong path here is
   user-data loss, review-severity `critical`.
@@ -44,6 +63,23 @@ review severities.
   body already carrying the stamp is a reply — never answer it again.
 - Remote installer pipes are forbidden (Herdr install on the host: show the
   command, get consent, never `curl | sh`).
+
+## Supply chain (contributor image)
+
+- Every tool in `docker/local/dwpvim/Dockerfile` is pinned by version and
+  every downloaded release artifact is verified with `sha256sum -c` before
+  install;
+  the base image is pinned by digest. Vendor install scripts are never
+  piped to a shell. The documented exceptions: Cursor and Grok publish no
+  checksums (values recorded on first use); Debian packages follow the
+  pinned release; the editor's plugins are baked at their branch tips (no
+  commit pins in `lua/plugins.lua`); npm CLIs pin the top-level package, so
+  Pi's and Cline's transitive dependencies resolve at build time; Cursor
+  and OpenCode can self-update at runtime. The table, the exceptions and
+  the bump procedure live in
+  [`docker/local/README.md`](../docker/local/README.md#pinned-tools).
+- Contributor tooling carries no organization-specific paths: the only
+  host SSH include is the neutral, optional `herdr-peers`.
 
 ## CI / release
 

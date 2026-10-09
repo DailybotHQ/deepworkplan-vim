@@ -15,3 +15,6 @@ require("mapping.navigation")
 
 -- NAVIGATION THROUGH VIM
 require("mapping.packageManager")
+
+-- MARKDOWN VIEWING
+require("mapping.markdown")
