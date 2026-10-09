@@ -23,7 +23,8 @@ Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Startup budget, hot paths |
 | [docs/AI_AGENT_ONBOARDING.md](docs/AI_AGENT_ONBOARDING.md) | First-session checklist |
 | [docs/AI_AGENT_COLLAB.md](docs/AI_AGENT_COLLAB.md) | Handoffs, reporting, review, mesh etiquette |
-| [lua/README.md](lua/README.md) · [utilities/](utilities/README.md) · [docker/](docker/README.md) · [tests/](tests/README.md) · [snippets/](snippets/README.md) · [dicts/](dicts/README.md) | Per-module docs |
+| [lua/README.md](lua/README.md) · [utilities/](utilities/README.md) · [docker/](docker/README.md) · [tests/](tests/README.md) · [snippets/](snippets/README.md) · [dicts/](dicts/README.md) · [addon/](addon/README.md) | Per-module docs (`addon/` = the machine-readable addon surface) |
+| [CHANGELOG.md](CHANGELOG.md) | What each release tag ships |
 | [.agents/docs/skills_agents_catalog.md](.agents/docs/skills_agents_catalog.md) · [COMMANDS_REFERENCE.md](.agents/docs/COMMANDS_REFERENCE.md) | Skills/agents/commands catalogs |
 
 Repo shape (2 levels): `init.lua` + `lua/{mapping,lsp,scheme,setUp}` (editor
