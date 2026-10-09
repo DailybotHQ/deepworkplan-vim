@@ -17,6 +17,16 @@ end
 
 bootstrap_pckr()
 
+-- Headless bootstrap (install.sh, images): no autoinstall inside add().
+-- With autoinstall on, add() starts asynchronous clones that the VimEnter
+-- sync below does not wait for; quitting on the sync's completion callback
+-- then killed them mid-checkout, leaving empty clones (seen in a fresh
+-- container). Off, the sync performs every install and its callback is the
+-- real end. Interactive launches keep autoinstall.
+if vim.tbl_contains(vim.v.argv, "--headless") then
+  require("pckr").setup({ autoinstall = false })
+end
+
 require("pckr").add({
 
   -- LSP
