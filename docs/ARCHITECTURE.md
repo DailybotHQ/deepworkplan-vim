@@ -62,16 +62,17 @@ delete.lua           uninstaller
 
 ## Contributor environment (feature area)
 
-`docker/local/docker-compose.yaml` builds the `dwpvim` image: Neovim 0.12.5,
-Herdr, user `dev` (uid 1000), workdir `/workspace` mounted over
-`~/.config/nvim`. The build context is the repository root (kept lean by
-`.dockerignore`), and the image bakes a first-launch-ready editor: one
-headless `nvim --headless` sync installs the pckr plugins (the same
-self-exiting bootstrap install.sh uses), plus pnpm + biome (user prefix,
-`PNPM_HOME`), and the Iosevka Nerd Font — mirroring
-`utilities/installation/installer.lua`. The config itself is not baked: the
-entrypoint links `~/.config/nvim` to `/workspace`, and `install.sh` (the host
-installer) never enters the image. Host `~/.ssh` is mounted **read-only** at
+`docker/local/docker-compose.yaml` builds the `dwpvim` image: Herdr, user
+`dev` (uid 1000), workdir `/workspace` mounted over `~/.config/nvim`, and the
+editor installed the way every ecosystem image installs it — the hosted
+DeepWorkPlan Vim installer (downloaded, verified against the release's
+`install.sh.sha256`, run as `dev` with `--version 0.5.0 --nvim 0.12.5
+--skip-packages --strict`): Neovim in `~/.local/opt`, the release config in
+`~/.config/nvim`, pckr + the Iosevka Nerd Font, and a verified headless plugin
+sync. pnpm + biome (user prefix, `PNPM_HOME`) come first because the plugins
+build with pnpm. At start the entrypoint links `~/.config/nvim` to
+`/workspace`, so contributors run the working tree; the baked release config
+is the standalone fallback. Host `~/.ssh` is mounted **read-only** at
 `.ssh_host` and Herdr SSH publishes on `127.0.0.1:22035`. Coding CLIs
 (Claude, Codex, Cursor, Grok, …) are **opt-in build args, default false**.
 `entrypoint.sh` performs symlink surgery so CLI auth (`~/.claude*`, etc.)

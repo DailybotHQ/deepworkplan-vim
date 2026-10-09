@@ -7,8 +7,8 @@ no second clone). Operational detail lives in
 
 | Piece | Responsibility |
 |---|---|
-| `local/docker-compose.yaml` | the `dwpvim` service: Neovim 0.12.5 + Herdr, `/workspace` mount, loopback SSH publish, `.env` loading. Build context is the repo root, slimmed by [`.dockerignore`](../.dockerignore) |
-| `local/dwpvim/Dockerfile` | image build; coding-CLI build args, **all default false**; bakes a first-launch-ready editor (headless pckr sync, pnpm + biome, Iosevka font — mirroring `utilities/installation/installer.lua`; the config itself stays `/workspace`-linked and `install.sh` never enters the image) |
+| `local/docker-compose.yaml` | the `dwpvim` service: the editor (DeepWorkPlan Vim installer, Neovim 0.12.5) + Herdr, `/workspace` mount, loopback SSH publish, `.env` loading. Build context is the repo root, slimmed by [`.dockerignore`](../.dockerignore) |
+| `local/dwpvim/Dockerfile` | image build; coding-CLI build args, **all default false**; bakes a first-launch-ready editor with the hosted DeepWorkPlan Vim installer (downloaded, verified against the release `install.sh.sha256`, run with `--version` / `--nvim` / `--skip-packages` / `--strict`: Neovim, config, pckr, font, verified plugins) after pnpm + biome; at start the entrypoint links `~/.config/nvim` to `/workspace` |
 | [`../.dockerignore`](../.dockerignore) | keeps the repo-root build context lean; excludes `.git`, plans, docs, tests, and every `.env` |
 | `local/dwpvim/entrypoint.sh` | CLI-auth persistence: guarded symlink surgery onto `~/.claude*` (and peers) backed by volumes |
 | `local/.env.example`, `local/dwpvim/.env.example` | **placeholder-only** env templates; real copies are created 0600 by `dev.sh` |
