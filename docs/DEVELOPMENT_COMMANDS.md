@@ -126,6 +126,16 @@ flows live in `.agents/skills/deepworkplan/`, discovery is local.)
 ## Release
 
 Automatic: merge (or push) to `main` triggers
-`.github/workflows/auto-release.yml` — semver from commit prefixes, GitHub
-Release published. `[skip release]` in the merge body suppresses. Manual
-dispatch: the workflow also exposes `workflow_dispatch`.
+`.github/workflows/auto-release.yml` — semver from commit prefixes; refused
+unless `CHANGELOG.md` and `addon/surface.json` already name the tag; annotated
+tag; release notes from the CHANGELOG; assets + `SHA256SUMS`. `[skip release]`
+in the merge body suppresses (every non-release merge carries it). Manual
+dispatch defaults to a dry run; `prerelease: rc.1` cuts `vX.Y.Z-rc.1`.
+
+```bash
+bash scripts/release-notes.sh v0.4.0               # the notes a release would carry
+bash scripts/release-assets.sh v0.4.0 /tmp/assets  # rebuild a release's assets + SHA256SUMS from its tag
+```
+
+Verify a downloaded release: `sha256sum -c SHA256SUMS` (macOS:
+`shasum -a 256 -c SHA256SUMS`) in the directory holding the assets.

@@ -1,40 +1,68 @@
 name: Auto release
 
 # Merge to main cuts a GitHub Release. This repo is the Neovim config itself;
-# the contributor image mounts it at ~/.config/nvim (no nested MU_VIM_REF clone).
+# the contributor image mounts it at ~/.config/nvim (no nested clone).
 #
-# feat: / fix: / perf: bump minor. A BREAKING CHANGE footer bumps major.
-# Everything else, including a missing prefix, bumps patch.
-# Put [skip release] in the merge commit body to publish nothing.
+# feat: / fix: / perf: bump minor. A BREAKING CHANGE footer (or `!:`) bumps
+# major. Everything else, including a missing prefix, bumps patch.
+# Put [skip release] in the merge commit body to publish nothing — every
+# merge that does not ship a release must carry it.
+#
+# A release is refused unless the merged tree already describes it:
+# CHANGELOG.md has a "## [vX.Y.Z]" section and addon/surface.json names
+# vX.Y.Z (CONTRIBUTING.md → Releases). The tag is annotated; the notes are
+# that CHANGELOG section; the assets (source archive, install.sh,
+# surface.json) ship with SHA256SUMS. A pre-release (vX.Y.Z-rc.1) is cut
+# only by hand, through workflow_dispatch with the `prerelease` suffix, and is
+# published flagged as a pre-release.
+#
+# workflow_dispatch defaults to a dry run: everything except pushing the tag
+# and publishing; the would-be assets are uploaded as a workflow artifact.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and verify without tagging or publishing
+        type: boolean
+        default: true
+      prerelease:
+        description: Pre-release suffix, e.g. rc.1 (tag vX.Y.Z-rc.1, published as a pre-release); empty for a final release
+        type: string
+        default: ''
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
-    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
-    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip release]') }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Resolve next version
         id: version
+        env:
+          SUFFIX: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || '' }}
         run: |
           set -euo pipefail
-          latest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1 || true)"
+          latest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v -- - | head -n 1 || true)"
           if [ -z "$latest" ]; then
-            major=0
-            minor=1
-            patch=0
-            range="HEAD"
+            major=0; minor=1; patch=0; range="HEAD"
           else
             major="${latest#v}"
             minor="${major#*.}"
@@ -46,7 +74,7 @@ jobs:
           bump="patch"
           if git log --format='%s%n%b' "$range" | grep -q 'BREAKING CHANGE'; then
             bump="major"
-          elif git log --format='%s' "$range" | grep -Eq '^(feat|fix|perf)(\([^)]+\))?!:'; then
+          elif git log --format='%s' "$range" | grep -Eq '^[a-z]+(\([^)]+\))?!:'; then
             bump="major"
           elif git log --format='%s' "$range" | grep -Eq '^(feat|fix|perf)(\([^)]+\))?:'; then
             bump="minor"
@@ -56,20 +84,60 @@ jobs:
             minor) minor=$((minor + 1)); patch=0 ;;
             patch) patch=$((patch + 1)) ;;
           esac
-          echo "tag=v${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
-          echo "bump=${bump}" >> "$GITHUB_OUTPUT"
-          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
-          git log --pretty=format:'- %s (%h)' "$range" >> "$GITHUB_OUTPUT"
-          echo >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          tag="v${major}.${minor}.${patch}"
+          if [ -n "$SUFFIX" ]; then
+            case "$SUFFIX" in *[!A-Za-z0-9.]*) echo "::error::pre-release suffix may only use letters, digits and dots"; exit 1 ;; esac
+            tag="${tag}-${SUFFIX}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Next release: $tag (${bump} bump since ${latest:-the first commit})"
 
-      - name: Publish GitHub Release
+      - name: Check the tree describes this release
         env:
-          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          gh release create "${{ steps.version.outputs.tag }}" \
-            --repo "${{ github.repository }}" \
-            --title "${{ steps.version.outputs.tag }}" \
-            --notes "${{ steps.version.outputs.notes }}" \
-            --target "${{ github.sha }}"
+          bash scripts/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
+          surface="$(python3 -c 'import json; print(json.load(open("addon/surface.json"))["version"])')"
+          if [ "$surface" != "$TAG" ]; then
+            echo "::error::addon/surface.json names $surface, not $TAG — bump it (and install.ref) in the release PR, or merge with [skip release]"
+            exit 1
+          fi
+
+      - name: Create the annotated tag and the assets
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          set -euo pipefail
+          git tag -a "$TAG" -m "DeepWorkPlan Vim $TAG" "$GITHUB_SHA"
+          bash scripts/release-assets.sh "$TAG" "$RUNNER_TEMP/dist"
+          (cd "$RUNNER_TEMP/dist" && sha256sum -c SHA256SUMS)
+
+      - name: Upload the dry-run assets
+        if: ${{ env.DRY_RUN == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-dry-run
+          path: |
+            ${{ runner.temp }}/dist
+            ${{ runner.temp }}/notes.md
+
+      - name: Push the tag and publish the release
+        if: ${{ env.DRY_RUN != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          prerelease=()
+          case "$TAG" in *-*) prerelease=(--prerelease) ;; esac
+          git push origin "refs/tags/$TAG"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "$TAG" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            "${prerelease[@]}" \
+            "$RUNNER_TEMP"/dist/*

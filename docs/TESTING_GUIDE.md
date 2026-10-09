@@ -28,7 +28,7 @@ Full suite and lint/type-check commands, with the working directory and status:
 | `bash scripts/check-public-hygiene.sh` | repo root | full — public-hygiene rules over every tracked file except vendored `.agents/skills/` (personal paths, private org/repo/tool names, non-public `@dailybot.com` emails, secret shapes; secret hits redacted); exceptions in `.public-hygiene-allow`, each with a reason, stale entries fail | **verified on host** |
 | `bash tests/hygiene/run.sh` | repo root | full — self-test of the hygiene check: planted fakes in throwaway git repos prove each rule fires, lookalikes pass, allow entries are path-scoped, stale/reasonless entries fail, secret allows need a fake marker, values never print; 23 assertions | **verified on host** |
 | `bash tests/run.sh` | repo root | full — mapping contracts via Podman/Docker | **container-required** — no Podman/Docker on the dev host; verified shape, not run here |
-| `cd tests && go test -count=1 -parallel 8 .` | `tests/` | full — mapping contracts on a Go host | **unverified on this host** (no Go installed); same suite `tests/run.sh` runs in compose |
+| `cd tests && go test -count=1 -parallel 8 .` | `tests/` | full — mapping contracts on a Go host | **runs in CI** (`ci.yml` → Mapping contracts, Go 1.23 on ubuntu-24.04); not on this host (no Go); same suite `tests/run.sh` runs in compose |
 
 Tool versions where behavior depends on them: `luac5.4` (Lua 5.4 parse-only
 mode); Neovim 0.12+ on PATH is needed by the smoke suite (and by nothing
@@ -42,6 +42,12 @@ the gates — `luac5.5` is not a substitute for the documented gate.
 Expected evidence of a correct contract run: Go reports
 `TestMappingContract/current`, `/mini`, `/vimscript` subtests (flavors whose
 config is not mounted are skipped, not failed) with `ok` per package.
+
+CI (`.github/workflows/ci.yml`) runs the hygiene check and its self-test,
+the Lua parse and shell syntax, the smoke suite, the installer harness and
+the Go mapping contracts on every pull request and push to `main`; branch
+protection requires them. A red CI job is a failed gate, never a flake to
+re-run blindly.
 
 ## Scoped invocation patterns
 
