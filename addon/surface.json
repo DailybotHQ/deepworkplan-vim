@@ -42,6 +42,7 @@
     "script": {
       "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.4.0/install.sh",
       "mirror_url": "https://deepworkplan.com/vim/install.sh",
+      "mirror_note": "the website's latest copy, not tag-pinned: use it only when its sha256 equals script.sha256, otherwise use url",
       "sha256": "a41e532ed9b8b13b06596349e1ac9ab174d48727b1c7bc59b0760b083a128762"
     },
     "steps": [
@@ -59,7 +60,7 @@
       "cd \"$LOCALAPPDATA/nvim\" && lua install.lua"
     ],
     "consent": {
-      "existing_config": "an interactive run asks before moving it aside; a run without a terminal aborts with instructions and touches nothing",
+      "existing_config": "an interactive run asks before moving it aside; a run without a terminal aborts with instructions and leaves the existing config untouched (missing prerequisites such as git, curl or Lua may already have been installed by the preflight)",
       "backup_dir": "~/.config/previous-deepworkplan-vim"
     },
     "uninstall": "lua <config_dir>/delete.lua"

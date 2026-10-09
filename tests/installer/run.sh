@@ -101,12 +101,12 @@ done
 # forwards ^D, which can overtake the typed answer — so stdin is held open
 # until the command has exited (bounded at 60 s).
 pty_answer() {
-  local input="$1" cmd="$2" done_flag
+  local input="$1" cmd="$2" done_flag n
   if script -qec true /dev/null >/dev/null 2>&1; then
     printf '%s' "$input" | script -qec "$cmd" /dev/null
     return
   fi
-  done_flag="$(mktemp -u)"
+  done_flag="$WORK/pty_done.$$.$RANDOM"   # inside $WORK: the EXIT trap removes it
   { printf '%s' "$input"
     n=0
     while [ ! -e "$done_flag" ] && [ "$n" -lt 300 ]; do sleep 0.2; n=$((n+1)); done

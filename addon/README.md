@@ -38,7 +38,9 @@ Additive changes (a new optional key, a new feature entry) keep
   step pipes a download into a shell. `manual` and `windows` list the
   clone-at-tag alternatives; `consent` restates the installer's absolute
   rule: an existing config is moved aside only after an interactive yes,
-  and a run without a terminal aborts and touches nothing.
+  and a run without a terminal aborts with instructions, leaving the
+  existing config untouched (the preflight may already have installed
+  missing prerequisites such as git, curl or Lua).
 - **`capabilities.plan_reader`** — what the editor's plan surfaces read:
   the plan's `manifest.json`, `journal.ndjson`, `state.json`, `README.md`
   checkboxes and `contract.json`, under `<cwd>/.dwp/plans` and

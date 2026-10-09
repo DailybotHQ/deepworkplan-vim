@@ -25,8 +25,8 @@ only until this tag.
   in the buffer.
 - **One-line installer** `install.sh`: preflight, clone, system setup and a
   headless plugin install. An existing Neovim config is moved aside only
-  after an interactive yes; without a terminal the run aborts and touches
-  nothing. `DWP_VIM_REF`, `DWP_VIM_SOURCE`, `DWP_VIM_DIR` and
+  after an interactive yes; without a terminal the run aborts and leaves
+  the existing config untouched. `DWP_VIM_REF`, `DWP_VIM_SOURCE`, `DWP_VIM_DIR` and
   `DWP_VIM_SKIP_PACKAGES` cover pinned, offline, custom-directory and
   image installs.
 - **Addon surface** `addon/surface.json` (interface 1): read-only

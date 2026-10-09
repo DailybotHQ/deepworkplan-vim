@@ -18,17 +18,22 @@ That is the whole install: preflight, clone into `~/.config/nvim`, the system
 setup (`lua install.lua`), and a headless plugin install — no quit-and-reopen
 dance. An existing Neovim config is **never overwritten**: interactively you
 are asked before it is moved to `~/.config/previous-deepworkplan-vim`; piped
-without a terminal the script aborts instead of touching anything.
+without a terminal the script aborts and leaves the existing config untouched
+(missing git, curl or Lua may already have been installed by the preflight).
 
 Advanced / offline:
 
 ```bash
-curl -fsSL https://deepworkplan.com/vim/install.sh | DWP_VIM_REF=v0.4.0 bash   # pin a tag (recommended for images and automation)
+curl -fsSL https://deepworkplan.com/vim/install.sh | DWP_VIM_REF=v0.4.0 bash   # pin the installed tag
 git clone https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim    # manual (advanced)
 cd ~/.config/nvim && lua install.lua
 DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh                       # local/offline source (also redirects updates)
 DWP_VIM_SKIP_PACKAGES=1 lua install.lua                                        # image already has the deps
 ```
+
+For images and automation, do not pipe: download the installer from the
+tag, verify it, then run it — the exact steps, URL and sha256 are in
+[`addon/surface.json`](addon/surface.json) (`install.script`, `install.steps`).
 
 Windows: `curl | bash` is not the Windows gesture — use winget plus Git Bash,
 or run the one-liner above inside WSL, where it works as-is:

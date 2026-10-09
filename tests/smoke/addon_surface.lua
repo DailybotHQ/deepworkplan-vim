@@ -141,7 +141,9 @@ ok(script.sha256 == vim.fn.sha256(installer), "script.sha256 equals sha256(insta
 local pipe_free = true
 for _, list in ipairs({ install.steps or {}, install.manual or {}, install.windows or {} }) do
 	for _, step in ipairs(list) do
-		if step:find("|%s*b?a?sh") then
+		-- a pipe followed, anywhere later, by a shell word: | bash, | sh,
+		-- | zsh, | sudo bash, | VAR=x bash ...
+		if step:find("|[^|]*%f[%w]b?a?z?sh%f[%W]") or step:find("|[^|]*%f[%w]sh$") then
 			pipe_free = false
 		end
 	end
