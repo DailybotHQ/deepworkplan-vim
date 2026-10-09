@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# DeepWorkPlan Vim — self-contained installer for release v0.4.2.
+# DeepWorkPlan Vim — self-contained installer for release v0.5.0.
 #
 # Published at  : https://deepworkplan.com/vim/install.sh
 #                 and as the install.sh asset (with SHA256SUMS) of each
@@ -12,39 +12,49 @@
 #   curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh
 #   curl -fsSL -o install.sh.sha256 https://deepworkplan.com/vim/install.sh.sha256
 #   shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
-#   bash install.sh
+#   bash install.sh [options]               # bash install.sh --help lists them
 # Run it from a terminal: it asks before touching an existing config.
 # For a check from a second origin, compare the hash with the install.sh
 # line of SHA256SUMS on the GitHub release (release tags are immutable).
 #
+# Images and CI (non-root, no terminal) — one step after the download:
+#   bash install.sh --version 0.5.0 --nvim 0.12.5 --skip-packages --strict
+#
 # What it does, in order:
 #   1. Preflight — detects OS and package manager; installs git, curl, and
-#      a Lua interpreter if any are missing.
-#   2. Consent   — an existing, foreign Neovim config is NEVER overwritten.
+#      a Lua interpreter if any are missing (none with --skip-packages).
+#   2. Version  — this script's release, or the one --version / --ref asks
+#      for (X.Y.Z, vX.Y.Z, latest, '>=X.Y.Z' — stable tags only).
+#   3. Neovim   — with --nvim X.Y.Z, the official release tarball into
+#      ~/.local, verified against the sha256 Neovim publishes.
+#   4. Consent  — an existing, foreign Neovim config is NEVER overwritten.
 #      Interactively you are asked before it is moved to
-#      ~/.config/previous-deepworkplan-vim; piped without a terminal the
-#      script aborts with instructions instead of touching anything.
-#   3. Clones (or updates, on re-run) the repository into ~/.config/nvim.
-#   4. Runs the repository's own `lua install.lua` (system packages,
+#      ~/.config/previous-deepworkplan-vim; without a terminal the script
+#      stops with instructions unless --yes says to move it aside.
+#   5. Clones (or updates, on re-run) the repository into ~/.config/nvim.
+#   6. Runs the repository's own `lua install.lua` (system packages,
 #      pckr.nvim, font — it owns every step, this wrapper owns none).
-#   5. Bootstraps plugins headlessly — no quit-and-reopen dance.
+#   7. Bootstraps plugins headlessly and checks them (--strict: any failure
+#      or missing plugin is an error).
 #
-# Environment overrides:
-#   DWP_VIM_REF             tag, branch, or commit to install (default: this
-#                           script's release, v0.4.2; "main" follows main)
-#   DWP_VIM_SOURCE          repository URL or a local path (offline installs)
-#   DWP_VIM_DIR             destination directory (default: ~/.config/nvim)
-#   DWP_VIM_SKIP_PACKAGES   set to 1 to install no system package — the
-#                           image already has them (containers, CI): a
-#                           missing git, curl or Lua stops the run, and
-#                           install.lua skips its package step too
-#   DWP_VIM_BOOTSTRAP_TIMEOUT  seconds allowed for the headless plugin
-#                           install (default: 900)
+# Options (each with an environment twin; flags win):
+#   --version <v>    DWP_VIM_VERSION   X.Y.Z, vX.Y.Z, latest or '>=X.Y.Z'
+#   --ref <ref>      DWP_VIM_REF       tag, branch or commit (main follows main)
+#   --dir <path>     DWP_VIM_DIR       destination (default ~/.config/nvim)
+#   --skip-packages  DWP_VIM_SKIP_PACKAGES=1  install no system package
+#   --nvim <X.Y.Z>   DWP_VIM_NVIM      install that Neovim release, verified
+#   --strict         DWP_VIM_STRICT=1  fail on a failed or incomplete bootstrap
+#   --yes            DWP_VIM_YES=1     move a foreign config aside unattended
+#   -h, --help
+# Other environment:
+#   DWP_VIM_SOURCE             repository URL or a local path (offline, mirrors)
+#   DWP_VIM_BOOTSTRAP_TIMEOUT  seconds for the headless plugin install (900)
+#   GITHUB_TOKEN               optional: authenticates --nvim's release lookup
 #
 # Windows: use winget plus Git Bash, or run the steps above inside WSL,
 # where they work as-is:
 #   winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-#   git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+#   git clone --branch v0.5.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 #   cd "$LOCALAPPDATA/nvim" && lua install.lua
 #
 set -euo pipefail

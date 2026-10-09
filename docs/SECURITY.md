@@ -91,6 +91,19 @@ a non-secret name; a real secret is rotated first, then removed.
 
 ## Installer distribution
 
+- Options and versions are validated before anything runs: versions match a
+  strict semver form (`X.Y.Z`, `vX.Y.Z`, `latest`, `>=X.Y.Z`), refs a plain
+  name, `--nvim` `X.Y.Z` — nothing can reach git or a URL as an option; a
+  version and a ref that disagree are an error.
+- `--nvim` installs only a tarball whose sha256 equals the one Neovim
+  publishes (the GitHub release asset digest, else the asset's
+  `.sha256sum`); a mismatch or no published checksum installs nothing. The
+  optional `GITHUB_TOKEN` is sent only to `api.github.com`, through curl's
+  config on stdin (never argv), and never printed.
+- `--yes` / `DWP_VIM_YES` is the only way an unattended run moves a foreign
+  or blocked config aside (to the backup path, never deleted); without it
+  such a run stops and touches nothing.
+
 - Every shipped text teaches download → verify → run: `install.sh` is
   fetched to a file, checked against `install.sh.sha256` (published next to
   it on the website and on each GitHub release, with `SHA256SUMS`), then

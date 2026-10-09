@@ -45,6 +45,7 @@ find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p
 for f in dev.sh install.sh docker/local/dwpvim/entrypoint.sh scripts/*.sh; do bash -n "$f"; done
 bash tests/smoke/run.sh
 bash tests/installer/run.sh
+bash tests/installer/container.sh   # needs Docker + network; CI runs it too
 (cd tests && go test -count=1 -parallel 8 .)   # if you have Go; otherwise CI runs it
 ```
 

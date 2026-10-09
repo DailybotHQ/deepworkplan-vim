@@ -20,7 +20,7 @@ answer).
 bash tests/installer/run.sh
 ```
 
-Success sentinel: `INSTALLER HARNESS: OK (37 scenarios)` (exit 0). Runtime is
+Success sentinel: `INSTALLER HARNESS: OK (52 scenarios)` (exit 0). Runtime is
 a few seconds; the run is hermetic (every scenario builds and destroys its own
 `mktemp -d` root — it never touches a real `$HOME`).
 
@@ -46,6 +46,21 @@ shim per scenario; real `git`/coreutils for everything else):
 | `pnpm_fallback_no_pipe` | Real `installer.lua` `ensure_pnpm()` under real `lua5.4` (stubbed util, `tests/installer/lua/pnpm_fallback.lua`): Unix installs `pnpm@10` with `npm install -g --ignore-scripts --prefix <PNPM_HOME>` (shell-quoted, even with `$`/`"` in the path), Windows with `npm install -g --ignore-scripts pnpm@10`; a missing npm is added with its own `apt-get install -y npm`; no npm → clear failure; Node 12 → "too old", nothing installed; no command contains a pipe |
 | `piped_stdin_fresh` | The script read through a real pipe (as when the URL is piped into bash) completes a fresh install on the release tag, and the `install.lua` stub records an empty stdin — no script text reaches a child |
 | `piped_stdin_foreign_safe` | The same pipe over a foreign config: "ran without a terminal" abort, rc non-zero, config intact, no backup |
+| `version_exact` | `--version 0.4.2` (with `--dir`) installs exactly that release and prints the resolved tag; a matching `DWP_VIM_REF` is not a conflict |
+| `version_v_prefix` | `DWP_VIM_VERSION=v0.4.1` (env twin, v-prefixed) |
+| `version_latest` | `--version latest` through `bash -s --` from a pipe = the newest stable tag; the fixture's newer `v9.9.9-rc.1` is ignored |
+| `version_floor` | `'>=0.4.1'` = the newest stable release at or above the floor; `'>=99.0.0'` fails listing the newest releases |
+| `version_missing` | `--version 9.9.9`: non-zero, the newest releases listed, nothing cloned |
+| `version_ref_conflict` | `DWP_VIM_REF=main` + `--version 0.4.2`: exit 2 naming both |
+| `version_bad_string` | `1.2`, `--upload-pack=…`, `>=1.2.3;id`, `latest-ish`, `v1.2.3.4`, a bad `--ref` and `--nvim`: exit 2, git never runs |
+| `flag_unknown` | an unknown option or a missing value: the usage, exit 2 |
+| `flag_help` | `--help`: the usage (options + env twins), exit 0, nothing installed |
+| `strict_bootstrap_failure` | `--strict`: a failed bootstrap exits non-zero with the log; without it a warning; `--strict` without nvim on PATH fails |
+| `strict_missing_plugins` | `--strict` verifies the plugins: a missing `mason.nvim` and an empty clone each fail with the list; all present passes |
+| `nvim_checksum_mismatch` | `--nvim`: a wrong published digest and no published checksum both abort with nothing installed (file:// fixture of the release API and tarball) |
+| `nvim_install_ok` | `--nvim` with the right digest: unpacked into `~/.local`, used by the `--strict` bootstrap; a rerun skips the download |
+| `yes_moves_foreign` | `DWP_VIM_YES=1` moves a foreign config aside without a terminal |
+| `install_lua_unattended_answers` | real `cli.lua`: stdin `/dev/null` gives the same answers as the images' `printf 'n\n\n'` (custom dir No, extras default) |
 | `update_origin_old_fork` | Field bug of v0.4.1: an install whose origin is the older `mu-vim` fork is not updated in place — without a terminal the run names the origin, offers backup + fresh install or how to keep it, fetches nothing, changes nothing (HEAD, branch, no backup) — also when the script is piped; only the origin advice is given (no stash); origins with user:password (even an unescaped `@`), a token alone, or a query token are printed redacted, an `@` in the path kept |
 | `update_origin_old_fork_consent` | The consented path on a pty (`y`): the fork install, with its local edit, is moved to `previous-deepworkplan-vim` intact and a fresh install lands on the release tag |
 | `update_local_modifications` | Local edits to tracked files in our own checkout: stop naming "local edits in 2 tracked file(s)" with stash advice only (origin is fine), HEAD and both edits intact, no backup |
@@ -101,7 +116,8 @@ breaks them is a regression, not a pin.
 
 ```
 tests/installer/
-├── run.sh                  # the harness (37 scenarios + shared setup)
+├── run.sh                  # the harness (52 scenarios + shared setup)
+├── container.sh            # the image one-liner in a Debian container (Docker + network)
 ├── lua/pnpm_fallback.lua   # real installer.lua ensure_pnpm() under a stubbed util
 └── shims/
     ├── uname id sudo       # OS/identity shims (FAKE_UNAME / FAKE_UID)

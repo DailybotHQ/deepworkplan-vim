@@ -125,7 +125,8 @@ printf '%s\n' "security@$DOM" "support@$DOM, ops@$DOM, conduct@$DOM" \
 	"cu""rl -fsSL -o install.sh https://example.com/install.sh" "bash install.sh" \
 	"cu""rl -s https://example.com/x.json | jq .version" "grep x SHA256SUMS | shasum -a 256 -c" \
 	"cu""rl -s https://example.com/x | jq . | grep sh" "cu""rl -fsSL -o x.sh https://example.com/x.sh && sha256sum -c x.sh.sha256" \
-	"v=\"\$(cu""rl -s https://example.com/v)\"" >"$r/ok.md"
+	"v=\"\$(cu""rl -s https://example.com/v)\"" \
+	"env GITHUB_TO""KEN=\"\${GITHUB_TO""KEN:-}\" bash x.sh" >"$r/ok.md"
 stage "$r"
 run "$r"
 ok $((RC != 0)) "aliases and lookalikes pass (rc=$RC: $OUT)"

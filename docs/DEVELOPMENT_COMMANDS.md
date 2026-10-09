@@ -11,13 +11,14 @@ Download → verify → run (the installer pins its own release):
 curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh
 curl -fsSL -o install.sh.sha256 https://deepworkplan.com/vim/install.sh.sha256
 shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
-bash install.sh                         # DWP_VIM_REF=main follows main; DWP_VIM_SKIP_PACKAGES=1 for images
+bash install.sh                         # --help lists the options; --version latest|X.Y.Z|'>=X.Y.Z'
+bash install.sh --version 0.5.0 --nvim 0.12.5 --skip-packages --strict   # images and CI
 ```
 
 Manual:
 
 ```bash
-git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
+git clone --branch v0.5.0 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
 cd ~/.config/nvim && lua install.lua      # needs lua / lua5.4 / luajit + git; sudo only for packages
 nvim
 ```
@@ -112,7 +113,11 @@ container, no network, no Neovim, no real `install.lua` leg. Branch-independent:
 the fixture's `main` is the commit under test and carries the release tag
 baked into `install.sh` (annotated, like real releases); git may use the
 file protocol only and no system gitconfig, so nothing reaches the network
-or reads host config. 37 scenarios: the update
+or reads host config. 52 scenarios: version selection (exact, v-prefix,
+latest through `bash -s --`, floor, missing, conflict, bad strings), options
+(unknown, help), `--strict` (failed bootstrap, missing plugins, empty clones),
+`--nvim` (checksum mismatch, no checksum, verified install and its rerun),
+`--yes`, install.lua's unattended answers, the update
 path (canonical source with `DWP_VIM_SOURCE` unset, an old-fork origin
 refused without a terminal (also piped) and moved aside on consent, local
 edits refused, an unreadable status refused,
@@ -132,7 +137,9 @@ uninstall one-liner verification, and the consent-EOF tri-state probes
 probes (BSD/no-realpath hosts still resolve paths). The three former KNOWN-DEFECT pins (audit
 I-1, I-2, I-19) were flipped to fixed-behavior assertions by the
 remediation; any regression there fails the suite. Success sentinel:
-`INSTALLER HARNESS: OK (37 scenarios)`. Scope and bounds:
+`INSTALLER HARNESS: OK (52 scenarios)`. The image one-liner in a real
+container (needs Docker and network): `bash tests/installer/container.sh` —
+sentinel `CONTAINER INSTALL: OK`. Scope and bounds:
 [`tests/installer/README.md`](../tests/installer/README.md). Required for
 any change to `install.sh`, `install.lua`, `delete.lua` or
 `utilities/installation/`.

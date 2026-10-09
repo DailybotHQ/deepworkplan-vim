@@ -1,7 +1,7 @@
 {
   "name": "deepworkplan-vim",
   "interface": 1,
-  "version": "v0.4.2",
+  "version": "v0.5.0",
   "repository": "https://github.com/DailybotHQ/deepworkplan-vim",
   "license": "GPL-3.0",
   "requires": {
@@ -37,30 +37,36 @@
     "read_only": true
   },
   "install": {
-    "ref": "v0.4.2",
+    "ref": "v0.5.0",
     "ref_env": "DWP_VIM_REF",
     "skip_packages_env": "DWP_VIM_SKIP_PACKAGES",
+    "version_env": "DWP_VIM_VERSION",
+    "container": {
+      "command": "bash install.sh --version 0.5.0 --nvim 0.12.5 --skip-packages --strict",
+      "note": "images and CI: non-root, no terminal; --nvim installs the official Neovim tarball (sha256-verified); --strict fails on a failed or incomplete plugin install; the image provides git, curl, Lua, a C compiler, Node.js and pnpm",
+      "min_neovim": "0.12"
+    },
     "skip_packages_note": "set to 1 when the image already carries git, curl, Lua and the editor dependencies: install.sh and install.lua install no system package, and a missing tool stops the run",
     "script": {
-      "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.4.2/install.sh",
-      "release_asset_url": "https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.2/install.sh",
+      "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.5.0/install.sh",
+      "release_asset_url": "https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.5.0/install.sh",
       "mirror_url": "https://deepworkplan.com/vim/install.sh",
       "mirror_note": "the website's copy; from v0.4.1 it is byte-identical to the release's install.sh — use it only when its sha256 equals script.sha256, otherwise use url",
       "sha256_file": "install.sh.sha256 (next to install.sh on the website and on the release)",
-      "sha256": "c3c844bb5a9290b65d50dd484fa7b2a0f22b895ecb693f14e1661992f3f19a5e"
+      "sha256": "339e1244233daea242ae901e629cb26aca616cb21e3720878fa0177b090ae88a"
     },
     "steps": [
       "download script.url (or mirror_url, or release_asset_url) to a local file named install.sh",
       "verify its sha256 equals script.sha256; stop on mismatch",
-      "run it: bash install.sh (it installs its own release, v0.4.2; DWP_VIM_REF overrides it)"
+      "run it: bash install.sh (it installs its own release, v0.5.0; DWP_VIM_REF overrides it)"
     ],
     "manual": [
-      "git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git <config_dir>",
+      "git clone --branch v0.5.0 https://github.com/DailybotHQ/deepworkplan-vim.git <config_dir>",
       "cd <config_dir> && lua install.lua"
     ],
     "windows": [
       "winget install -e --id Neovim.Neovim",
-      "git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git \"$LOCALAPPDATA/nvim\"",
+      "git clone --branch v0.5.0 https://github.com/DailybotHQ/deepworkplan-vim.git \"$LOCALAPPDATA/nvim\"",
       "cd \"$LOCALAPPDATA/nvim\" && lua install.lua"
     ],
     "consent": {
