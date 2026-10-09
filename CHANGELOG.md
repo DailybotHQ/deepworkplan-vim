@@ -34,6 +34,9 @@ and the repository's public-standard baseline.
 - pnpm is installed with npm (`pnpm@10`); a missing npm is added with its
   own package-manager call, and a Node.js older than 18 stops with a clear
   message.
+- Release workflow: only a commit footer line starting with
+  `BREAKING CHANGE:` bumps the major version; prose that mentions the words
+  no longer does.
 
 ### Added
 

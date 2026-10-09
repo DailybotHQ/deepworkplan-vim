@@ -4,8 +4,9 @@ name: Auto release
 # the contributor image mounts it at ~/.config/nvim (no nested clone).
 #
 # SemVer from Conventional Commits: feat: bumps minor; fix:, perf: and
-# everything else (including a missing prefix) bump patch; a BREAKING CHANGE
-# footer (or `!:`) bumps major.
+# everything else (including a missing prefix) bump patch; a footer line
+# starting with "BREAKING CHANGE:" (or "BREAKING-CHANGE:"), or `!:` after the
+# type, bumps major.
 # A merge whose addon/surface.json still names an already-released version
 # publishes nothing (a notice, not a failure); [skip release] in the merge
 # commit body also publishes nothing. A release PR sets surface.json to the
@@ -95,7 +96,9 @@ jobs:
             range="${latest}..HEAD"
           fi
           bump="patch"
-          if git log --format='%s%n%b' "$range" | grep -q 'BREAKING CHANGE'; then
+          # Only a footer line starting with the token counts (Conventional
+          # Commits): prose that mentions it is not a breaking change.
+          if git log --format='%b' "$range" | grep -Eq '^BREAKING[ -]CHANGE:'; then
             bump="major"
           elif git log --format='%s' "$range" | grep -Eq '^[a-z]+(\([^)]+\))?!:'; then
             bump="major"
