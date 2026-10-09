@@ -64,6 +64,18 @@ review severities.
 - Remote installer pipes are forbidden (Herdr install on the host: show the
   command, get consent, never `curl | sh`).
 
+## Supply chain (contributor image)
+
+- Every tool in `docker/local/dwpvim/Dockerfile` is pinned by version and
+  every downloaded artifact is verified with `sha256sum -c` before install;
+  the base image is pinned by digest. Vendor install scripts are never
+  piped to a shell. The table, the two documented exceptions (Cursor and
+  Grok publish no checksums — values recorded on first use; Debian packages
+  follow the pinned release) and the bump procedure live in
+  [`docker/local/README.md`](../docker/local/README.md#pinned-tools).
+- Contributor tooling carries no organization-specific paths: the only
+  host SSH include is the neutral, optional `herdr-peers`.
+
 ## CI / release
 
 - `.github/workflows/auto-release.yml` holds `permissions: contents: write`

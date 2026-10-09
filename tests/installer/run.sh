@@ -73,6 +73,13 @@ trap 'rm -rf "$WORK"' EXIT
 # name contains 'deepworkplan-vim' so is_ours' substring matches it.
 FIXTURE="$WORK/fixture-deepworkplan-vim"
 git clone -q "$REPO" "$FIXTURE"
+# The fixture stands in for the remote, whose default branch is 'main'
+# (install.sh checks out 'main' by default, and clones of the fixture
+# follow its HEAD). A clone only creates the source's CURRENT branch, so
+# when the harness runs from a feature branch the fixture would have no
+# 'main' at all: point 'main' at the commit under test and check it out
+# (a no-op when the harness already runs on 'main').
+git -C "$FIXTURE" checkout -q -B main
 
 # NEUTRAL_DIR: shims visible in every scenario (OS identity only).
 NEUTRAL_DIR="$WORK/neutral-bin"
@@ -86,6 +93,28 @@ mkdir -p "$BASE_BIN"
 for t in bash sh git mkdir mv rm ls grep dirname basename touch mktemp env timeout cat chmod; do
   p="$(command -v "$t" 2>/dev/null)" && ln -s "$p" "$BASE_BIN/$t"
 done
+
+# pty_answer <input> <command-string> — run the command on a pseudo-terminal
+# with <input> typed into it; the exit status is the command's.
+# util-linux script: -qec runs the command and forwards its exit status.
+# BSD script (macOS): there is no -c; and when stdin reaches end-of-input it
+# forwards ^D, which can overtake the typed answer — so stdin is held open
+# until the command has exited (bounded at 60 s).
+pty_answer() {
+  local input="$1" cmd="$2" done_flag
+  if script -qec true /dev/null >/dev/null 2>&1; then
+    printf '%s' "$input" | script -qec "$cmd" /dev/null
+    return
+  fi
+  done_flag="$(mktemp -u)"
+  { printf '%s' "$input"
+    n=0
+    while [ ! -e "$done_flag" ] && [ "$n" -lt 300 ]; do sleep 0.2; n=$((n+1)); done
+  } | { script -q /dev/null bash -c "$cmd"; rc=$?; : >"$done_flag"; exit "$rc"; }
+  local status=$?
+  rm -f "$done_flag"
+  return "$status"
+}
 
 scen_root() { # scen_root — new scenario root; echoes the path
   local T; T="$(mktemp -d)"
@@ -237,9 +266,9 @@ scenario_foreign_interactive_yes() {
   echo "foreign init.vim" >"$T/home/.config/nvim/init.vim"
   # A pty so /dev/tty opens and ask_consent can read the 'y'.
   local rc=0
-  printf 'y\n' | script -qec \
+  pty_answer $'y\n' \
     "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
-    /dev/null >"$T/out.log" 2>&1 || rc=$?
+    >"$T/out.log" 2>&1 || rc=$?
   wg "consent offered"         "Move it to"                    "$T/out.log"
   wg "backup announced"        "Moving the existing config"    "$T/out.log"
   wg "completion line"         "DeepWorkPlan Vim is installed at" "$T/out.log"

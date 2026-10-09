@@ -71,7 +71,6 @@ herdr_peer_sources() {
   for f in \
     "${HOME}/.ssh_host/config.d/herdr-peers" \
     "${HOME}/.ssh/config.d/herdr-peers" \
-    "${HOME}/.ssh_host/config.d/dailybot-peers" \
     "${HOME}/.ssh/${HERDR_WORKSPACE_PEERS_REL}" \
     "${HOME}/.ssh/config.d/herdr-workspace-peers"
   do
@@ -119,13 +118,9 @@ herdr_trust_peer_keys() {
 
 herdr_sync_workspace_peers() {
   local src=""
-  local candidate
-  for candidate in \
-    "${HOME}/.ssh_host/config.d/herdr-workspaces" \
-    "${HOME}/.ssh_host/config.d/dailybot-workspaces"
-  do
-    if [ -f "$candidate" ]; then src="$candidate"; break; fi
-  done
+  if [ -f "${HOME}/.ssh_host/config.d/herdr-workspaces" ]; then
+    src="${HOME}/.ssh_host/config.d/herdr-workspaces"
+  fi
   local dest="${HOME}/.ssh/${HERDR_WORKSPACE_PEERS_REL}"
   local ssh_config="${HOME}/.ssh/config"
   local include_line="Include ~/.ssh/${HERDR_WORKSPACE_PEERS_REL}"

@@ -93,8 +93,10 @@ bash tests/installer/run.sh
 ```
 
 Runs the real `install.sh` in synthetic roots against PATH shims — bash,
-git, coreutils, and util-linux `script` for the one pty scenario; no
-container, no network, no Neovim, no real Lua leg. 21 scenarios: the four
+git, coreutils, `script` for the one pty scenario (util-linux or BSD/macOS),
+and a real `lua5.4` on PATH for the four `delete.lua`/probe scenarios; no
+container, no network, no Neovim, no real `install.lua` leg. Branch-independent:
+the fixture's `main` is the commit under test. 21 scenarios: the four
 package-manager legs and their sudo policy, the consent/backup envelope
 (piped abort, pty consent, backup collision, DEST-is-file),
 clone-vs-update (including the diverged-local die), OS refusals

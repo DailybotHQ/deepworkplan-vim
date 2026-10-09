@@ -1,9 +1,14 @@
-FROM debian:trixie-slim
-LABEL maintainer="developers@dailybot.com"
+# Base pinned by dated tag AND digest (the digest wins; the tag documents it).
+FROM debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
 LABEL org.opencontainers.image.title="deepworkplan-vim"
-LABEL org.opencontainers.image.description="Dev image for DeepWorkPlan Vim — Neovim config for humans and agents."
-LABEL org.opencontainers.image.source="https://github.com/DailybotHQ/deepworkplan-vim"
+LABEL org.opencontainers.image.description="Contributor image for DeepWorkPlan Vim — Neovim config for humans and agents."
+LABEL org.opencontainers.image.licenses="GPL-3.0"
 
+# Every tool below is pinned by version; release artifacts are verified by
+# sha256 (vendor-published where the vendor publishes one, otherwise the
+# value recorded when the pin was taken — see docker/local/README.md
+# "Pinned tools"). No vendor install script is piped to a shell.
+#
 # Coding CLIs are opt-in. Only the exact string "true" installs.
 # herdr stays unconditional — it is the mesh runtime.
 ARG INSTALL_CLAUDE_CLI=false
@@ -41,9 +46,18 @@ RUN apt-get update -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
+# gh: sha256 values from the release's gh_<v>_checksums.txt.
 ARG GH_VERSION=2.83.2
+ARG GH_SHA256_AMD64=ca6e7641214fbd0e21429cec4b64a7ba626fd946d8f9d6d191467545b092015e
+ARG GH_SHA256_ARM64=b1a0c0a0fcf18524e36996caddc92a062355ed014defc836203fe20fba75a38e
 RUN GH_ARCH="$(dpkg --print-architecture)" \
+    && case "$GH_ARCH" in \
+         amd64) GH_SHA256="$GH_SHA256_AMD64" ;; \
+         arm64) GH_SHA256="$GH_SHA256_ARM64" ;; \
+         *) echo "unsupported arch for gh: $GH_ARCH" >&2; exit 1 ;; \
+       esac \
     && curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${GH_ARCH}.tar.gz" -o /tmp/gh.tar.gz \
+    && echo "${GH_SHA256}  /tmp/gh.tar.gz" | sha256sum -c - \
     && tar -xzf /tmp/gh.tar.gz -C /tmp \
     && install -m 0755 "/tmp/gh_${GH_VERSION}_linux_${GH_ARCH}/bin/gh" /usr/local/bin/gh \
     && rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_${GH_ARCH}" \
@@ -53,7 +67,9 @@ RUN adduser --disabled-password --gecos "" --uid 1000 dev \
     && echo 'dev ALL=(root) NOPASSWD:ALL' > /etc/sudoers.d/dev \
     && chmod 0440 /etc/sudoers.d/dev
 
-ENV PATH="/home/dev/.local/bin:/home/dev/.cursor/bin:/home/dev/.opencode/bin:/home/dev/.grok/bin:${PATH}"
+ENV PATH="/home/dev/.local/bin:/home/dev/.grok/bin:${PATH}"
+# Pinned CLIs stay pinned: Claude Code's background self-update is off.
+ENV DISABLE_AUTOUPDATER=1
 ENV EDITOR=nvim
 ENV VISUAL=nvim
 ENV GIT_EDITOR=nvim
@@ -64,7 +80,7 @@ ENV PNPM_HOME="/home/dev/.local/share/pnpm"
 ENV PATH="${PNPM_HOME}/bin:${PATH}"
 
 RUN printf '%s\n' \
-    'for d in "$HOME/.local/bin" "$HOME/.cursor/bin" "$HOME/.opencode/bin" "$HOME/.grok/bin"; do' \
+    'for d in "$HOME/.local/bin" "$HOME/.grok/bin"; do' \
     '  case ":${PATH}:" in' \
     '    *":${d}:"*) ;;' \
     '    *) [ -d "$d" ] && PATH="${d}:${PATH}" ;;' \
@@ -88,37 +104,120 @@ RUN mkdir -p /home/dev/.claude_data /home/dev/.codex_data /home/dev/.cursor_data
     /home/dev/.herdr_data /home/dev/.grok_data /home/dev/.ssh /workspace \
     && chown -R dev:dev /home/dev /workspace
 
+# --- Coding CLIs (opt-in) and Herdr ---------------------------------------
+# Native binaries come from each vendor's versioned release URL and are
+# checked against a pinned sha256. npm-distributed CLIs are installed from
+# the registry at an exact version (npm verifies the package integrity hash)
+# into the user prefix ~/.local, so their entry points land in ~/.local/bin.
+# Bump a pin by editing its ARGs together (version + every sha256).
 USER dev
-ARG INSTALL_CLAUDE_CLI=false
+
+# Claude Code: native binary. sha256 from the release manifest
+# (downloads.claude.ai/claude-code-releases/<v>/manifest.json). Debian's
+# Node 20 is below the npm package's engines floor (>= 22), so the native
+# build is the supported route. The auto-updater is disabled at runtime
+# (ENV DISABLE_AUTOUPDATER below) so the pinned version stays pinned.
+ARG CLAUDE_CODE_VERSION=2.1.286
+ARG CLAUDE_CODE_SHA256_X64=fe503f65c6289d59c23e5b21ae44f03583f997dd33a2cbfc75ab4f96fb8fc73f
+ARG CLAUDE_CODE_SHA256_ARM64=0292fa22ac2fd43e16be9d0e511ddd8347280d6e0ebaca744ef5b27e05d8d0f8
 RUN if [ "$INSTALL_CLAUDE_CLI" = "true" ]; then \
-      curl -fsSL https://claude.ai/install.sh | bash \
-      && rm -rf /home/dev/.claude /home/dev/.claude.json; \
+      set -eu; \
+      case "$(dpkg --print-architecture)" in \
+        amd64) plat=linux-x64; sum="$CLAUDE_CODE_SHA256_X64" ;; \
+        arm64) plat=linux-arm64; sum="$CLAUDE_CODE_SHA256_ARM64" ;; \
+        *) echo "unsupported arch for claude" >&2; exit 1 ;; \
+      esac; \
+      tmp="$(mktemp)"; \
+      curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}/${plat}/claude" -o "$tmp"; \
+      echo "${sum}  ${tmp}" | sha256sum -c -; \
+      mkdir -p /home/dev/.local/bin; \
+      install -m 0755 "$tmp" /home/dev/.local/bin/claude; \
+      rm -f "$tmp"; \
+      rm -rf /home/dev/.claude /home/dev/.claude.json; \
     else echo "INSTALL_CLAUDE_CLI is not true; skipping claude"; fi
-USER root
 
-USER dev
-ARG INSTALL_CURSOR_CLI=false
+# Cursor CLI: versioned package tarball (the URL the vendor script pins
+# internally). The vendor publishes no checksum; the sha256 values were
+# recorded when this pin was taken (trust on first use, see README).
+ARG CURSOR_CLI_VERSION=2026.10.01-e373342
+ARG CURSOR_CLI_SHA256_X64=a79726c6e644520e993970be4c45775a6889802b67abe461a677a53219ae28e8
+ARG CURSOR_CLI_SHA256_ARM64=785c5f6bf2a60eb1121e27ed8c14f5ee07ed1b5b6692324f2d9a997238245eb5
 RUN if [ "$INSTALL_CURSOR_CLI" = "true" ]; then \
-      curl -fsSL https://cursor.com/install | bash; \
+      set -eu; \
+      case "$(dpkg --print-architecture)" in \
+        amd64) arch=x64; sum="$CURSOR_CLI_SHA256_X64" ;; \
+        arm64) arch=arm64; sum="$CURSOR_CLI_SHA256_ARM64" ;; \
+        *) echo "unsupported arch for cursor" >&2; exit 1 ;; \
+      esac; \
+      tmp="$(mktemp)"; \
+      curl -fsSL "https://downloads.cursor.com/lab/${CURSOR_CLI_VERSION}/linux/${arch}/agent-cli-package.tar.gz" -o "$tmp"; \
+      echo "${sum}  ${tmp}" | sha256sum -c -; \
+      dir="/home/dev/.local/share/cursor-agent/versions/${CURSOR_CLI_VERSION}"; \
+      mkdir -p "$dir" /home/dev/.local/bin; \
+      tar --strip-components=1 -xzf "$tmp" -C "$dir"; \
+      rm -f "$tmp"; \
+      ln -sfn "$dir/cursor-agent" /home/dev/.local/bin/cursor-agent; \
+      ln -sfn "$dir/cursor-agent" /home/dev/.local/bin/agent; \
     else echo "INSTALL_CURSOR_CLI is not true; skipping cursor"; fi
-USER root
-ARG INSTALL_CURSOR_CLI=false
-RUN if [ "$INSTALL_CURSOR_CLI" = "true" ]; then \
-      ln -sf /home/dev/.cursor/bin/agent /usr/local/bin/agent; \
-    else echo "INSTALL_CURSOR_CLI is not true; skipping agent symlink"; fi
 
-USER dev
-ARG INSTALL_OPENCODE_CLI=false
-ARG INSTALL_GROK_CLI=false
-RUN if [ "$INSTALL_OPENCODE_CLI" = "true" ]; then \
-      curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path; \
-    else echo "INSTALL_OPENCODE_CLI is not true; skipping opencode"; fi
+# Grok CLI: versioned binary from the vendor's artifact URL. No published
+# checksum; recorded on first use like Cursor. Only `grok` is linked — the
+# vendor script also links an `agent` alias, which would shadow Cursor's.
+ARG GROK_CLI_VERSION=1.0.50
+ARG GROK_CLI_SHA256_X86_64=c80de0155706ff2d995623887b102f2d0abd2c62b2643dea3a0cebaf7dd724d5
+ARG GROK_CLI_SHA256_AARCH64=947eea63e52393e00778d651d22e0dad22d30e9ee5b2af7944efc3fd4438ecc0
 RUN if [ "$INSTALL_GROK_CLI" = "true" ]; then \
-      curl -fsSL https://x.ai/cli/install.sh | bash; \
+      set -eu; \
+      case "$(dpkg --print-architecture)" in \
+        amd64) arch=x86_64; sum="$GROK_CLI_SHA256_X86_64" ;; \
+        arm64) arch=aarch64; sum="$GROK_CLI_SHA256_AARCH64" ;; \
+        *) echo "unsupported arch for grok" >&2; exit 1 ;; \
+      esac; \
+      tmp="$(mktemp)"; \
+      curl -fsSL "https://x.ai/cli/grok-${GROK_CLI_VERSION}-linux-${arch}" -o "$tmp"; \
+      echo "${sum}  ${tmp}" | sha256sum -c -; \
+      mkdir -p /home/dev/.grok/bin; \
+      install -m 0755 "$tmp" /home/dev/.grok/bin/grok; \
+      rm -f "$tmp"; \
     else echo "INSTALL_GROK_CLI is not true; skipping grok"; fi
-RUN curl -fsSL https://herdr.dev/install.sh | sh
+
+# npm-distributed CLIs, exact versions ($pkgs is split into words on purpose).
+ARG CODEX_CLI_VERSION=0.162.0
+ARG OPENCODE_CLI_VERSION=1.18.35
+ARG PI_CLI_VERSION=0.73.1
+ARG CLINE_CLI_VERSION=3.0.70
+RUN set -eu; \
+    pkgs=""; \
+    if [ "$INSTALL_CODEX_CLI" = "true" ]; then pkgs="$pkgs @openai/codex@${CODEX_CLI_VERSION}"; fi; \
+    if [ "$INSTALL_OPENCODE_CLI" = "true" ]; then pkgs="$pkgs opencode-ai@${OPENCODE_CLI_VERSION}"; fi; \
+    if [ "$INSTALL_PI_CLI" = "true" ]; then pkgs="$pkgs @mariozechner/pi-coding-agent@${PI_CLI_VERSION}"; fi; \
+    if [ "$INSTALL_CLINE_CLI" = "true" ]; then pkgs="$pkgs cline@${CLINE_CLI_VERSION}"; fi; \
+    if [ -n "$pkgs" ]; then \
+      npm install -g --prefix /home/dev/.local $pkgs; \
+    else echo "no npm-distributed coding CLI requested; skipping"; fi
+
+# Herdr (always): GitHub release binary, sha256 from herdr.dev/latest.json
+# for this version.
+ARG HERDR_VERSION=0.9.3
+ARG HERDR_SHA256_X86_64=18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7
+ARG HERDR_SHA256_AARCH64=4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0
+RUN set -eu; \
+    case "$(dpkg --print-architecture)" in \
+      amd64) arch=x86_64; sum="$HERDR_SHA256_X86_64" ;; \
+      arm64) arch=aarch64; sum="$HERDR_SHA256_AARCH64" ;; \
+      *) echo "unsupported arch for herdr" >&2; exit 1 ;; \
+    esac; \
+    tmp="$(mktemp)"; \
+    curl -fsSL "https://github.com/herdrdev/herdr/releases/download/v${HERDR_VERSION}/herdr-linux-${arch}" -o "$tmp"; \
+    echo "${sum}  ${tmp}" | sha256sum -c -; \
+    mkdir -p /home/dev/.local/bin; \
+    install -m 0755 "$tmp" /home/dev/.local/bin/herdr; \
+    rm -f "$tmp"
 USER root
-RUN ln -sfn /home/dev/.local/bin/herdr /usr/local/bin/herdr
+RUN ln -sfn /home/dev/.local/bin/herdr /usr/local/bin/herdr \
+    && if [ "$INSTALL_CURSOR_CLI" = "true" ]; then \
+         ln -sfn /home/dev/.local/bin/agent /usr/local/bin/agent; \
+       fi
 USER dev
 RUN mkdir -p /home/dev/.config/herdr && \
     if [ ! -f /home/dev/.config/herdr/config.toml ]; then \
@@ -130,16 +229,20 @@ RUN mkdir -p /home/dev/.config/herdr && \
 
 # Neovim tarball only. The repo is mounted at /workspace and linked to
 # ~/.config/nvim at start — this image develops DeepWorkPlan Vim itself.
+# sha256 values are the release assets' published digests.
 ARG NVIM_VERSION=0.12.5
+ARG NVIM_SHA256_X86_64=bce0f56eda1f1b1db6eee8f4133d7a38813ea07933837dd1777411ca384c6875
+ARG NVIM_SHA256_ARM64=1aa5ca085249580ae0f91eb14f27ec0919773ff2d99a163d03f3d6c21ac29725
 RUN set -eu; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
-      amd64) nvim_arch=linux-x86_64 ;; \
-      arm64) nvim_arch=linux-arm64 ;; \
+      amd64) nvim_arch=linux-x86_64; sum="$NVIM_SHA256_X86_64" ;; \
+      arm64) nvim_arch=linux-arm64; sum="$NVIM_SHA256_ARM64" ;; \
       *) echo "unsupported arch for neovim tarball: $arch" >&2; exit 1 ;; \
     esac; \
     tmp="$(mktemp)"; \
     curl -fsSL "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-${nvim_arch}.tar.gz" -o "$tmp"; \
+    echo "${sum}  ${tmp}" | sha256sum -c -; \
     mkdir -p /home/dev/.local; \
     tar -xzf "$tmp" -C /home/dev/.local --strip-components=1; \
     rm -f "$tmp"; \
@@ -169,17 +272,19 @@ COPY dicts/ /opt/dwpvim-config/nvim/dicts/
 COPY utilities/installation/ /opt/dwpvim-config/nvim/utilities/installation/
 
 USER dev
-# pnpm from the npm registry (pinned to major 10), then biome — the same
+ARG PNPM_VERSION=10.34.6
+ARG BIOME_VERSION=2.5.15
+# pnpm from the npm registry (exact version), then biome (exact) — the same
 # tools installer.lua's ensure_pnpm / ensure_formatters land on a host, at
 # the same PNPM_HOME (the /bin PATH entry comes from the ENV above). The
-# registry route replaces the official install script's curl | sh: npm
+# registry route replaces piping the official install script to a shell: npm
 # verifies the package integrity hash before extracting, which this repo's
 # review rules require for executed downloads in image builds. The font
 # goes to ~/.local/share/fonts + fc-cache, where installer.lua install_font
 # puts it.
 RUN set -eu; \
-    npm install -g --prefix "$PNPM_HOME" pnpm@10; \
-    pnpm add -g @biomejs/biome; \
+    npm install -g --prefix "$PNPM_HOME" "pnpm@${PNPM_VERSION}"; \
+    pnpm add -g "@biomejs/biome@${BIOME_VERSION}"; \
     mkdir -p "$HOME/.local/share/fonts"; \
     install -m 0644 /opt/dwpvim-config/nvim/utilities/installation/iosevka_nerd_font.ttf \
       "$HOME/.local/share/fonts/iosevka_nerd_font.ttf"; \

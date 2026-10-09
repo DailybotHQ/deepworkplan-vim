@@ -30,7 +30,12 @@ Full suite and lint/type-check commands, with the working directory and status:
 
 Tool versions where behavior depends on them: `luac5.4` (Lua 5.4 parse-only
 mode); Neovim 0.12+ on PATH is needed by the smoke suite (and by nothing
-else among the automated gates).
+else among the automated gates); the installer harness needs a real
+`lua5.4` interpreter on PATH and a `script` (util-linux or BSD/macOS —
+both supported) and runs from any branch. A host whose package manager
+moved to Lua 5.5 (Homebrew) has no `luac5.4`/`lua5.4`: build Lua 5.4 from
+the lua.org tarball (verify its published sha256) and put it on PATH for
+the gates — `luac5.5` is not a substitute for the documented gate.
 
 Expected evidence of a correct contract run: Go reports
 `TestMappingContract/current`, `/mini`, `/vimscript` subtests (flavors whose

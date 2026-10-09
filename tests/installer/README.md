@@ -1,9 +1,20 @@
 # Installer compatibility harness
 
 Host-runnable compatibility and safety harness for `install.sh`. It needs
-only **bash, git, coreutils, and util-linux `script`** (for the one pty
-consent scenario) — no Docker, no network, no Neovim, no real Lua leg —
-and runs the **real `install.sh`** end to end in synthetic roots.
+only **bash, git, coreutils, `script`** (util-linux or BSD/macOS — for the
+one pty consent scenario) **and a real `lua5.4` on PATH** (for the four
+`delete.lua`/probe scenarios) — no Docker, no network, no Neovim, no real
+`install.lua` leg — and runs the **real `install.sh`** end to end in
+synthetic roots.
+
+**Portability.** The harness runs from any branch: the fixture (a clone of
+this repository standing in for the remote) gets `main` pointed at the
+commit under test and checked out, because `install.sh` installs `main` by
+default and a clone only carries the source's current branch. The pty
+scenario uses `pty_answer`: util-linux `script -qec` where available,
+otherwise BSD `script`, whose stdin is held open until the command exits
+(BSD `script` forwards end-of-input as `^D`, which can overtake the typed
+answer).
 
 ```bash
 bash tests/installer/run.sh
