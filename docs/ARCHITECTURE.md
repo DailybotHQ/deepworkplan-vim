@@ -123,7 +123,8 @@ mapping contracts. Branch protection on `main` requires these checks.
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 6.0.2, ai-diff-reviewer,
+`.agents/` carries the vendored skills (deepworkplan 7.0.1, ai-diff-reviewer,
 dailybot), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
-gitignored `.dwp/`; scratch in gitignored `tmp/`.
+`.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
+(DWP v7 CONFIG §1); scratch in gitignored `tmp/`.

@@ -10,6 +10,17 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+### Changed
+
+- The agent harness vendors DeepWorkPlan skill 7.0.1 (standard 7.0.0),
+  verified file-by-file against the release `SHA256SUMS`; the addon
+  registry is the tracked `.dwp/config.json` (plans stay local).
+
+### Removed
+
+- Unreferenced screenshots inherited from the original mu-vim tree
+  (`.doc/`, `.examples/`).
+
 ## [v0.4.2] - 2026-10-09
 
 ### Fixed
