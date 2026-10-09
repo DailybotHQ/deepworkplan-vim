@@ -81,7 +81,7 @@ Images, CI and offline:
 
 ```bash
 DWP_VIM_SKIP_PACKAGES=1 bash install.sh                    # image already has every dependency: install no system package
-DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh   # local/offline source (also redirects updates)
+DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh   # local/offline source or mirror — set it for every update too
 git clone --branch v0.4.2 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
 cd ~/.config/nvim && lua install.lua
 ```

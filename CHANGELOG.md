@@ -25,14 +25,22 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   local edits to tracked files, is no longer switched in place. The
   installer names the situation and offers the consented path — move it
   to `~/.config/previous-deepworkplan-vim`, then install fresh — or how to
-  keep it and update in place; without a terminal it stops and touches
-  nothing. A mirror install names its mirror in `DWP_VIM_SOURCE`.
+  keep it and update in place (only the steps that apply: point origin at
+  the repository, stash the edits); without a terminal it stops and
+  touches nothing. A checkout whose changes cannot be read stops too.
+- Updates no longer follow the checkout's origin: an install kept in sync
+  with a mirror (even one named `deepworkplan-vim`) sets `DWP_VIM_SOURCE`
+  to that mirror for every update.
 
 ### Security
 
-- Origin URLs shown by the installer have embedded credentials removed.
-- The installer harness runs with git limited to the file protocol, so no
-  scenario can depend on the network (36 scenarios).
+- URLs shown by the installer drop everything that can carry a credential
+  (user-info, query, fragment); asking about local changes takes no index
+  lock; the backup path is checked again right before the move, and a
+  failure after the move says where the previous config is.
+- The installer harness runs with git limited to the file protocol and no
+  system gitconfig, so no scenario can depend on the network or the host
+  (37 scenarios).
 
 ## [v0.4.1] - 2026-10-09
 

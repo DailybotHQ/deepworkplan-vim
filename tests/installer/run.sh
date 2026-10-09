@@ -129,14 +129,14 @@ scen_root() { # scen_root — new scenario root; echoes the path
   printf '%s' "$T"
 }
 
-# Every run sets GIT_ALLOW_PROTOCOL=file: git may only reach the local
+# Every run sets GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1: git may only reach the local
 # fixture, so no scenario can silently depend on the network (the default
 # source is the GitHub repository; update scenarios pass DWP_VIM_SOURCE).
 run_install() { # run_install <T> <out-file> [VAR=value...] — sets RC
   local T="$1" out="$2"; shift 2
   RC=0
   env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
     "$@" bash "$REPO/install.sh" </dev/null >"$out" 2>&1 || RC=$?
 }
 
@@ -148,7 +148,7 @@ run_install_piped() { # run_install_piped <T> <out-file> [VAR=value...] — sets
   local T="$1" out="$2"; shift 2
   RC=0
   cat "$REPO/install.sh" | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
-    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 \
     "$@" bash >"$out" 2>&1 || RC=$?
 }
 
@@ -291,7 +291,7 @@ scenario_foreign_interactive_yes() {
   # A pty so /dev/tty opens and ask_consent can read the 'y'.
   local rc=0
   pty_answer $'y\n' \
-    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
+    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
     >"$T/out.log" 2>&1 || rc=$?
   wg "consent offered"         "Move it to"                    "$T/out.log"
   wg "backup announced"        "Moving the existing config"    "$T/out.log"
@@ -604,6 +604,7 @@ scenario_update_origin_old_fork() {
   wg "cannot ask unattended" "ran without a terminal"            "$T/out.log"
   wg "offers the backup"     "mv '$D' '$T/home/.config/previous-deepworkplan-vim'" "$T/out.log"
   wg "offers keeping it"     "remote set-url origin"             "$T/out.log"
+  wng "no stash advice (no edits)" "stash"                       "$T/out.log"
   wng "no update attempted"  "updating to"                       "$T/out.log"
   wng "setup not run"        "Running the system setup"          "$T/out.log"
   wx "rc non-zero"           test "$RC" -ne 0
@@ -611,16 +612,31 @@ scenario_update_origin_old_fork() {
   wx "still on main"         test "$(git -C "$D" symbolic-ref -q HEAD)" = "refs/heads/main"
   wx "nothing fetched"       test -z "$(git -C "$D" for-each-ref refs/dwp-vim)"
   wx "no backup made"        test ! -e "$T/home/.config/previous-deepworkplan-vim"
-  # Credentials embedded in an origin URL are never printed.
-  local T2; T2="$(scen_root)"
-  install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
-  install -m 755 "$SHIMS/curl" "$T2/bin/curl"
-  git clone -q "$FIXTURE" "$T2/home/.config/nvim"
-  git -C "$T2/home/.config/nvim" remote set-url origin "https://someone:planted-not-a-secret@example.com/mu-vim.git"
-  run_install "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE"
-  wg "origin shown redacted" "origin: https://example.com/mu-vim.git" "$T2/out.log"
-  wng "credential never shown" "planted-not-a-secret"            "$T2/out.log"
-  rm -rf "$T2"
+  # The same stop when the script arrives through a pipe, as when the download is piped into bash.
+  run_install_piped "$T" "$T/piped.log" DWP_VIM_SOURCE="$FIXTURE"
+  wg "piped: names the fork"   "tracks a different repository"   "$T/piped.log"
+  wg "piped: cannot ask"       "ran without a terminal"          "$T/piped.log"
+  wx "piped: rc non-zero"      test "$RC" -ne 0
+  wx "piped: HEAD unchanged"   test "$(git -C "$D" rev-parse HEAD)" = "$HEAD0"
+  # Credentials that an origin URL can carry are never printed: user and
+  # password (even with an unescaped "@"), a token alone, a query token;
+  # an "@" in the path is not mistaken for user-info.
+  local T2 pair url shown
+  for pair in \
+    "https://someone:pl@nted-pw@example.com/mu-vim.git|https://example.com/mu-vim.git" \
+    "https://planted-token@example.com/mu-vim.git|https://example.com/mu-vim.git" \
+    "https://example.com/team@x/mu-vim.git?planted-q=1#frag|https://example.com/team@x/mu-vim.git"; do
+    url="${pair%%|*}"; shown="${pair#*|}"
+    T2="$(scen_root)"
+    install -m 755 "$SHIMS/lua5.4" "$T2/bin/lua5.4"
+    install -m 755 "$SHIMS/curl" "$T2/bin/curl"
+    git clone -q "$FIXTURE" "$T2/home/.config/nvim"
+    git -C "$T2/home/.config/nvim" remote set-url origin "$url"
+    run_install "$T2" "$T2/out.log" DWP_VIM_SOURCE="$FIXTURE"
+    wx "origin shown as $shown" grep -qF -- "origin: $shown)" "$T2/out.log"
+    wng "no credential shown ($shown)" "planted"                 "$T2/out.log"
+    wng "no password tail ($shown)"   "nted-pw"                  "$T2/out.log"
+  done
 }
 
 scenario_update_origin_old_fork_consent() {
@@ -636,7 +652,7 @@ scenario_update_origin_old_fork_consent() {
   echo "-- my edit" >>"$D/init.lua"
   local rc=0
   pty_answer $'y\n' \
-    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
+    "env -i HOME=$T/home PATH=$NEUTRAL_DIR:$T/bin:$BASE_BIN SHIM_LOG=$T/shim.log SHIM_BIN=$T/bin GIT_ALLOW_PROTOCOL=file GIT_CONFIG_NOSYSTEM=1 DWP_VIM_SOURCE=$FIXTURE bash $REPO/install.sh" \
     >"$T/out.log" 2>&1 || rc=$?
   local B="$T/home/.config/previous-deepworkplan-vim"
   wg "consent offered"        "Move it to"                       "$T/out.log"
@@ -663,6 +679,9 @@ scenario_update_local_modifications() {
   local HEAD0; HEAD0="$(git -C "$D" rev-parse HEAD)"
   run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
   wg "names the edits"      "local edits in 2 tracked file(s)" "$T/out.log"
+  wg "offers stash"         "stash"                            "$T/out.log"
+  wng "origin is fine"      "different repository"             "$T/out.log"
+  wng "no origin advice"    "remote set-url"                   "$T/out.log"
   wg "cannot ask unattended" "ran without a terminal"          "$T/out.log"
   wng "no update attempted" "updating to"                      "$T/out.log"
   wx "rc non-zero"          test "$RC" -ne 0
@@ -687,10 +706,29 @@ scenario_update_fetches_canonical_source() {
   git -C "$D" reset -q --hard HEAD~1
   local HEAD0; HEAD0="$(git -C "$D" rev-parse HEAD)"
   run_install "$T" "$T/out.log"
+  # The fixture origin's path contains "deepworkplan-vim", so no origin
+  # blocker fires and the run reaches the fetch.
+  wng "no origin blocker"    "different repository"            "$T/out.log"
   wg "canonical source used" "from https://github.com/DailybotHQ/deepworkplan-vim.git" "$T/out.log"
   wng "origin not used"      "Running the system setup"        "$T/out.log"
   wx "rc non-zero"           test "$RC" -ne 0
   wx "HEAD unchanged"        test "$(git -C "$D" rev-parse HEAD)" = "$HEAD0"
+}
+
+scenario_update_status_unreadable() {
+  # A checkout whose local changes cannot be read (corrupt index) is never
+  # assumed clean: the run stops, naming it.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/nvim"
+  git clone -q "$FIXTURE" "$D"
+  printf 'not an index' >"$D/.git/index"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  wg "names it"            "local changes could not be inspected" "$T/out.log"
+  wng "no update attempted" "updating to"                     "$T/out.log"
+  wx "rc non-zero"         test "$RC" -ne 0
 }
 
 scenario_update_offline() {
@@ -903,6 +941,7 @@ run_scenario fresh_brew                  scenario_fresh_brew
 run_scenario update_origin_old_fork      scenario_update_origin_old_fork
 run_scenario update_origin_old_fork_consent scenario_update_origin_old_fork_consent
 run_scenario update_local_modifications  scenario_update_local_modifications
+run_scenario update_status_unreadable    scenario_update_status_unreadable
 run_scenario update_offline              scenario_update_offline
 run_scenario update_fetches_canonical_source scenario_update_fetches_canonical_source
 run_scenario update_ours                 scenario_update_ours

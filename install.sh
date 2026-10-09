@@ -63,6 +63,13 @@ RELEASE_REF="v0.4.2"
 REF="${DWP_VIM_REF:-$RELEASE_REF}"
 SOURCE="${DWP_VIM_SOURCE:-$REPO_URL}"
 DEST="${DWP_VIM_DIR:-$HOME/.config/nvim}"
+# No trailing slash: "mv link/" would move a symlink's target, not the link.
+while [ "$DEST" != "/" ] && [ "${DEST%/}" != "$DEST" ]; do
+  DEST="${DEST%/}"
+done
+# Set once the previous config was moved aside, so a later failure says
+# where it is.
+MOVED_TO=""
 BACKUP_DIR="$HOME/.config/previous-deepworkplan-vim"
 BOOTSTRAP_TIMEOUT="${DWP_VIM_BOOTSTRAP_TIMEOUT:-900}"
 # Images and CI that already carry every dependency: install no system
@@ -189,7 +196,7 @@ is_ours() {
   # is the pair delete.lua's looks_like_dwpvim knows (required AND here,
   # not or); the URL check stays as the fallback for partial checkouts.
   [ -f "$1/install.lua" ] && [ -f "$1/lua/plugins.lua" ] && return 0
-  git -C "$1" remote get-url origin 2>/dev/null | grep -q 'deepworkplan-vim'
+  git -C "$1" remote get-url origin 2>/dev/null | grep -qi 'deepworkplan-vim'
 }
 
 dir_has_content() {
@@ -249,16 +256,40 @@ move_aside_with_consent() {
   if [ "$rc" -ne 0 ]; then
     die "aborted — nothing was touched"
   fi
+  # Checked again right before the move: anything that appeared at the
+  # backup path meanwhile (even a dangling symlink) stops the run, so the
+  # config never lands somewhere other than where this message says.
+  if [ -e "$BACKUP_DIR" ] || [ -L "$BACKUP_DIR" ]; then
+    die "$BACKUP_DIR appeared while waiting for your answer — move or remove it and rerun. Nothing was touched."
+  fi
   say "==> Moving the existing config to $BACKUP_DIR"
   mkdir -p "$(dirname "$BACKUP_DIR")"
   mv -- "$DEST" "$BACKUP_DIR" || die "could not move $DEST to $BACKUP_DIR — nothing was deleted"
+  MOVED_TO="$BACKUP_DIR"
 }
 
-# A URL as it may be shown: credentials embedded in it are dropped.
+# A URL as it may be shown: anything that can carry a credential is
+# dropped — the user-info of the authority (up to its last "@", which
+# survives an unescaped "@" in a password), the query and the fragment.
+# An "@" in the path is not user-info. scp-like user@host:path loses its
+# user too.
 redact_url() {
-  case "$1" in
-    *://*@*) printf '%s' "${1%%://*}://${1#*@}" ;;
-    *) printf '%s' "$1" ;;
+  local url="$1" scheme rest auth path
+  case "$url" in
+    *://*)
+      scheme="${url%%://*}"
+      rest="${url#*://}"
+      auth="${rest%%[/?#]*}"
+      path="${rest#"$auth"}"
+      auth="${auth##*@}"
+      path="${path%%[?#]*}"
+      printf '%s://%s%s' "$scheme" "$auth" "$path"
+      ;;
+    *@*:*)
+      url="${url%%[?#]*}"
+      printf '%s' "${url#*@}"
+      ;;
+    *) printf '%s' "${url%%[?#]*}" ;;
   esac
 }
 
@@ -277,7 +308,7 @@ same_project() {
 # tracked files belongs to its user: switching it to the release could
 # silently migrate or entangle that work.
 update_blockers() {
-  local origin edits
+  local origin status edits
   origin="$(git -C "$1" remote get-url origin 2>/dev/null || true)"
   if ! same_project "$origin"; then
     if [ -z "$origin" ]; then
@@ -286,10 +317,28 @@ update_blockers() {
       printf '%s\n' "it tracks a different repository (origin: $(redact_url "$origin"))"
     fi
   fi
-  edits="$(git -C "$1" status --porcelain --untracked-files=no 2>/dev/null | grep -c . || true)"
-  if [ "${edits:-0}" -gt 0 ]; then
+  # --no-optional-locks: asking must not write the user's index. A status
+  # that cannot be read is a reason to stop too (never assume "clean").
+  if ! status="$(git --no-optional-locks -C "$1" status --porcelain --untracked-files=no 2>/dev/null)"; then
+    printf '%s\n' "its local changes could not be inspected (git status failed in it)"
+  elif [ -n "$status" ]; then
+    edits="$(printf '%s\n' "$status" | grep -c .)"
     printf '%s\n' "it has local edits in $edits tracked file(s) — git -C '$1' status lists them"
   fi
+}
+
+# How to keep the checkout and update it in place, from the reasons found.
+keep_in_place_hint() {
+  local steps=""
+  case "$1" in
+    *"different repository"* | *"no origin remote"*)
+      steps="point origin at $REPO_URL (git -C '$DEST' remote set-url origin $REPO_URL)" ;;
+  esac
+  case "$1" in
+    *"local edits"* | *"could not be inspected"*)
+      steps="${steps:+$steps, and }set your edits aside with git -C '$DEST' stash (git stash pop brings them back later)" ;;
+  esac
+  printf '%s, then run the installer again' "$steps"
 }
 
 if [ -d "$DEST" ] && dir_has_content "$DEST" && ! is_ours "$DEST"; then
@@ -301,12 +350,12 @@ if is_ours "$DEST"; then
   BLOCKERS="$(update_blockers "$DEST")"
   if [ -n "$BLOCKERS" ]; then
     say "==> $DEST holds a DeepWorkPlan Vim config that is not updated in place:"
-    while IFS= read -r reason; do
+    printf '%s\n' "$BLOCKERS" | while IFS= read -r reason; do
       say "      - $reason"
-    done <<<"$BLOCKERS"
+    done
     move_aside_with_consent \
       "The Neovim config at $DEST cannot be updated in place." \
-      "commit or stash your edits, point origin at $REPO_URL (git -C '$DEST' remote set-url origin $REPO_URL), then run the installer again"
+      "$(keep_in_place_hint "$BLOCKERS")"
   fi
 fi
 
@@ -339,7 +388,7 @@ if is_ours "$DEST"; then
     fi
   else
     git -C "$DEST" fetch "$FETCH_SOURCE" "$REF" ||
-      die "could not fetch '$REF' from $FETCH_SOURCE in $DEST — not a tag, branch or commit there, or the source is unreachable (offline? set DWP_VIM_SOURCE to a local path)"
+      die "could not fetch '$REF' from $(redact_url "$FETCH_SOURCE") in $DEST — not a tag, branch or commit there, or the source is unreachable (offline? set DWP_VIM_SOURCE to a local path)"
     git -C "$DEST" checkout "$REF" >/dev/null ||
       die "git checkout '$REF' failed in $DEST (ref missing, or local changes block it — see the error above)"
     # A branch: fast-forward to the fetched tip when it is ahead. merge
@@ -359,9 +408,10 @@ if is_ours "$DEST"; then
 else
   say "==> Cloning DeepWorkPlan Vim ('$REF') into $DEST"
   mkdir -p "$(dirname "$DEST")"
-  git clone -- "$SOURCE" "$DEST" || die "clone from $SOURCE failed"
+  git clone -- "$SOURCE" "$DEST" ||
+    die "clone from $(redact_url "$SOURCE") failed${MOVED_TO:+ — your previous config is safe at $MOVED_TO}"
   git -C "$DEST" -c advice.detachedHead=false checkout -q "$REF" ||
-    die "git checkout '$REF' failed in the clone from $SOURCE (ref missing, or local changes block it — see the error above)"
+    die "git checkout '$REF' failed in the clone from $(redact_url "$SOURCE") (ref missing, or local changes block it — see the error above)${MOVED_TO:+ — your previous config is safe at $MOVED_TO}"
 fi
 
 [ -f "$DEST/install.lua" ] || die "$DEST has no install.lua — not a DeepWorkPlan Vim checkout"

@@ -111,9 +111,11 @@ and a real `lua5.4` on PATH for the four `delete.lua`/probe scenarios; no
 container, no network, no Neovim, no real `install.lua` leg. Branch-independent:
 the fixture's `main` is the commit under test and carries the release tag
 baked into `install.sh` (annotated, like real releases); git may use the
-file protocol only, so nothing reaches the network. 36 scenarios: the update
+file protocol only and no system gitconfig, so nothing reaches the network
+or reads host config. 37 scenarios: the update
 path (canonical source with `DWP_VIM_SOURCE` unset, an old-fork origin
-refused without a terminal and moved aside on consent, local edits refused,
+refused without a terminal (also piped) and moved aside on consent, local
+edits refused, an unreadable status refused,
 an unreachable source), the
 release-tag default (fresh, explicit `main`, update from an older commit,
 local commits refused on the tag and branch paths), `DWP_VIM_SKIP_PACKAGES`
@@ -130,7 +132,7 @@ uninstall one-liner verification, and the consent-EOF tri-state probes
 probes (BSD/no-realpath hosts still resolve paths). The three former KNOWN-DEFECT pins (audit
 I-1, I-2, I-19) were flipped to fixed-behavior assertions by the
 remediation; any regression there fails the suite. Success sentinel:
-`INSTALLER HARNESS: OK (36 scenarios)`. Scope and bounds:
+`INSTALLER HARNESS: OK (37 scenarios)`. Scope and bounds:
 [`tests/installer/README.md`](../tests/installer/README.md). Required for
 any change to `install.sh`, `install.lua`, `delete.lua` or
 `utilities/installation/`.
