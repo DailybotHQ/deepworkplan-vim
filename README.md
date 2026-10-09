@@ -167,7 +167,8 @@ lua ~/.config/nvim/delete.lua              # Git Bash on Windows: lua "$LOCALAPP
 | What each release ships | [CHANGELOG.md](CHANGELOG.md) |
 | Agent entry point | [AGENTS.md](AGENTS.md) |
 
-Contributor environment in four lines (Neovim 0.12.5 and Herdr in the image;
+Contributor environment in four lines (the image installs the editor with the
+DeepWorkPlan Vim installer — Neovim 0.12.5, plugins verified — plus Herdr;
 coding CLIs opt-in):
 
 ```bash

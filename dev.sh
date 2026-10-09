@@ -34,7 +34,7 @@ Selective coding CLIs (build args, default false):
     --build-arg INSTALL_CLAUDE_CLI=true --build-arg INSTALL_CODEX_CLI=true
 
 Herdr SSH host port defaults to 127.0.0.1:22035 (override HERDR_SSH_HOST_PORT).
-Default editor is Neovim 0.12.5. The repo is mounted as ~/.config/nvim.
+Default editor is Neovim 0.12.5 (installed by the DeepWorkPlan Vim installer at build). The repo is mounted at /workspace and linked to ~/.config/nvim at start.
 USAGE
 }
 

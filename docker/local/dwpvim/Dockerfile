@@ -22,15 +22,16 @@ ARG INSTALL_GROK_CLI=false
 # One apt layer. lua/rg/fd for the installer; node for the config's kit
 # (markdown-preview, bracey) and pnpm; fontconfig so the baked font is
 # indexed (fc-cache); black + python3-neovim mirror installer.lua's own
-# apt-get mapping (extras: black; core: python3-neovim); gcc/make compile
-# treesitter parsers during the baked plugin sync. Do not apt-install
-# neovim: nvim is the 0.12.5 tarball in /home/dev/.local. Do not bake SSH
-# host keys. Zenity is deliberately absent (GUI dep, headless image).
+# apt-get mapping (extras: black; core: python3-neovim); gcc/make/libc6-dev
+# compile treesitter parsers during the baked plugin sync. Do not
+# apt-install neovim: the DeepWorkPlan Vim installer below installs the
+# pinned release (--nvim). Do not bake SSH host keys. Zenity is
+# deliberately absent (GUI dep, headless image).
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y \
       less git curl gnupg ca-certificates openssh-client openssh-server \
       sudo nano python3 lua5.4 ripgrep fd-find adduser \
-      nodejs npm fontconfig black python3-neovim gcc make && \
+      nodejs npm fontconfig black python3-neovim gcc make libc6-dev && \
     mkdir -p /var/run/sshd /etc/ssh/sshd_config.d && \
     rm -f /etc/ssh/ssh_host_* && \
     printf '%s\n' \
@@ -74,10 +75,11 @@ ENV EDITOR=nvim
 ENV VISUAL=nvim
 ENV GIT_EDITOR=nvim
 # pnpm lives under the user prefix, same path utilities/installation
-# (installer.lua pnpm_home) resolves to. pnpm 10+ refuses `pnpm add -g`
-# unless PNPM_HOME/bin is on PATH (installer.lua pnpm_env).
+# (installer.lua pnpm_home) resolves to. npm installs pnpm itself into
+# PNPM_HOME/bin; pnpm 10 uses PNPM_HOME itself as its global bin directory
+# and refuses `pnpm add -g` unless that directory is on PATH — both are.
 ENV PNPM_HOME="/home/dev/.local/share/pnpm"
-ENV PATH="${PNPM_HOME}/bin:${PATH}"
+ENV PATH="${PNPM_HOME}:${PNPM_HOME}/bin:${PATH}"
 
 RUN printf '%s\n' \
     'for d in "$HOME/.local/bin" "$HOME/.grok/bin"; do' \
@@ -227,82 +229,57 @@ RUN mkdir -p /home/dev/.config/herdr && \
         > /home/dev/.config/herdr/config.toml; \
     fi
 
-# Neovim tarball only. The repo is mounted at /workspace and linked to
-# ~/.config/nvim at start — this image develops DeepWorkPlan Vim itself.
-# sha256 values are the release assets' published digests.
-ARG NVIM_VERSION=0.12.5
-ARG NVIM_SHA256_X86_64=bce0f56eda1f1b1db6eee8f4133d7a38813ea07933837dd1777411ca384c6875
-ARG NVIM_SHA256_ARM64=1aa5ca085249580ae0f91eb14f27ec0919773ff2d99a163d03f3d6c21ac29725
-RUN set -eu; \
-    arch="$(dpkg --print-architecture)"; \
-    case "$arch" in \
-      amd64) nvim_arch=linux-x86_64; sum="$NVIM_SHA256_X86_64" ;; \
-      arm64) nvim_arch=linux-arm64; sum="$NVIM_SHA256_ARM64" ;; \
-      *) echo "unsupported arch for neovim tarball: $arch" >&2; exit 1 ;; \
-    esac; \
-    tmp="$(mktemp)"; \
-    curl -fsSL "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-${nvim_arch}.tar.gz" -o "$tmp"; \
-    echo "${sum}  ${tmp}" | sha256sum -c -; \
-    mkdir -p /home/dev/.local; \
-    tar -xzf "$tmp" -C /home/dev/.local --strip-components=1; \
-    rm -f "$tmp"; \
-    test -x /home/dev/.local/bin/nvim
-USER root
-RUN ln -sfn /home/dev/.local/bin/nvim /usr/local/bin/nvim
-
-# --- Baked editor surface ----------------------------------------------------
-# The image ships a first-launch-ready editor: plugins, pnpm + biome, and the
-# Iosevka Nerd Font are installed at build time, so `bash dev.sh shell` lands
-# in a working nvim with no first-launch install. The config itself is NOT
-# baked — at start the entrypoint symlinks ~/.config/nvim to /workspace (this
-# repo IS the config). install.sh is the HOST installer and stays out of the
-# image; the steps below mirror utilities/installation/installer.lua so the
-# baked result matches what a host install produces.
-
-# Build-time config copy (bootstrap input; removed again below). Paths are
-# repo-relative: the compose build context is the repository root. Neovim
-# resolves its config as $XDG_CONFIG_HOME/nvim, so the tree must sit one
-# level inside the XDG root used for the headless bake below — copying to
-# /opt/dwpvim-config/ directly would leave init.lua where Neovim never
-# looks and the mason.nvim assert could never pass.
-COPY init.lua delete.lua CheatSheet.md /opt/dwpvim-config/nvim/
-COPY lua/ /opt/dwpvim-config/nvim/lua/
-COPY snippets/ /opt/dwpvim-config/nvim/snippets/
-COPY dicts/ /opt/dwpvim-config/nvim/dicts/
-COPY utilities/installation/ /opt/dwpvim-config/nvim/utilities/installation/
-
+# --- Baked editor --------------------------------------------------------
+# pnpm (+ biome) first: the config's plugins build with pnpm
+# (markdown-preview), and --skip-packages below assumes the image already
+# carries every dependency. pnpm comes from the npm registry at an exact
+# version (npm verifies the package integrity hash), at the PNPM_HOME
+# installer.lua uses on a host.
 USER dev
 ARG PNPM_VERSION=10.34.6
 ARG BIOME_VERSION=2.5.15
-# pnpm from the npm registry (exact version), then biome (exact) — the same
-# tools installer.lua's ensure_pnpm / ensure_formatters land on a host, at
-# the same PNPM_HOME (the /bin PATH entry comes from the ENV above). The
-# registry route replaces piping the official install script to a shell: npm
-# verifies the package integrity hash before extracting, which this repo's
-# review rules require for executed downloads in image builds. The font
-# goes to ~/.local/share/fonts + fc-cache, where installer.lua install_font
-# puts it.
 RUN set -eu; \
     npm install -g --prefix "$PNPM_HOME" "pnpm@${PNPM_VERSION}"; \
-    pnpm add -g "@biomejs/biome@${BIOME_VERSION}"; \
-    mkdir -p "$HOME/.local/share/fonts"; \
-    install -m 0644 /opt/dwpvim-config/nvim/utilities/installation/iosevka_nerd_font.ttf \
-      "$HOME/.local/share/fonts/iosevka_nerd_font.ttf"; \
-    fc-cache -f "$HOME/.local/share/fonts" >/dev/null
+    pnpm add -g "@biomejs/biome@${BIOME_VERSION}"
 
-# One headless bootstrap in one cache-able layer: plugins.lua's VimEnter
-# autocmd syncs the pckr plugins and self-exits when the sync completes (the
-# headless branch reserved for the install.sh bootstrap). XDG_CONFIG_HOME is
-# set for this RUN only — at runtime the entrypoint links ~/.config/nvim to
-# /workspace, and a persistent override would shadow that link. Success is
-# the same check install.sh uses: mason.nvim present under pckr's opt pack.
-RUN set -eu; \
-    XDG_CONFIG_HOME=/opt/dwpvim-config timeout 900 nvim --headless; \
-    test -d "$HOME/.local/share/nvim/site/pack/pckr/opt/mason.nvim"
+# The DeepWorkPlan Vim installer owns the rest: Neovim (official tarball,
+# sha256-verified against the release digest, into ~/.local/opt and linked
+# as ~/.local/bin/nvim), the config at the pinned release in ~/.config/nvim,
+# install.lua (pckr + the font, no system packages), the headless plugin
+# sync, and --strict: a failed sync or a missing/empty plugin fails the
+# build. The hosted script is downloaded and verified against the
+# v${DWP_VIM_VERSION} release's install.sh.sha256 (a second origin); when
+# the website already serves a newer release, the exact release asset is
+# used instead (same checksum), so the build always runs the pinned
+# installer bytes and a website release never breaks it. No download is
+# piped into a shell.
+# At container start the entrypoint links ~/.config/nvim to /workspace
+# (this image develops DeepWorkPlan Vim itself); without /workspace the
+# image is a working editor on the release config.
+# Optional BuildKit secret `github_token` authenticates the installer's
+# Neovim checksum lookup (GitHub API rate limits); it never lands in a layer.
+ARG DWP_VIM_VERSION=0.5.0
+ARG NVIM_VERSION=0.12.5
+RUN --mount=type=secret,id=github_token,uid=1000 \
+    set -eu; \
+    tmp="$(mktemp -d)"; \
+    release="https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v${DWP_VIM_VERSION}"; \
+    curl -fsSL -o "$tmp/install.sh.sha256" "$release/install.sh.sha256"; \
+    curl -fsSL -o "$tmp/install.sh" https://vim.deepworkplan.com/install.sh; \
+    if ! (cd "$tmp" && sha256sum -c --status install.sh.sha256); then \
+      echo "hosted installer is not v${DWP_VIM_VERSION}; using the release asset"; \
+      curl -fsSL -o "$tmp/install.sh" "$release/install.sh"; \
+    fi; \
+    (cd "$tmp" && sha256sum -c install.sh.sha256); \
+    token=""; \
+    if [ -r /run/secrets/github_token ]; then token="$(cat /run/secrets/github_token)"; fi; \
+    GITHUB_TOKEN="$token" bash "$tmp/install.sh" \
+      --version "${DWP_VIM_VERSION}" --nvim "${NVIM_VERSION}" --skip-packages --strict; \
+    rm -f "$tmp/install.sh" "$tmp/install.sh.sha256"; \
+    rmdir "$tmp"
 
 USER root
-# The bootstrap config copy was scaffolding; the runtime config is /workspace.
-RUN rm -rf /opt/dwpvim-config
+RUN ln -sfn /home/dev/.local/bin/nvim /usr/local/bin/nvim
 
 COPY docker/local/dwpvim/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

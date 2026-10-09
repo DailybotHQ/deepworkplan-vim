@@ -2,7 +2,7 @@
 
 See the root `README.md` and `AGENTS.md`.
 
-- Image: Debian Trixie (pinned by digest), user `dev`, Neovim 0.12.5, Herdr 0.9.3 — every tool pinned and verified (see below)
+- Image: Debian Trixie (pinned by digest), user `dev`, the editor via the DeepWorkPlan Vim installer v0.5.0 (Neovim 0.12.5), Herdr 0.9.3 — every tool pinned and verified (see below)
 - Repo mount: `/workspace` → `~/.config/nvim`
 - SSH: `127.0.0.1:22035`
 - Copy `dwpvim/.env.example` to `dwpvim/.env` before `bash dev.sh up`
@@ -20,7 +20,8 @@ install script is piped to a shell.**
 | Base image | `debian:trixie-20261005-slim@sha256:a29215…` | Docker Hub | digest |
 | Debian packages (git, lua5.4, nodejs, npm, ripgrep, …) | the base image's Debian release (trixie) | apt | apt signatures; versions follow trixie's stable updates (exception: not frozen per package) |
 | gh | `2.83.2` | GitHub release tarball | sha256 from `gh_<v>_checksums.txt` |
-| Neovim | `0.12.5` | GitHub release tarball | sha256 = the release asset digest |
+| DeepWorkPlan Vim installer | `DWP_VIM_VERSION=0.5.0` | `https://vim.deepworkplan.com/install.sh` (an alias of `https://deepworkplan.com/vim/install.sh`); the release's own `install.sh` when the website already serves a newer release | sha256 = the release's `install.sh.sha256` (GitHub, second origin) — the build always runs the pinned bytes |
+| Neovim | `NVIM_VERSION=0.12.5` | GitHub release tarball, installed by the installer's `--nvim` into `~/.local/opt/nvim-v0.12.5` | sha256 = the release asset digest (the installer refuses a mismatch or a missing digest) |
 | Herdr (always) | `0.9.3` | GitHub release binary | sha256 from `herdr.dev/latest.json` |
 | pnpm | `10.34.6` | npm registry | npm integrity hash |
 | Biome | `2.5.15` | npm (`pnpm add -g`) | registry integrity hash |
@@ -35,7 +36,18 @@ install script is piped to a shell.**
 Coding CLIs stay **opt-in** (`INSTALL_*_CLI=true`); the default build
 installs none of them.
 
+**Building with a token.** The installer looks up Neovim's published
+sha256 on the GitHub API (60 unauthenticated calls an hour per address).
+`GITHUB_TOKEN=… bash dev.sh build` passes the token as the BuildKit secret
+`github_token` (compose `build.secrets`); it is used for that lookup only and
+never stored in a layer. Without it the build works until the limit.
+
 **Exceptions (documented):**
+
+- **Neovim's checksum is read at build time** from the GitHub release asset
+  digest by the installer (it refuses a mismatch or a missing digest), so it
+  comes from the same host as the tarball: it proves the download is the
+  published asset, not that GitHub itself was not tampered with.
 
 - **Cursor and Grok publish no checksums.** Their versioned artifacts are
   pinned by URL, and the sha256 values in the Dockerfile were computed from
@@ -44,9 +56,10 @@ installs none of them.
   build — by design.
 - **Debian packages** are pinned to the base image's release, not to
   per-package versions; the base image itself is pinned by digest.
-- **The editor's plugins are baked unpinned.** The headless bootstrap
-  (`nvim --headless` in the Dockerfile) clones each pckr plugin at its
-  current branch tip — `lua/plugins.lua` pins no commits — runs that Lua at
+- **The editor's plugins are baked unpinned.** The installer's headless
+  bootstrap (`--strict`: the build fails unless alpha-nvim, nvim-cmp and
+  mason.nvim are present and no plugin is an empty clone) clones each pckr
+  plugin at its current branch tip — `lua/plugins.lua` pins no commits — runs that Lua at
   build time and compiles treesitter parsers; Mason may download language
   servers. This is the same path a host install takes; pinning plugins by
   commit is an editor change tracked separately.

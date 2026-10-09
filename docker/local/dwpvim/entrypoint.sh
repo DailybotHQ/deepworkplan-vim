@@ -486,6 +486,8 @@ fi
 
 # This image develops DeepWorkPlan Vim: the repo IS the Neovim config.
 mkdir -p /home/dev/.config
+# The image bakes the release config into ~/.config/nvim (the installer's
+# standalone fallback); with /workspace mounted it is replaced by the link.
 if [ -d /workspace ] && [ ! -L /home/dev/.config/nvim ]; then
   rm -rf /home/dev/.config/nvim 2>/dev/null || true
   ln -sfn /workspace /home/dev/.config/nvim
