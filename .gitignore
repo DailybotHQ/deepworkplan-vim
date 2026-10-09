@@ -37,7 +37,9 @@ Session.vim
 
 # Local-dev / agent harness
 .devcontainer/
-.dwp/
+# Plans and evidence stay local; the addon registry is shared (DWP v7 CONFIG §1).
+.dwp/*
+!.dwp/config.json
 .review/*
 !.review/extension.md
 tmp/
