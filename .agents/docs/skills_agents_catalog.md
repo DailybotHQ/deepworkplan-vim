@@ -7,7 +7,7 @@ entries: if it is listed here, the file exists; if it exists, it is listed.
 
 | Skill | Version | Source | Purpose |
 |---|---|---|---|
-| [`deepworkplan`](../skills/deepworkplan/SKILL.md) | 7.0.0 | `DailybotHQ/deepworkplan-skill` (vendored, tag-pinned) | The DWP engine: create/execute/refine/resume/status/verify/upgrade/onboard/author sub-skills. Standard 6.0.0 — Lite and Full plans |
+| [`deepworkplan`](../skills/deepworkplan/SKILL.md) | 7.0.1 | `DailybotHQ/deepworkplan-skill` (vendored, tag-pinned) | The DWP engine: create/execute/refine/resume/status/verify/upgrade/onboard/author sub-skills. Standard 6.0.0 — Lite and Full plans |
 | [`ai-diff-reviewer`](../skills/ai-diff-reviewer/SKILL.md) | 3.2.3 | `DailybotHQ/ai-diff-reviewer` (vendored, tag-pinned) | Local + CI diff review (six sub-skills: review, generate-extension, setup, open-pr, apply-review, address-review). Local review is the required Final Review pass; config at [`.review/extension.md`](../../.review/extension.md) |
 | [`dailybot`](../skills/dailybot/SKILL.md) | 3.23.2 | `DailybotHQ/agent-skill` (vendored, tag-pinned) | 17-capability Dailybot pack; wired into DWP only for lifecycle **reporting** (never blocks). CLI present on host: 3.26.1 |
 | [`fix-frontmatter`](../skills/fix-frontmatter/SKILL.md) | 1.0.0 | `DailybotHQ/deepworkplan-skill` (vendored utility) | Validates/fixes `SKILL.md` frontmatter against the contract |

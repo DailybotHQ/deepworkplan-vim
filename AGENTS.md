@@ -2,13 +2,13 @@
 
 Public Neovim configuration. Language: English. Conventional commits. GPL-3.0.
 
-DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03 and 2026-10-09; skill 7.0.0)
+DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03 and 2026-10-09; skill 7.0.1)
 
 ## Product
 
 DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: download `https://deepworkplan.com/vim/install.sh` (or the release asset), verify it against `install.sh.sha256` / `SHA256SUMS`, then `bash install.sh` — it installs its own release tag (README → Install); or manually: clone the tag to `~/.config/nvim` and `lua install.lua`. Never spell a download piped into a shell in this repo (`scripts/check-public-hygiene.sh` rejects it). This repo **is** the config; do not nest a second clone inside Docker.
 
-Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.0.0 per the provenance line above; the addon registry is the tracked `.dwp/config.json`.
+Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.0.1 per the provenance line above; the addon registry is the tracked `.dwp/config.json`.
 
 ## Documentation index
 
