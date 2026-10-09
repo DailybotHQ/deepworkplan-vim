@@ -1,15 +1,42 @@
+-- Commit pins (lua/plugin_lock.lua): every plugin and pckr itself install
+-- and update at the commit pckr/lockfile.lua pins, so two installs of one
+-- release get the same code. DWP_VIM_LOCK_UPDATE=1 — set only by
+-- scripts/update-plugin-lock.sh — ignores the pins so a sync moves every
+-- plugin to its branch tip.
+local plugin_lock = require("plugin_lock")
+local lock = vim.env.DWP_VIM_LOCK_UPDATE == "1" and {}
+  or plugin_lock.read(vim.fn.stdpath("config") .. "/pckr/lockfile.lua")
+
+-- HEAD of a git checkout without spawning git (startup path): a detached
+-- HEAD file holds the commit itself.
+local function head_commit(path)
+  local f = io.open(path .. "/.git/HEAD", "r")
+  if not f then
+    return nil
+  end
+  local head = f:read("*l")
+  f:close()
+  return head
+end
+
 local function bootstrap_pckr()
   local pckr_path = vim.fn.stdpath("data") .. "/pckr/pckr.nvim"
   local fs = vim.uv or vim.loop
+  local pin = plugin_lock.commit(lock, plugin_lock.PCKR_URL)
 
   if not fs.fs_stat(pckr_path) then
-    vim.fn.system({
-      "git",
-      "clone",
-      "--filter=blob:none",
-      "https://github.com/lewis6991/pckr.nvim",
-      pckr_path,
-    })
+    vim.fn.system({ "git", "clone", "--filter=blob:none", plugin_lock.PCKR_URL, pckr_path })
+  end
+
+  -- Move pckr to its pin (a fresh clone, or one made by an older release
+  -- at the branch tip); fetch only when the commit is not local yet.
+  if pin and fs.fs_stat(pckr_path) and head_commit(pckr_path) ~= pin then
+    local git = { "git", "-C", pckr_path }
+    vim.fn.system(vim.list_extend(vim.deepcopy(git), { "checkout", "-q", pin }))
+    if vim.v.shell_error ~= 0 then
+      vim.fn.system(vim.list_extend(vim.deepcopy(git), { "fetch", "-q", "origin" }))
+      vim.fn.system(vim.list_extend(vim.deepcopy(git), { "checkout", "-q", pin }))
+    end
   end
 
   vim.opt.rtp:prepend(pckr_path)
@@ -27,107 +54,9 @@ if vim.tbl_contains(vim.v.argv, "--headless") then
   require("pckr").setup({ autoinstall = false })
 end
 
-require("pckr").add({
-
-  -- LSP
-  "neovim/nvim-lspconfig",
-  "williamboman/mason.nvim",
-  "williamboman/mason-lspconfig.nvim",
-  "mfussenegger/nvim-lint",
-  "mhartington/formatter.nvim",
-
-  -- Completion
-  {
-    "hrsh7th/nvim-cmp",
-    requires = {
-      "hrsh7th/cmp-nvim-lsp",
-      "hrsh7th/cmp-buffer",
-      "hrsh7th/cmp-path",
-      "hrsh7th/cmp-cmdline",
-      "saadparwaiz1/cmp_luasnip",
-      "onsails/lspkind.nvim",
-    },
-  },
-  "L3MON4D3/LuaSnip",
-
-  -- Treesitter
-  {
-    "nvim-treesitter/nvim-treesitter",
-    run = ":TSUpdate",
-  },
-  "windwp/nvim-ts-autotag",
-
-  -- UI
-  {
-    "nvim-tree/nvim-tree.lua",
-    requires = "nvim-tree/nvim-web-devicons",
-  },
-  "akinsho/bufferline.nvim",
-  "nvim-lualine/lualine.nvim",
-  {
-    "goolord/alpha-nvim",
-    requires = {
-      "nvim-lua/plenary.nvim",
-      "nvim-tree/nvim-web-devicons",
-      "nvim-telescope/telescope.nvim",
-    },
-  },
-  "nvim-telescope/telescope.nvim",
-  "lukas-reineke/indent-blankline.nvim",
-
-  -- Motion
-  "christoomey/vim-tmux-navigator",
-  "easymotion/vim-easymotion",
-
-  -- Git
-  "tpope/vim-fugitive",
-  "mhinz/vim-signify",
-  {
-    "sindrets/diffview.nvim",
-    requires = "nvim-lua/plenary.nvim",
-  },
-
-  -- Syntax / edit
-  "sheerun/vim-polyglot",
-  "preservim/nerdcommenter",
-  "terryma/vim-multiple-cursors",
-  "jiangmiao/auto-pairs",
-  "tpope/vim-surround",
-  "tpope/vim-repeat",
-  "editorconfig/editorconfig-vim",
-  "ap/vim-css-color",
-  "KabbAmine/vCoolor.vim",
-
-  -- Preview / live
-  {
-    "iamcco/markdown-preview.nvim",
-    run = function()
-      vim.fn["mkdp#util#install"]()
-    end,
-  },
-  {
-    "MeanderingProgrammer/render-markdown.nvim",
-    requires = {
-      "nvim-treesitter/nvim-treesitter",
-      "nvim-tree/nvim-web-devicons",
-    },
-    ft = { "markdown" },
-    config = function()
-      require("setUp.markdown")
-    end,
-  },
-  {
-    "turbio/bracey.vim",
-    run = "pnpm install --prefix server",
-    cmd = "Bracey",
-  },
-
-  -- Utilities
-  {
-    "Pocco81/auto-save.nvim",
-  },
-
-})
+-- Each spec and each of its requires carries its pinned commit; pckr
+-- checks that commit out on install and on update (sync).
+require("pckr").add(plugin_lock.pin_all(require("plugin_specs"), lock))
 
 -- First launch: no plugins cloned yet. Detected on the filesystem — the
 -- same check install.sh uses — because `require('mason')` cannot work

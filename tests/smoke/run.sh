@@ -35,6 +35,7 @@ run_smoke render tests/smoke/dwp_render.lua
 run_smoke consistency tests/smoke/dwp_consistency.lua
 run_smoke "self-contained" tests/smoke/dwp_self_contained.lua
 run_smoke "addon surface" tests/smoke/addon_surface.lua
+run_smoke "plugin lock" tests/smoke/plugin_lock.lua
 
 if [ "$overall" -eq 0 ]; then
 	echo "DWP SMOKE SUITE: OK"
