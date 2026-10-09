@@ -36,6 +36,12 @@ self-containment rule, and the truth of `addon/surface.json`. Run
 `bash tests/smoke/run.sh`; per-section docs in
 [tests/smoke/README.md](smoke/README.md).
 
+## Hygiene self-test
+
+`tests/hygiene/run.sh` proves `scripts/check-public-hygiene.sh` (bash +
+git only): planted, assembled-at-runtime fakes in throwaway repos for every
+rule, allowlist scoping, stale and reasonless entries, and redaction.
+
 ## Installer harness
 
 `tests/installer/` is a separate, bash-only suite (not Go, not containerized):

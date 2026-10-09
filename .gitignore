@@ -8,6 +8,8 @@ plugin
 spell
 pack
 .env
+.env.*
+!.env.example
 
 __pycache__/
 *.py[cod]
@@ -17,6 +19,7 @@ __pycache__/
 .AppleDouble
 .LSOverride
 ._*
+Thumbs.db
 
 # Editors
 *.swp
@@ -37,7 +40,6 @@ Session.vim
 .dwp/
 .review/*
 !.review/extension.md
-tmp/*
-!tmp/.gitkeep
+tmp/
 docker/local/.env
 docker/local/dwpvim/.env

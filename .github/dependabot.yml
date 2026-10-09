@@ -1,0 +1,19 @@
+# Weekly update PRs for pinned dependencies. Each PR runs CI; nothing merges
+# without review. The contributor image's tool pins (versions + sha256 ARGs)
+# are bumped by hand — docker/local/README.md → "Bumping a pin".
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+  - package-ecosystem: docker
+    directories:
+      - /docker/local/dwpvim
+      - /tests
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore

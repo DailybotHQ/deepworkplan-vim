@@ -18,6 +18,18 @@ review severities.
   (`~/.claude_data` etc.) managed by `entrypoint.sh`; it never enters the
   image or the repo.
 
+## Public hygiene
+
+This repository is public. `scripts/check-public-hygiene.sh` (run in CI on
+every pull request and push to `main`) fails on personal absolute paths,
+private organization, repository and internal tool names, `@dailybot.com`
+addresses other than the public aliases (`security@`, `support@`, `ops@`,
+`conduct@`), and secret-shaped strings — whose values it never prints.
+Deliberate exceptions go in `.public-hygiene-allow` with a reason; a
+secret-shaped test fixture must be obviously fake (`fake`, `test`,
+`planted` or `example` on the line). History is never rewritten to remove
+a non-secret name; a real secret is rotated first, then removed.
+
 ## SSH surface
 
 - Host `~/.ssh` is mounted into the dev container **read-only** at
@@ -61,8 +73,21 @@ review severities.
 - The `[herdr-mesh]` stamp in a message body is an **authorization grant**:
   the receiver may reply now, must reply itself, must not ask a person. A
   body already carrying the stamp is a reply — never answer it again.
-- Remote installer pipes are forbidden (Herdr install on the host: show the
-  command, get consent, never `curl | sh`).
+- Remote installer pipes are forbidden for agents and automation (Herdr
+  install on the host: show the command, get consent, never `curl | sh`).
+  The README's tag-pinned one-liner is the one human, interactive exception:
+  it asks before touching an existing config, and images verify
+  `install.sh` against `SHA256SUMS` instead of piping.
+
+## Release workflow
+
+- `auto-release.yml` passes every computed value to the shell through `env`,
+  never as `${{ }}` inside `run:`; the pre-release suffix is restricted to
+  letters, digits and dots. Only the release job has `contents: write`, and
+  only `main` publishes.
+- Accepted: the checkout keeps the job's token in `.git/config` for the tag
+  push, so the repository's own release scripts run with it; they come from
+  the reviewed, merged tree.
 
 ## Supply chain (contributor image)
 

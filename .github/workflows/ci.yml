@@ -1,0 +1,99 @@
+name: CI
+
+# The full host gate on every pull request and every push to main:
+# public hygiene, lint (Lua parse + shell syntax), the dwp smoke suite,
+# the installer compatibility harness, and the Go mapping contracts.
+# Same commands as docs/TESTING_GUIDE.md; third-party actions pinned by SHA.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    name: Public hygiene
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Check tracked files
+        run: bash scripts/check-public-hygiene.sh
+      - name: Self-test the check
+        run: bash tests/hygiene/run.sh
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Lua 5.4
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.4
+      - name: Parse every Lua file
+        run: find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p
+      - name: Release scripts (notes and assets of the latest tag)
+        run: |
+          set -euo pipefail
+          git fetch -q --tags origin
+          tag="$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)"
+          bash scripts/release-notes.sh "$tag" > /dev/null
+          bash scripts/release-assets.sh "$tag" "$RUNNER_TEMP/assets"
+          (cd "$RUNNER_TEMP/assets" && sha256sum -c SHA256SUMS)
+      - name: Shell syntax
+        run: |
+          set -e
+          for f in dev.sh install.sh docker/local/dwpvim/entrypoint.sh scripts/*.sh \
+                   tests/smoke/run.sh tests/installer/run.sh tests/hygiene/run.sh; do
+            bash -n "$f"
+          done
+
+  smoke:
+    name: Smoke suite
+    runs-on: ubuntu-24.04
+    env:
+      NVIM_VERSION: 0.12.5
+      NVIM_SHA256: bce0f56eda1f1b1db6eee8f4133d7a38813ea07933837dd1777411ca384c6875
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # the addon-surface smoke compares against release tags
+      - name: Install Neovim (pinned, sha256-verified)
+        run: |
+          set -euo pipefail
+          tgz="$RUNNER_TEMP/nvim.tar.gz"
+          curl -fsSL "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-x86_64.tar.gz" -o "$tgz"
+          echo "${NVIM_SHA256}  $tgz" | sha256sum -c -
+          tar -xzf "$tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+      - name: Run the smoke suite
+        run: bash tests/smoke/run.sh
+
+  installer:
+    name: Installer harness
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Lua 5.4
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.4
+      - name: Run the installer harness
+        run: bash tests/installer/run.sh
+
+  mappings:
+    name: Mapping contracts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.23'
+          cache: false
+      - name: Go mapping contracts
+        working-directory: tests
+        run: go test -count=1 -parallel 8 .

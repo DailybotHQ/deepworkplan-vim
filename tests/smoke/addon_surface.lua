@@ -151,6 +151,8 @@ end
 ok(pipe_free, "no install step pipes a download into a shell")
 ok(#(install.steps or {}) >= 3, "download / verify / run are separate steps")
 ok(type(install.consent) == "table" and install.consent.backup_dir == "~/.config/previous-deepworkplan-vim", "consent and backup dir declared")
+local readme = read("README.md") or ""
+ok(readme:find("/" .. tostring(s.version) .. "/install.sh", 1, true) ~= nil, "README pins the install line to this version")
 ok(read("delete.lua") ~= nil and tostring(install.uninstall):find("delete.lua", 1, true) ~= nil, "uninstall names delete.lua")
 
 -- 5. plan_reader: read-only, and every file it claims is one lua/dwp reads.

@@ -1,0 +1,7 @@
+# Public-hygiene exceptions (scripts/check-public-hygiene.sh).
+# One per line:  <path-glob> | <literal the hit line contains> | <reason>
+# Stale entries fail the check; secret-shaped exceptions must be obviously fake.
+
+docker/local/* | /home/dev | contributor container's generic user `dev` (uid 1000), not a person
+.review/extension.md | /home/dev | documents the container's read-only SSH mount for user `dev`
+docs/SECURITY.md | /home/dev | documents the container's read-only SSH mount for user `dev`

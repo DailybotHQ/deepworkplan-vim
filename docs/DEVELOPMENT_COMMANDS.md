@@ -53,11 +53,13 @@ bash -n dev.sh
 bash -n docker/local/dwpvim/entrypoint.sh
 find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p   # full Lua parse
 luac5.4 -p lua/mapping/git.lua                                  # scoped Lua parse
+bash scripts/check-public-hygiene.sh                            # public-hygiene rules (offline)
+bash tests/hygiene/run.sh                                       # hygiene check self-test
 bash tests/run.sh                                               # contract suite — needs Podman/Docker
 cd tests && go test -count=1 -parallel 8 .                      # contract suite — needs Go on host
 ```
 
-Status of each gate on a bare dev host (bash + lua only): the first four run;
+Status of each gate on a bare dev host (bash + lua + git): the first six run;
 the last two need a container or Go. See [TESTING_GUIDE.md](TESTING_GUIDE.md)
 for the evidence and the fallback.
 
@@ -69,7 +71,7 @@ bash tests/smoke/run.sh
 
 Headless Neovim over the repo's `lua/` tree with a minimal runtime — no
 container, no plugin sync, no network. Five sections (model, sidebar,
-reader, statusline, greeter, render, consistency, self-contained, addon surface; 561 assertions) over the committed fixtures
+reader, statusline, greeter, render, consistency, self-contained, addon surface; 562 assertions) over the committed fixtures
 in `tests/fixtures/dwp_plans/`. Required for any change under `lua/dwp/`;
 per-section scope and honest non-coverage: `tests/smoke/README.md`. Read
 the output for the `assertions OK` sentinel — nvim exits 0 even after a
@@ -124,6 +126,18 @@ flows live in `.agents/skills/deepworkplan/`, discovery is local.)
 ## Release
 
 Automatic: merge (or push) to `main` triggers
-`.github/workflows/auto-release.yml` — semver from commit prefixes, GitHub
-Release published. `[skip release]` in the merge body suppresses. Manual
-dispatch: the workflow also exposes `workflow_dispatch`.
+`.github/workflows/auto-release.yml` — nothing to do while
+`addon/surface.json` names a released version; otherwise semver from commit
+prefixes, refused unless the surface version and a `CHANGELOG.md` section
+name it; annotated tag; release notes from the CHANGELOG; assets +
+`SHA256SUMS`. `[skip release]` in the merge body also suppresses. Only `main`
+publishes; manual dispatch defaults to a dry run; `prerelease: rc.1` cuts
+`vX.Y.Z-rc.1`; a re-run after a failed publish finishes that release.
+
+```bash
+bash scripts/release-notes.sh v0.4.0               # the notes a release would carry
+bash scripts/release-assets.sh v0.4.0 /tmp/assets  # rebuild a release's assets + SHA256SUMS from its tag
+```
+
+Verify a downloaded release: `sha256sum -c SHA256SUMS` (macOS:
+`shasum -a 256 -c SHA256SUMS`) in the directory holding the assets.

@@ -90,5 +90,5 @@ directions of independence hold at all times:
 - Not a framework, distro, or plugin marketplace — one curated config.
 - Not a wrapper around any single coding CLI: agent CLIs are opt-in build
   args, and no path requires a specific vendor (no Dailybot-only flows, no
-  `dbdev`).
+  internal-only tooling).
 - No support for Neovim < 0.12.

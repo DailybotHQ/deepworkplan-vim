@@ -6,7 +6,7 @@
 - Commit messages: **Conventional Commits** (`feat:`, `fix:`, `perf:`, `docs:`,
   `refactor:`, `test:`, `chore:`, `ci:`). The release workflow parses the
   prefix — `feat:`/`fix:`/`perf:` bump minor, a `BREAKING CHANGE` footer bumps
-  major, everything else patch. `[skip release]` in the body publishes nothing.
+  major, everything else patch. A merge publishes a release only when `addon/surface.json` names a new version (see CONTRIBUTING.md → Releases); `[skip release]` in the body also publishes nothing.
 
 ## Formatting (`.editorconfig` is the source of truth)
 
@@ -64,7 +64,7 @@
 - `~/.ssh` stays mounted read-only; SSH publishes on loopback only.
 - Keep `LICENSE` (GPL-3.0) and `CREDITS.md` (mu-vim lineage) intact in every
   change.
-- Do not require Dailybot-only paths or `dbdev`; do not flip coding-CLI build
+- Do not require Dailybot-only paths or internal-only tooling; do not flip coding-CLI build
   args away from default `false`.
 
 ## Docs hygiene

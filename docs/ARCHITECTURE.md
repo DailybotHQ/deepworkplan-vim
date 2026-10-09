@@ -103,10 +103,23 @@ tell the same story in sidebar, reader, statusline and greeter).
 
 ## Release flow
 
-`.github/workflows/auto-release.yml`: push to `main` → resolve next semver from
+`.github/workflows/auto-release.yml`: push to `main` → no-op (notice) while
+`addon/surface.json` names a released version → otherwise resolve next semver from
 commit prefixes (`feat:`/`fix:`/`perf:` bump minor; `BREAKING CHANGE` footer
-bumps major; anything else patch) → tag + GitHub Release. `[skip release]` in
-the merge body publishes nothing.
+bumps major; anything else patch) → refuse unless `addon/surface.json` names
+that tag and `CHANGELOG.md` has its `## [vX.Y.Z]` section → annotated tag →
+GitHub Release whose notes are that CHANGELOG section, with the source
+archive, `install.sh`, `surface.json` and `SHA256SUMS` attached
+(`scripts/release-notes.sh`, `scripts/release-assets.sh`). `[skip release]`
+in the merge body publishes nothing; `workflow_dispatch` defaults to a dry
+run (assets as a workflow artifact) and cuts pre-releases by suffix.
+
+## CI
+
+`.github/workflows/ci.yml`, on every pull request and push to `main`: public
+hygiene (+ its self-test), lint (`luac5.4 -p`, `bash -n`), the smoke suite
+(Neovim pinned by version and sha256), the installer harness, and the Go
+mapping contracts. Branch protection on `main` requires these checks.
 
 ## DWP harness layer
 
