@@ -9,6 +9,20 @@ pane (including Herdr mesh panes on other machines). It is a git repository
 that *is* the product: clone it to `~/.config/nvim`, run `lua install.lua`, and
 Neovim becomes the DeepWorkPlan editor.
 
+## Positioning
+
+DeepWorkPlan Vim **is DeepWorkPlan's editor**. DeepWorkPlan v7 offers it as
+the optional `vim` addon during onboarding, pinned by tag; the addon reads
+this repository's machine-readable surface instead of guessing. Two
+directions of independence hold at all times:
+
+- **DeepWorkPlan never requires it.** The methodology works with any editor,
+  or none; declining the addon leaves a repository fully conformant.
+- **It never requires DeepWorkPlan.** The editor installs and runs without
+  the DeepWorkPlan skill; when a repository has no `.dwp/plans/`, the
+  plan surfaces show an empty state ("No plans yet") and the statusline
+  segment stays hidden.
+
 ## Who it is for
 
 - **Deep Work Plan practitioners** who want their editor pre-tuned for the
@@ -69,9 +83,10 @@ Neovim becomes the DeepWorkPlan editor.
 
 ## Non-goals
 
-- **Not a DWP v6 addon.** The editor is planned as an *optional addon for
-  DWP v7* upstream; it does not install or require the DeepWorkPlan skill
-  itself to function as an editor.
+- **Not a requirement of DeepWorkPlan, and not dependent on it.** The
+  editor is an optional addon (see Positioning); it does not install or
+  require the DeepWorkPlan skill to function as an editor, and the
+  methodology never requires the editor.
 - Not a framework, distro, or plugin marketplace — one curated config.
 - Not a wrapper around any single coding CLI: agent CLIs are opt-in build
   args, and no path requires a specific vendor (no Dailybot-only flows, no

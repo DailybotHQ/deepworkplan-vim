@@ -1,10 +1,10 @@
 # DeepWorkPlan Vim
 
-The official **terminal editor** for [Deep Work Plan](https://deepworkplan.com): a Neovim configuration with a VS Code feel — lightweight, fast to start, built for humans and for coding agents that live in a terminal, including Herdr panes.
+**DeepWorkPlan's editor** — the terminal editor for [Deep Work Plan](https://deepworkplan.com): a Neovim configuration with a VS Code feel — lightweight, fast to start, built for humans and for coding agents that live in a terminal, including Herdr panes.
 
 This repository is public, GPL-3.0. It is derived from [AndresMpa/mu-vim](https://github.com/AndresMpa/mu-vim) (see [CREDITS.md](./CREDITS.md)). New work lands here under the DeepWorkPlan name.
 
-> **Roadmap:** DeepWorkPlan **v7** will offer this editor as an optional addon (`deepworkplan-vim`) during onboard. It is **not** part of v6.
+> **Optional, never required.** DeepWorkPlan v7 offers this editor as its optional `vim` addon during onboarding, pinned by tag. The methodology works with any editor (or none), and this editor works on its own — nothing here installs or requires the DeepWorkPlan skill.
 
 ## Install (host)
 
@@ -23,7 +23,7 @@ without a terminal the script aborts instead of touching anything.
 Advanced / offline:
 
 ```bash
-curl -fsSL https://deepworkplan.com/vim/install.sh | DWP_VIM_REF=v0.3.1 bash   # pin a tag
+curl -fsSL https://deepworkplan.com/vim/install.sh | DWP_VIM_REF=v0.4.0 bash   # pin a tag (recommended for images and automation)
 git clone https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim    # manual (advanced)
 cd ~/.config/nvim && lua install.lua
 DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh                       # local/offline source (also redirects updates)

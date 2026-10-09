@@ -8,7 +8,7 @@ DWP standard: 6.0.0 (onboarded 2026-10-03; upgraded 2026-10-03; skill 6.0.2)
 
 DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: `curl -fsSL https://deepworkplan.com/vim/install.sh | bash` (or manually: clone to `~/.config/nvim` and `lua install.lua`). This repo **is** the config; do not nest a second clone inside Docker.
 
-Roadmap: optional DWP **v7** addon. Not v6. (That line is about the *editor* being offered as an onboard addon upstream; the harness in this repo runs skill 6.0.2 per the provenance line above.)
+Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 6.0.2 per the provenance line above.
 
 ## Documentation index
 
