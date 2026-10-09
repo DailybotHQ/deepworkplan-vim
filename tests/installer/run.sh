@@ -89,6 +89,19 @@ git -C "$FIXTURE" -c user.name=t -c user.email=t@example.com \
   tag -f -a "$RELEASE_REF" -m "fixture release $RELEASE_REF" >/dev/null
 # A pre-release newer than everything: `latest` and `>=` must ignore it.
 git -C "$FIXTURE" tag -f v9.9.9-rc.1 >/dev/null
+# The version-selection scenarios pin v0.4.1 and v0.4.2. A checkout without
+# those tags (a fork, a tag-less CI fetch) gets them on older commits; a
+# single-commit clone cannot be tested and says so.
+for t in v0.4.2 v0.4.1; do
+  if ! git -C "$FIXTURE" rev-parse -q --verify "refs/tags/$t" >/dev/null; then
+    case "$t" in v0.4.2) back=1 ;; *) back=2 ;; esac
+    git -C "$FIXTURE" rev-parse -q --verify "HEAD~$back" >/dev/null || {
+      echo "installer harness: needs history (git fetch --unshallow --tags) for the version scenarios" >&2
+      exit 1
+    }
+    git -C "$FIXTURE" tag -f "$t" "HEAD~$back" >/dev/null
+  fi
+done
 
 # Neovim release fixture for --nvim: a tarball whose bin/nvim answers
 # --version like Neovim 0.12.5 and otherwise behaves like the nvim shim,
