@@ -1,0 +1,134 @@
+{
+  "name": "deepworkplan-vim",
+  "interface": 1,
+  "version": "v0.4.0",
+  "repository": "https://github.com/DailybotHQ/deepworkplan-vim",
+  "license": "GPL-3.0",
+  "requires": {
+    "neovim": ">=0.12"
+  },
+  "detect": {
+    "config_dir": {
+      "unix": "${XDG_CONFIG_HOME:-$HOME/.config}/nvim",
+      "windows": "%LOCALAPPDATA%\\nvim",
+      "override_env": "DWP_VIM_DIR"
+    },
+    "identity_files": [
+      "install.lua",
+      "lua/plugins.lua"
+    ],
+    "surface_file": "addon/surface.json",
+    "marker": {
+      "path": "${XDG_DATA_HOME:-$HOME/.local/share}/<appname>/pckr/.dwp-vim-bootstrapped",
+      "appname": "basename of the config dir (nvim by default)",
+      "written_by": "install.sh, after a clean headless plugin bootstrap",
+      "meaning": "plugins installed; absence does not mean the editor is absent"
+    },
+    "legacy_marker": {
+      "path": "${XDG_DATA_HOME:-$HOME/.local/share}/nvim/deepworkplan-vim-installed",
+      "written_by": "install.lua in v0.3.1 and earlier; no longer written"
+    },
+    "states": {
+      "installed": "config dir holds both identity_files and surface_file; read interface and version from the surface file",
+      "installed_without_surface": "config dir holds both identity_files but no surface_file: a release older than v0.4.0; interface unknown, treat as not compatible",
+      "existing_config": "config dir is non-empty and lacks either identity file: a foreign config; never overwrite without consent",
+      "absent": "config dir missing or empty"
+    },
+    "read_only": true
+  },
+  "install": {
+    "ref": "v0.4.0",
+    "ref_env": "DWP_VIM_REF",
+    "script": {
+      "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.4.0/install.sh",
+      "mirror_url": "https://deepworkplan.com/vim/install.sh",
+      "sha256": "a41e532ed9b8b13b06596349e1ac9ab174d48727b1c7bc59b0760b083a128762"
+    },
+    "steps": [
+      "download script.url to a local file named install.sh",
+      "verify its sha256 equals script.sha256; stop on mismatch",
+      "run it with the ref pinned: DWP_VIM_REF=v0.4.0 bash install.sh"
+    ],
+    "manual": [
+      "git clone --branch v0.4.0 https://github.com/DailybotHQ/deepworkplan-vim.git <config_dir>",
+      "cd <config_dir> && lua install.lua"
+    ],
+    "windows": [
+      "winget install -e --id Neovim.Neovim",
+      "git clone --branch v0.4.0 https://github.com/DailybotHQ/deepworkplan-vim.git \"$LOCALAPPDATA/nvim\"",
+      "cd \"$LOCALAPPDATA/nvim\" && lua install.lua"
+    ],
+    "consent": {
+      "existing_config": "an interactive run asks before moving it aside; a run without a terminal aborts with instructions and touches nothing",
+      "backup_dir": "~/.config/previous-deepworkplan-vim"
+    },
+    "uninstall": "lua <config_dir>/delete.lua"
+  },
+  "capabilities": {
+    "plan_reader": {
+      "read_only": true,
+      "roots": [
+        "<cwd>/.dwp/plans",
+        "<config_dir>/.dwp/plans"
+      ],
+      "reads": [
+        "manifest",
+        "journal",
+        "state",
+        "readme_checkboxes",
+        "contract"
+      ],
+      "files": [
+        "manifest.json",
+        "journal.ndjson",
+        "state.json",
+        "README.md",
+        "contract.json"
+      ],
+      "writes": [],
+      "surfaces": [
+        "sidebar",
+        "reader",
+        "statusline",
+        "dashboard"
+      ]
+    }
+  },
+  "features": [
+    {
+      "id": "command_index",
+      "keys": ["<Leader>hh"],
+      "commands": ["DwpCommands"],
+      "since": "v0.4.0",
+      "summary": "Every mapping in the config, generated live from the actual keymaps, grouped and searchable."
+    },
+    {
+      "id": "vscode_gestures",
+      "keys": ["<C-a>", "<Leader>y"],
+      "commands": [],
+      "since": "v0.4.0",
+      "summary": "Select all in normal mode; yank to the system clipboard in normal and visual mode."
+    },
+    {
+      "id": "plan_browser",
+      "keys": ["<Leader>P"],
+      "commands": ["DwpPlans"],
+      "since": "v0.4.0",
+      "summary": "Sidebar of every Deep Work Plan grouped by status with progress; Enter opens a plain-language reader; a clickable statusline segment and a dashboard overview show the active plans."
+    },
+    {
+      "id": "markdown_viewer",
+      "keys": ["<Leader>mp", "<Leader>mr"],
+      "commands": [],
+      "since": "v0.4.0",
+      "summary": "Preview markdown in the browser or render it in the buffer."
+    },
+    {
+      "id": "one_line_installer",
+      "keys": [],
+      "commands": [],
+      "since": "v0.4.0",
+      "summary": "install.sh: preflight, clone, system setup and headless plugin install; consent-first for an existing config."
+    }
+  ]
+}

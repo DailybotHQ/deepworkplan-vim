@@ -33,6 +33,7 @@ run_smoke statusline tests/smoke/dwp_statusline.lua
 run_smoke greeter tests/smoke/dwp_greeter.lua
 run_smoke render tests/smoke/dwp_render.lua
 run_smoke consistency tests/smoke/dwp_consistency.lua
+run_smoke "addon surface" tests/smoke/addon_surface.lua
 
 if [ "$overall" -eq 0 ]; then
 	echo "DWP SMOKE SUITE: OK"

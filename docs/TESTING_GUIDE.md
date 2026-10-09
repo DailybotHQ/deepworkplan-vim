@@ -23,7 +23,7 @@ Full suite and lint/type-check commands, with the working directory and status:
 | `bash -n docker/local/dwpvim/entrypoint.sh` | repo root | full — entrypoint syntax | **verified on host** |
 | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | repo root | full — every Lua file parses | **verified on host** |
 | `luac5.4 -p lua/mapping/git.lua` | repo root | scoped — one file | **verified on host** (non-empty: parses that file; the full-run variant above is the cheap default) |
-| `bash tests/smoke/run.sh` | repo root | full — dwp runtime smokes (model, sidebar, reader, statusline, greeter, render, consistency) over committed fixtures; 424 assertions | **verified on host** |
+| `bash tests/smoke/run.sh` | repo root | full — dwp runtime smokes (model, sidebar, reader, statusline, greeter, render, consistency, addon surface) over committed fixtures and `addon/surface.json`; 479 assertions | **verified on host** |
 | `bash tests/installer/run.sh` | repo root | full — installer compatibility harness: 21 scenarios over the real `install.sh` (OS gate, per-manager sudo policy, consent/backup envelope, clone-vs-update incl. the diverged-local die, XDG/APPNAME bootstrap composition, real-Lua uninstaller guards); bounds in `tests/installer/README.md` | **verified on host** |
 | `bash tests/run.sh` | repo root | full — mapping contracts via Podman/Docker | **container-required** — no Podman/Docker on the dev host; verified shape, not run here |
 | `cd tests && go test -count=1 -parallel 8 .` | `tests/` | full — mapping contracts on a Go host | **unverified on this host** (no Go installed); same suite `tests/run.sh` runs in compose |
@@ -65,6 +65,13 @@ config is not mounted are skipped, not failed) with `ok` per package.
 `currentOnly` in the Lua flavor, `vimFamily` in mini/VimScript. A change to
 any mapping file requires updating the contract expectations in the same
 change.
+
+`addon/surface.json`, `install.sh`, `lua/mapping/*.lua`, `lua/dwp/*.lua` ⇄
+`tests/smoke/addon_surface.lua`: the surface's claims are checked against
+those files, so a change to any of them (an installer edit changes its
+sha256; a removed key or command breaks a feature claim) requires the
+surface smoke to stay green in the same change — update `surface.json`
+alongside.
 
 `lua/dwp/*.lua` ⇄ `tests/smoke/dwp_*.lua` (fixtures in
 `tests/fixtures/dwp_plans/`, runner `tests/smoke/run.sh`, per-smoke docs in

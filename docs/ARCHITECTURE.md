@@ -46,7 +46,12 @@ docker/              contributor container (docker/local/) + image custom comman
 tests/               Go mapping-contract suite (parses Lua/VimScript; no Neovim)
                      + smoke suite (tests/smoke/: host-runnable headless
                      nvim over fixtures — model, sidebar, reader,
-                     statusline, greeter, render/consistency proofs)
+                     statusline, greeter, render/consistency proofs,
+                     addon surface)
+addon/               surface.json: machine-readable addon surface (interface 1,
+                     version, detection, tag-pinned install + sha256, read-only
+                     plan reader, shipped features) — read by the DWP `vim`
+                     addon; addon/README.md explains it
 snippets/ dicts/     data: snippet sources, spell dictionaries
 dev.sh               launcher: compose up/down/shell/build/rebuild + herdr agents/ask
 install.sh           curl-able entry: preflight, consent, clone/update, then lua

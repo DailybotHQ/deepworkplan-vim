@@ -74,6 +74,12 @@ terminal-independent entry points for the same two panels.
 **Quickstart:** run the one-liner, launch `nvim`, press `Space h h`. The index
 is the tour — every row names its key and what it does.
 
+For integrators: [`addon/surface.json`](addon/surface.json) is the
+machine-readable surface the DeepWorkPlan `vim` addon reads — interface
+version, detection, the tag-pinned install path with the installer's
+sha256, the read-only plan reader, and the features this tag ships
+([`addon/README.md`](addon/README.md) explains it).
+
 Also included: `lua install.lua` / `lua delete.lua` for install and uninstall,
 and an optional **dev container** with Herdr mesh so agents in this repo can
 list and talk to agents on other machines.

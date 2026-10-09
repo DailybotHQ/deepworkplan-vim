@@ -29,7 +29,8 @@ Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v
 Repo shape (2 levels): `init.lua` + `lua/{mapping,lsp,scheme,setUp}` (editor
 config) · `utilities/installation` (installer) · `install.lua`/`delete.lua` ·
 `dev.sh` + `docker/local` (contributor container + Herdr) · `tests/` (Go
-mapping contracts) · `snippets/` `dicts/` (data) · `.agents/` (harness) ·
+mapping contracts, smokes, installer harness) · `addon/` (machine-readable
+addon surface) · `snippets/` `dicts/` (data) · `.agents/` (harness) ·
 `.dwp/` (plan output, gitignored) · `tmp/` (scratch, gitignored).
 
 ## Deep Work Plans — invocation
@@ -85,7 +86,7 @@ Install Herdr on the host: https://herdr.dev/docs/install/ — show the command;
 | Syntax-check launcher | `bash -n dev.sh` | full |
 | Syntax-check entrypoint | `bash -n docker/local/dwpvim/entrypoint.sh` | full |
 | Parse-check all Lua | `find lua utilities -name '*.lua' -print0 \| xargs -0 luac5.4 -p` | full (scoped: `luac5.4 -p <file>`) |
-| dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter/render/consistency over fixtures (render proves screen-grid output; consistency proves one vocabulary across surfaces) |
+| dwp runtime smokes | `bash tests/smoke/run.sh` | full — host-runnable (bash + nvim); model/sidebar/reader/statusline/greeter/render/consistency/addon-surface over fixtures (render proves screen-grid output; consistency proves one vocabulary across surfaces; addon-surface proves `addon/surface.json` true of the tree) |
 | Installer compat harness | `bash tests/installer/run.sh` | full — host-runnable (bash + git + coreutils + `script` (util-linux or BSD/macOS) + `lua5.4`; any branch); real install.sh over PATH shims: manager legs, sudo policy, consent/backup envelope, clone-vs-update incl. diverged-local die, XDG/APPNAME composition, real-Lua uninstaller guards |
 | Mapping-contract tests | `bash tests/run.sh` | full — needs Podman or Docker |
 | Mapping tests, Go host | `cd tests && go test -count=1 -parallel 8 .` | full — needs Go (not on this host; unverified here) |
