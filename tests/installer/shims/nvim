@@ -1,9 +1,21 @@
 #!/usr/bin/env bash
 # tests/installer/shims/nvim — records the headless bootstrap invocation
 # plus the XDG composition it received, then succeeds (marker eligible).
+# SHIM_NVIM_RC: exit code to return (a failed or timed-out bootstrap).
+# SHIM_NVIM_PLUGINS: plugin dirs to create under pckr's opt pack, each with
+# a file; SHIM_NVIM_EMPTY names one to leave as an empty clone (.git only).
 [ -n "${SHIM_LOG:-}" ] && {
   printf 'nvim %s\n' "$*" >>"$SHIM_LOG"
   printf 'nvim-env XDG_CONFIG_HOME=%s NVIM_APPNAME=%s\n' \
     "${XDG_CONFIG_HOME:-}" "${NVIM_APPNAME:-}" >>"$SHIM_LOG"
 }
-exit 0
+if [ -n "${SHIM_NVIM_PLUGINS:-}" ]; then
+  opt="$HOME/.local/share/${NVIM_APPNAME:-nvim}/site/pack/pckr/opt"
+  for p in $SHIM_NVIM_PLUGINS; do
+    mkdir -p "$opt/$p/.git"
+    if [ "$p" != "${SHIM_NVIM_EMPTY:-}" ]; then
+      printf 'return {}\n' >"$opt/$p/init.lua"
+    fi
+  done
+fi
+exit "${SHIM_NVIM_RC:-0}"
