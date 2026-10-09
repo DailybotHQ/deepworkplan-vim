@@ -67,8 +67,9 @@ with a reason (secret-shaped test fixtures must be obviously fake).
 [Conventional Commits](https://www.conventionalcommits.org/):
 `<type>(<optional scope>): <description>`, in English, imperative mood.
 Types: `feat`, `fix`, `perf`, `docs`, `style`, `refactor`, `test`, `ci`,
-`chore`. The type drives the release bump: `feat`/`fix`/`perf` → minor,
-a `BREAKING CHANGE` footer or `type!:` → major, anything else → patch.
+`chore`. The type drives the release bump (SemVer): `feat` → minor,
+`fix`/`perf` and every other type → patch,
+a `BREAKING CHANGE` footer or `type!:` → major.
 
 A DCO sign-off is **not** required.
 
@@ -92,7 +93,10 @@ nothing. `[skip release]` in the merge commit body also skips it. A release PR:
    `## [vX.Y.Z] - YYYY-MM-DD` (the version the commit types compute) and
    adds a fresh `## [Unreleased]`.
 2. Sets `version` and every tag in `install` of `addon/surface.json` to
-   `vX.Y.Z` (and the README's pinned tag).
+   `vX.Y.Z`; sets `RELEASE_REF` and the release named in the header of
+   `install.sh` to `vX.Y.Z` (then `install.script.sha256` to the new
+   `sha256(install.sh)`); and moves the README's and AGENTS' tag pins. The
+   smoke suite fails until all of them agree.
 3. Merges without `[skip release]`.
 
 The workflow refuses a release whose surface version differs from the one

@@ -3,7 +3,8 @@
 
   Install Neovim deps for pacman, apt, dnf, Homebrew, and winget.
   Package names are remapped per manager. pnpm is a core requirement;
-  if the distro has no pnpm package, we use the official installer.
+  if the distro has no pnpm package, npm installs it under the user prefix
+  (no downloaded script is ever piped into a shell).
 ]]
 
 local util = require("utilities.installation.util")
@@ -48,6 +49,30 @@ local WINGET_EXTRA = {
 
 local function exec_ok(cmd)
   return util.exec_ok(cmd)
+end
+
+-- Defined further down; ensure_pnpm needs it to add npm on demand.
+local install_unix_packages
+
+-- pnpm major this config installs when the system has none, and the oldest
+-- Node.js that runs it.
+M.PNPM_SPEC = "pnpm@10"
+M.PNPM_MIN_NODE = 18
+
+-- Major version of the node on PATH, or nil when it cannot be read.
+function M.node_major()
+  local handle = io.popen("node --version 2>/dev/null")
+  if not handle then
+    return nil
+  end
+  local out = handle:read("*a") or ""
+  handle:close()
+  return tonumber(out:match("^v(%d+)"))
+end
+
+-- Escape a value for use inside a double-quoted POSIX shell word.
+local function sh_dq(value)
+  return (value:gsub('[\\"$`]', "\\%0"))
 end
 
 function M.core_packages(manager)
@@ -116,20 +141,43 @@ function M.pnpm_env()
   return string.format('PNPM_HOME="%s" PATH="%s:$PATH" ', home, bin)
 end
 
-function M.ensure_pnpm()
+-- npm installs pnpm from the registry: no downloaded script is ever piped
+-- into a shell. On Unix it goes under the user prefix PNPM_HOME, whose bin/
+-- pnpm_env() puts on PATH. `manager` (optional) adds a missing npm first —
+-- separately from the core batch, because Debian's npm package conflicts
+-- with the npm NodeSource's nodejs already bundles.
+function M.ensure_pnpm(manager)
   util.mkdir_p(M.pnpm_home())
   if util.has_command("pnpm") then
     return true
   end
-  io.write("pnpm is not on PATH, using the official installer\n")
-  if util.is_windows() then
-    return exec_ok(
-      'powershell -NoProfile -Command "iwr https://get.pnpm.io/install.ps1 -useb | iex"'
-    )
+  if not util.has_command("npm") and manager and manager ~= "winget" and not util.is_windows() then
+    io.write("npm is not on PATH, installing it with " .. manager .. "\n")
+    install_unix_packages(manager, { "npm" })
   end
-  -- `sh -` has no $SHELL, and pnpm's installer exits with
-  -- ERR_PNPM_UNKNOWN_SHELL. A container build hits that path.
-  return exec_ok("curl -fsSL https://get.pnpm.io/install.sh | env SHELL=/bin/bash sh -")
+  if not util.has_command("npm") then
+    io.stderr:write("pnpm is missing and npm is not available to install it: install Node.js with npm, then rerun\n")
+    return false
+  end
+  local major = M.node_major()
+  if major and major < M.PNPM_MIN_NODE then
+    io.stderr:write(
+      string.format(
+        "Node.js %d is too old for %s (needs %d+): install a newer Node.js, then rerun\n",
+        major,
+        M.PNPM_SPEC,
+        M.PNPM_MIN_NODE
+      )
+    )
+    return false
+  end
+  io.write("pnpm is not on PATH, installing " .. M.PNPM_SPEC .. " with npm (user prefix)\n")
+  if util.is_windows() then
+    return exec_ok("npm install -g --ignore-scripts " .. M.PNPM_SPEC)
+  end
+  return exec_ok(
+    string.format('npm install -g --ignore-scripts --prefix "%s" %s', sh_dq(M.pnpm_home()), M.PNPM_SPEC)
+  )
 end
 
 -- Global pnpm packages go under the user prefix. A system PNPM_HOME
@@ -154,7 +202,7 @@ function M.ensure_formatters()
   return status
 end
 
-local function install_unix_packages(manager, packages)
+install_unix_packages = function(manager, packages)
   local pkg_list = table.concat(packages, " ")
   -- Root (common in containers) has no sudo binary and needs none.
   local sudo = util.is_root() and "" or "sudo "
@@ -230,7 +278,7 @@ function M.installDependencies(manager, extra_names, config_dir)
     end
   end
 
-  if not M.ensure_pnpm() then
+  if not M.ensure_pnpm(manager) then
     io.stderr:write("Could not install pnpm\n")
     status = false
   end

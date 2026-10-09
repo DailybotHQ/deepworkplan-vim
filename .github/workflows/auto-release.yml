@@ -3,8 +3,9 @@ name: Auto release
 # Merge to main cuts a GitHub Release. This repo is the Neovim config itself;
 # the contributor image mounts it at ~/.config/nvim (no nested clone).
 #
-# feat: / fix: / perf: bump minor. A BREAKING CHANGE footer (or `!:`) bumps
-# major. Everything else, including a missing prefix, bumps patch.
+# SemVer from Conventional Commits: feat: bumps minor; fix:, perf: and
+# everything else (including a missing prefix) bump patch; a BREAKING CHANGE
+# footer (or `!:`) bumps major.
 # A merge whose addon/surface.json still names an already-released version
 # publishes nothing (a notice, not a failure); [skip release] in the merge
 # commit body also publishes nothing. A release PR sets surface.json to the
@@ -98,7 +99,7 @@ jobs:
             bump="major"
           elif git log --format='%s' "$range" | grep -Eq '^[a-z]+(\([^)]+\))?!:'; then
             bump="major"
-          elif git log --format='%s' "$range" | grep -Eq '^(feat|fix|perf)(\([^)]+\))?:'; then
+          elif git log --format='%s' "$range" | grep -Eq '^feat(\([^)]+\))?:'; then
             bump="minor"
           fi
           case "$bump" in

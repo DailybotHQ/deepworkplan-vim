@@ -74,12 +74,19 @@ trap 'rm -rf "$WORK"' EXIT
 FIXTURE="$WORK/fixture-deepworkplan-vim"
 git clone -q "$REPO" "$FIXTURE"
 # The fixture stands in for the remote, whose default branch is 'main'
-# (install.sh checks out 'main' by default, and clones of the fixture
-# follow its HEAD). A clone only creates the source's CURRENT branch, so
-# when the harness runs from a feature branch the fixture would have no
-# 'main' at all: point 'main' at the commit under test and check it out
-# (a no-op when the harness already runs on 'main').
+# (clones of the fixture follow its HEAD). A clone only creates the
+# source's CURRENT branch, so when the harness runs from a feature branch
+# the fixture would have no 'main' at all: point 'main' at the commit under
+# test and check it out (a no-op when the harness already runs on 'main').
 git -C "$FIXTURE" checkout -q -B main
+# install.sh installs the release tag baked into it (RELEASE_REF) unless
+# DWP_VIM_REF says otherwise. Before that release exists, and to test the
+# commit under test rather than the published one, the fixture carries the
+# tag — annotated, like real releases — on its main.
+RELEASE_REF="$(sed -n 's/^RELEASE_REF="\(.*\)"$/\1/p' "$REPO/install.sh")"
+[ -n "$RELEASE_REF" ] || { echo "install.sh has no RELEASE_REF line" >&2; exit 1; }
+git -C "$FIXTURE" -c user.name=t -c user.email=t@example.com \
+  tag -f -a "$RELEASE_REF" -m "fixture release $RELEASE_REF" >/dev/null
 
 # NEUTRAL_DIR: shims visible in every scenario (OS identity only).
 NEUTRAL_DIR="$WORK/neutral-bin"
@@ -128,6 +135,18 @@ run_install() { # run_install <T> <out-file> [VAR=value...] — sets RC
   env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
     SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" \
     "$@" bash "$REPO/install.sh" </dev/null >"$out" 2>&1 || RC=$?
+}
+
+run_install_piped() { # run_install_piped <T> <out-file> [VAR=value...] — sets RC
+  # The script arrives through a PIPE, exactly as when a download is piped
+  # into bash (a file redirect is seekable and would hide a stray stdin
+  # read): nothing in it may consume stdin, and with no terminal the
+  # consent gate must stay safe.
+  local T="$1" out="$2"; shift 2
+  RC=0
+  cat "$REPO/install.sh" | env -i HOME="$T/home" PATH="$NEUTRAL_DIR:$T/bin:$BASE_BIN" \
+    SHIM_LOG="$T/shim.log" SHIM_BIN="$T/bin" \
+    "$@" bash >"$out" 2>&1 || RC=$?
 }
 
 # --- scenarios --------------------------------------------------------------
@@ -193,7 +212,7 @@ scenario_update_ours() {
   git clone -q "$FIXTURE" "$T/home/.config/nvim"
   run_install "$T" "$T/out.log"
   wg "update path taken"       "Existing DeepWorkPlan Vim install" "$T/out.log"
-  wg "updating to ref"         "updating to 'main'"            "$T/out.log"
+  wg "updating to ref"         "updating to '$RELEASE_REF'"    "$T/out.log"
   wng "no consent prompt"      "Move it to"                    "$T/out.log"
   wg "lua leg ran (stub)"      "lua5.4 install.lua"            "$T/shim.log"
   wg "bootstrap ran"           "nvim --headless"               "$T/shim.log"
@@ -369,9 +388,10 @@ scenario_delete_foreign_config() {
 }
 
 scenario_update_diverged_local() {
-  # Review R2 (final review): a local main that diverged from the source
-  # must die loudly — never complete rc 0 with the success banner while
-  # silently staying on the old commit.
+  # Review R2 (final review): a local commit the source does not have must
+  # die loudly — never complete rc 0 with the success banner while silently
+  # staying on (or leaving behind) the local work. Default ref = the
+  # release tag, so this exercises the tag path.
   local T; T="$(scen_root)"
   trap "rm -rf '$T'" EXIT
   install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
@@ -387,6 +407,177 @@ scenario_update_diverged_local() {
   wx "rc non-zero"        test "$RC" -ne 0
   wx "still a git repo"   test -d "$T/home/.config/nvim/.git"
   wx "local commit intact" test "$(git -C "$T/home/.config/nvim" rev-parse HEAD)" = "$LOCAL_HEAD"
+}
+
+scenario_update_diverged_local_main() {
+  # The same R2 rule on the branch path (DWP_VIM_REF=main).
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  git clone -q "$FIXTURE" "$T/home/.config/nvim"
+  git -C "$T/home/.config/nvim" -c user.email=t@example.com -c user.name=t \
+    commit -q --allow-empty -m "local edit"
+  local LOCAL_HEAD; LOCAL_HEAD="$(git -C "$T/home/.config/nvim" rev-parse HEAD)"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=main
+  wg "divergence named"   "update skipped"            "$T/out.log"
+  wng "setup not run"     "Running the system setup"  "$T/out.log"
+  wx "rc non-zero"        test "$RC" -ne 0
+  wx "local commit intact" test "$(git -C "$T/home/.config/nvim" rev-parse HEAD)" = "$LOCAL_HEAD"
+}
+
+scenario_ref_default_release_tag() {
+  # A5: with no DWP_VIM_REF the fresh install lands exactly on the release
+  # tag baked into install.sh (detached), never on the moving main.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  local D="$T/home/.config/nvim"
+  wg "clone names the tag"  "Cloning DeepWorkPlan Vim ('$RELEASE_REF')" "$T/out.log"
+  wg "version row"          "Version       $RELEASE_REF"  "$T/out.log"
+  wng "no detached advice"  "detached HEAD"               "$T/out.log"
+  wx "exit 0"               test "$RC" -eq 0
+  wx "HEAD is exactly the tag" test "$(git -C "$D" describe --tags --exact-match HEAD 2>/dev/null)" = "$RELEASE_REF"
+  wx "HEAD detached (not main)" test -z "$(git -C "$D" symbolic-ref -q HEAD)"
+}
+
+scenario_ref_main_explicit() {
+  # DWP_VIM_REF=main is the explicit opt-in to the moving branch.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=main
+  wg "clone names main"    "Cloning DeepWorkPlan Vim ('main')" "$T/out.log"
+  wx "exit 0"              test "$RC" -eq 0
+  wx "on branch main"      test "$(git -C "$T/home/.config/nvim" symbolic-ref -q HEAD)" = "refs/heads/main"
+}
+
+scenario_update_older_to_tag() {
+  # An install on an older upstream commit (e.g. a v0.4.0 install that
+  # followed main) moves to the release tag; its local branch is kept.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  local D="$T/home/.config/nvim"
+  git clone -q "$FIXTURE" "$D"
+  git -C "$D" reset -q --hard HEAD~1
+  local OLD; OLD="$(git -C "$D" rev-parse HEAD)"
+  run_install "$T" "$T/out.log"
+  wng "not refused"        "update skipped"              "$T/out.log"
+  wg "setup ran"           "Running the system setup"    "$T/out.log"
+  wx "exit 0"              test "$RC" -eq 0
+  wx "HEAD is the tag"     test "$(git -C "$D" describe --tags --exact-match HEAD 2>/dev/null)" = "$RELEASE_REF"
+  wx "local main kept"     test "$(git -C "$D" rev-parse refs/heads/main)" = "$OLD"
+}
+
+scenario_skip_packages_missing_tool() {
+  # DWP_VIM_SKIP_PACKAGES=1 never calls a package manager: a missing tool
+  # stops the run before anything is cloned.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/apt-get" "$T/bin/apt-get"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install "$T" "$T/out.log" FAKE_UID=1000 DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_SKIP_PACKAGES=1
+  wg "names the switch"    "DWP_VIM_SKIP_PACKAGES is set" "$T/out.log"
+  wg "names the missing"   "missing: lua"                 "$T/out.log"
+  wng "no manager call"    "apt-get"                      "$T/shim.log"
+  wx "rc non-zero"         test "$RC" -ne 0
+  wx "nothing cloned"      test ! -e "$T/home/.config/nvim"
+}
+
+scenario_skip_packages_present() {
+  # With every tool present the run completes, installs no package, and
+  # hands the switch to install.lua.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/apt-get" "$T/bin/apt-get"
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install "$T" "$T/out.log" FAKE_UID=1000 DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_SKIP_PACKAGES=1
+  wg "announced"           "no system packages will be installed" "$T/out.log"
+  wg "passed to install.lua" "lua5.4 install.lua skip_packages=1" "$T/shim.log"
+  wng "no manager call"    "apt-get"                      "$T/shim.log"
+  wx "exit 0"              test "$RC" -eq 0
+}
+
+scenario_skip_packages_zero_is_off() {
+  # 0 means off: the preflight installs the missing tool as usual and
+  # install.lua is not told to skip.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/apt-get" "$T/bin/apt-get"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  run_install "$T" "$T/out.log" FAKE_UID=1000 DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_SKIP_PACKAGES=0
+  wg "lua installed"       "apt-get install -y lua5.4"    "$T/shim.log"
+  wng "switch not passed"  "skip_packages="               "$T/shim.log"
+  wx "exit 0"              test "$RC" -eq 0
+}
+
+scenario_pnpm_fallback_no_pipe() {
+  # The REAL installer.lua ensure_pnpm() under the host's real lua5.4 with
+  # a stubbed util: pnpm comes from npm (pinned major, no lifecycle scripts,
+  # user prefix), npm is added on its own apt call only when missing, an old
+  # Node.js fails clearly, and nothing it runs pipes a download into a shell.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  local L="$REPO/tests/installer/lua/pnpm_fallback.lua"
+  lua5.4 "$L" "$REPO" unix npm 22 >"$T/unix.log" 2>&1
+  lua5.4 "$L" "$REPO" windows npm 22 >"$T/win.log" 2>&1
+  lua5.4 "$L" "$REPO" unix no-npm 22 >"$T/nonpm.log" 2>&1
+  lua5.4 "$L" "$REPO" unix apt-adds-npm 22 >"$T/aptnpm.log" 2>&1
+  lua5.4 "$L" "$REPO" unix npm 12 >"$T/oldnode.log" 2>&1
+  lua5.4 "$L" "$REPO" unix npm 22 '/stub home/$x"q' >"$T/quote.log" 2>&1
+  wg "unix: npm user prefix"  'EXEC npm install -g --ignore-scripts --prefix "/stub-home/.local/share/pnpm" pnpm@10' "$T/unix.log"
+  wg "unix: result true"      "RESULT true"            "$T/unix.log"
+  wg "windows: npm global"    "EXEC npm install -g --ignore-scripts pnpm@10" "$T/win.log"
+  wg "apt adds npm alone"     "EXEC sudo apt-get update && sudo apt-get install -y npm" "$T/aptnpm.log"
+  wg "then pnpm via npm"      "EXEC npm install -g --ignore-scripts --prefix" "$T/aptnpm.log"
+  wg "no npm: clear failure"  "npm is not available"   "$T/nonpm.log"
+  wg "no npm: result false"   "RESULT false"           "$T/nonpm.log"
+  wg "old node: clear failure" "Node.js 12 is too old"  "$T/oldnode.log"
+  wng "old node: no install"  "EXEC npm"               "$T/oldnode.log"
+  wx "prefix quoted for sh"   grep -qF -- '--prefix "/stub home/\$x\"q/.local/share/pnpm"' "$T/quote.log"
+  local f
+  for f in "$T/unix.log" "$T/win.log" "$T/aptnpm.log"; do
+    wx "no pipe in $(basename "$f")" test -z "$(grep 'EXEC' "$f" | grep '|')"
+  done
+}
+
+scenario_piped_stdin_fresh() {
+  # The URL piped into bash keeps working: a fresh install completes from a
+  # script read on stdin and lands on the release tag.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  install -m 755 "$SHIMS/nvim" "$T/bin/nvim"
+  run_install_piped "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" SHIM_STDIN_LOG="$T/lua_stdin.log"
+  wg "completion line"     "DeepWorkPlan Vim is installed at" "$T/out.log"
+  wx "install.lua read no script text from stdin" test -e "$T/lua_stdin.log" -a ! -s "$T/lua_stdin.log"
+  wg "lua leg ran (stub)"  "lua5.4 install.lua"               "$T/shim.log"
+  wg "bootstrap ran"       "nvim --headless"                  "$T/shim.log"
+  wx "exit 0"              test "$RC" -eq 0
+  wx "on the release tag"  test "$(git -C "$T/home/.config/nvim" describe --tags --exact-match HEAD 2>/dev/null)" = "$RELEASE_REF"
+}
+
+scenario_piped_stdin_foreign_safe() {
+  # Piped with no terminal, an existing foreign config is never touched.
+  local T; T="$(scen_root)"
+  trap "rm -rf '$T'" EXIT
+  install -m 755 "$SHIMS/lua5.4" "$T/bin/lua5.4"
+  install -m 755 "$SHIMS/curl" "$T/bin/curl"
+  mkdir -p "$T/home/.config/nvim"
+  echo "-- mine" >"$T/home/.config/nvim/init.lua"
+  run_install_piped "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE"
+  wg "cannot ask unattended" "ran without a terminal"          "$T/out.log"
+  wng "setup not run"        "Running the system setup"        "$T/out.log"
+  wx "rc non-zero"           test "$RC" -ne 0
+  wx "foreign config intact" test "$(cat "$T/home/.config/nvim/init.lua")" = "-- mine"
+  wx "no backup made"        test ! -e "$T/home/.config/previous-deepworkplan-vim"
 }
 
 scenario_bootstrap_already_installed() {
@@ -563,6 +754,16 @@ SH
 # --- run them all -----------------------------------------------------------
 
 echo "== installer compatibility harness =="
+run_scenario ref_default_release_tag     scenario_ref_default_release_tag
+run_scenario ref_main_explicit           scenario_ref_main_explicit
+run_scenario update_older_to_tag         scenario_update_older_to_tag
+run_scenario update_diverged_local_main  scenario_update_diverged_local_main
+run_scenario skip_packages_missing_tool  scenario_skip_packages_missing_tool
+run_scenario skip_packages_present       scenario_skip_packages_present
+run_scenario skip_packages_zero_is_off   scenario_skip_packages_zero_is_off
+run_scenario pnpm_fallback_no_pipe       scenario_pnpm_fallback_no_pipe
+run_scenario piped_stdin_fresh           scenario_piped_stdin_fresh
+run_scenario piped_stdin_foreign_safe    scenario_piped_stdin_foreign_safe
 run_scenario fresh_apt                   scenario_fresh_apt
 run_scenario fresh_dnf                   scenario_fresh_dnf
 run_scenario fresh_pacman                scenario_fresh_pacman

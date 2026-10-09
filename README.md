@@ -39,41 +39,58 @@ sha256, the read-only plan reader, and the features this tag ships
 
 ## Install
 
-Pinned to the release tag (current: **v0.4.0**) — macOS, Linux, or WSL. It
-installs git, curl and Lua first if they are missing. Requires
+Release **v0.4.1** — macOS, Linux or WSL; requires
 [Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
+Download the installer, verify it, then run it from a terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.4.0/install.sh | DWP_VIM_REF=v0.4.0 bash
+curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh
+curl -fsSL -o install.sh.sha256 https://deepworkplan.com/vim/install.sh.sha256
+shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
+bash install.sh
 ```
 
-That is the whole install: preflight, clone into `~/.config/nvim`, the system
-setup (`lua install.lua`), and a headless plugin install — no quit-and-reopen
-dance. An existing Neovim config is **never overwritten**: interactively you
-are asked before it is moved to `~/.config/previous-deepworkplan-vim`; piped
-without a terminal the script aborts and leaves the existing config untouched
-(missing git, curl or Lua may already have been installed by the preflight).
-
-For images and automation, do not pipe: download `install.sh` from the tag,
-verify it against the release's `SHA256SUMS` (or `install.script.sha256` in
-[`addon/surface.json`](addon/surface.json)), then run it with
-`DWP_VIM_REF=v0.4.0` — the exact steps are `install.steps` in that file.
-
-Advanced / offline:
+The same two files are assets of the
+[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.4.1)
+(with `SHA256SUMS` for every asset) — comparing the website's copy with the
+release's `SHA256SUMS` checks it against a second origin; release tags are
+immutable:
 
 ```bash
-git clone --branch v0.4.0 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
-cd ~/.config/nvim && lua install.lua
+curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.1/install.sh
+curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.4.1/install.sh.sha256
+shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
+bash install.sh
+```
+
+That is the whole install: preflight (installs git, curl and Lua if they
+are missing), clone into `~/.config/nvim`, the system setup
+(`lua install.lua`), and a headless plugin install — no quit-and-reopen
+dance. The installer installs **the release it belongs to** (v0.4.1);
+`DWP_VIM_REF=main bash install.sh` follows the moving `main` branch instead.
+An existing Neovim config is **never overwritten**: you are asked before it
+is moved to `~/.config/previous-deepworkplan-vim`, and a run without a
+terminal stops and leaves it untouched (missing git, curl or Lua may already
+have been installed by the preflight).
+
+Images, CI and offline:
+
+```bash
+DWP_VIM_SKIP_PACKAGES=1 bash install.sh                    # image already has every dependency: install no system package
 DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh   # local/offline source (also redirects updates)
-DWP_VIM_SKIP_PACKAGES=1 lua install.lua                    # image already has the deps
+git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
+cd ~/.config/nvim && lua install.lua
 ```
 
-Windows: use winget plus Git Bash, or run the line above inside WSL, where
-it works as-is:
+Integrations read the same steps, URL and sha256 from
+[`addon/surface.json`](addon/surface.json) (`install.script`, `install.steps`).
+
+Windows: use winget plus Git Bash, or run the steps above inside WSL,
+where they work as-is:
 
 ```bash
 winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-git clone --branch v0.4.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 cd "$LOCALAPPDATA/nvim" && lua install.lua
 ```
 
@@ -89,7 +106,7 @@ lua ~/.config/nvim/delete.lua              # Git Bash on Windows: lua "$LOCALAPP
 
 ## Quickstart
 
-1. Run the install line above.
+1. Download, verify and run the installer above.
 2. Launch `nvim`.
 3. Press `Space h h` — the command index is the tour: every row names its
    key and what it does.

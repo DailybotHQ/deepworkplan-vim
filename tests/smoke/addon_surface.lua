@@ -151,6 +151,17 @@ end
 ok(pipe_free, "no install step pipes a download into a shell")
 ok(#(install.steps or {}) >= 3, "download / verify / run are separate steps")
 ok(type(install.consent) == "table" and install.consent.backup_dir == "~/.config/previous-deepworkplan-vim", "consent and backup dir declared")
+-- install.sh installs the release baked into it: that release is this
+-- version, and no other release is named anywhere in the script.
+local baked = installer:match('\nRELEASE_REF="([^"]+)"')
+ok(baked == s.version, "install.sh's RELEASE_REF equals the surface version (got " .. tostring(baked) .. ")")
+local stray = {}
+for v in installer:gmatch("v%d+%.%d+%.%d+") do
+	if v ~= s.version then
+		stray[#stray + 1] = v
+	end
+end
+ok(#stray == 0, "install.sh names no other release (stray: " .. table.concat(stray, ",") .. ")")
 local readme = read("README.md") or ""
 ok(readme:find("/" .. tostring(s.version) .. "/install.sh", 1, true) ~= nil, "README pins the install line to this version")
 ok(read("delete.lua") ~= nil and tostring(install.uninstall):find("delete.lua", 1, true) ~= nil, "uninstall names delete.lua")

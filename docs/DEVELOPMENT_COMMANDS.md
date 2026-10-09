@@ -5,8 +5,19 @@ Every command verbatim, with preconditions. The short table lives in
 
 ## Install (end user, host)
 
+Download → verify → run (the installer pins its own release):
+
 ```bash
-git clone https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
+curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh
+curl -fsSL -o install.sh.sha256 https://deepworkplan.com/vim/install.sh.sha256
+shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
+bash install.sh                         # DWP_VIM_REF=main follows main; DWP_VIM_SKIP_PACKAGES=1 for images
+```
+
+Manual:
+
+```bash
+git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
 cd ~/.config/nvim && lua install.lua      # needs lua / lua5.4 / luajit + git; sudo only for packages
 nvim
 ```
@@ -71,7 +82,7 @@ bash tests/smoke/run.sh
 
 Headless Neovim over the repo's `lua/` tree with a minimal runtime — no
 container, no plugin sync, no network. Five sections (model, sidebar,
-reader, statusline, greeter, render, consistency, self-contained, addon surface; 562 assertions) over the committed fixtures
+reader, statusline, greeter, render, consistency, self-contained, addon surface; 564 assertions) over the committed fixtures
 in `tests/fixtures/dwp_plans/`. Required for any change under `lua/dwp/`;
 per-section scope and honest non-coverage: `tests/smoke/README.md`. Read
 the output for the `assertions OK` sentinel — nvim exits 0 even after a
@@ -98,7 +109,13 @@ Runs the real `install.sh` in synthetic roots against PATH shims — bash,
 git, coreutils, `script` for the one pty scenario (util-linux or BSD/macOS),
 and a real `lua5.4` on PATH for the four `delete.lua`/probe scenarios; no
 container, no network, no Neovim, no real `install.lua` leg. Branch-independent:
-the fixture's `main` is the commit under test. 21 scenarios: the four
+the fixture's `main` is the commit under test and carries the release tag
+baked into `install.sh` (annotated, like real releases). 31 scenarios: the
+release-tag default (fresh, explicit `main`, update from an older commit,
+local commits refused on the tag and branch paths), `DWP_VIM_SKIP_PACKAGES`
+(missing tool, tools present, `0` = off), the pnpm fallback under real Lua
+(npm, never a pipe), the script read through a real pipe (fresh install,
+foreign config untouched), the four
 package-manager legs and their sudo policy, the consent/backup envelope
 (piped abort, pty consent, backup collision, DEST-is-file),
 clone-vs-update (including the diverged-local die), OS refusals
@@ -109,7 +126,7 @@ uninstall one-liner verification, and the consent-EOF tri-state probes
 probes (BSD/no-realpath hosts still resolve paths). The three former KNOWN-DEFECT pins (audit
 I-1, I-2, I-19) were flipped to fixed-behavior assertions by the
 remediation; any regression there fails the suite. Success sentinel:
-`INSTALLER HARNESS: OK (21 scenarios)`. Scope and bounds:
+`INSTALLER HARNESS: OK (31 scenarios)`. Scope and bounds:
 [`tests/installer/README.md`](../tests/installer/README.md). Required for
 any change to `install.sh`, `install.lua`, `delete.lua` or
 `utilities/installation/`.

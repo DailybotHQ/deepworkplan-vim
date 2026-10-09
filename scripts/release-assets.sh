@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Build the assets of one release from its tag, plus SHA256SUMS over them:
 #   deepworkplan-vim-<tag>.tar.gz   source archive of the tagged tree
-#   install.sh                      the one-line installer at that tag
+#   install.sh                      the installer at that tag
+#   install.sh.sha256               "<sha256>  install.sh" — the file the
+#                                   website publishes next to its copy
 #   surface.json                    addon/surface.json at that tag (v0.4.0+)
 # Everything is read from the tag with git, never from the working tree, so
 # an old release's assets can be rebuilt and backfilled. install.sh and
@@ -45,6 +47,10 @@ fi
 	for f in "$name.tar.gz" install.sh surface.json; do
 		[ -f "$f" ] && files+=("$f")
 	done
+	if [ -f install.sh ]; then
+		sum install.sh >install.sh.sha256
+		files+=(install.sh.sha256)
+	fi
 	sum "${files[@]}" >SHA256SUMS
 )
 echo "release-assets: $tag -> $out"

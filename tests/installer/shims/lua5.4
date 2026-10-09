@@ -2,5 +2,12 @@
 # tests/installer/shims/lua5.4 — records the Lua-leg invocation and
 # succeeds. The harness never runs the real install.lua: its package
 # installs belong to the container matrix, not a bash-only host run.
-[ -n "${SHIM_LOG:-}" ] && printf 'lua5.4 %s\n' "$*" >>"$SHIM_LOG"
+# The skip switch install.sh hands to install.lua is recorded too.
+[ -n "${SHIM_LOG:-}" ] && printf 'lua5.4 %s%s\n' "$*" \
+  "${DWP_VIM_SKIP_PACKAGES:+ skip_packages=$DWP_VIM_SKIP_PACKAGES}" >>"$SHIM_LOG"
+# Piped-run proof: with SHIM_STDIN_LOG set, record whatever stdin carries
+# (a real install.lua prompt would read it) — it must be empty.
+if [ -n "${SHIM_STDIN_LOG:-}" ]; then
+  cat >"$SHIM_STDIN_LOG"
+fi
 exit 0

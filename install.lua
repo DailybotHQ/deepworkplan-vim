@@ -77,7 +77,8 @@ end
 -- stty raw prompts. Later sudo calls reuse the cached credentials.
 -- Root (containers) and DWP_VIM_SKIP_PACKAGES=1 (deps baked into an
 -- image) both skip this gate.
-local skip_packages = (os.getenv("DWP_VIM_SKIP_PACKAGES") or "") ~= ""
+local skip_value = os.getenv("DWP_VIM_SKIP_PACKAGES") or ""
+local skip_packages = skip_value ~= "" and skip_value ~= "0"
 local manager, manager_err = util.get_package_manager()
 if manager == nil then
   io.stderr:write((manager_err or "No package manager") .. "\n")

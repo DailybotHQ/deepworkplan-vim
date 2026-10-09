@@ -33,8 +33,9 @@ Additive changes (a new optional key, a new feature entry) keep
   marker). The **legacy marker** `deepworkplan-vim-installed` was written
   by `install.lua` up to v0.3.1 only.
 - **`install`** — the tag-pinned path: download `install.sh` from the
-  tag's raw URL, verify `script.sha256`, run it with `DWP_VIM_REF` set to
-  the tag. Download, verify and run are separate steps on purpose — no
+  tag's raw URL, verify `script.sha256`, run it with `bash install.sh`
+  (from v0.4.1 the script installs its own release tag; `DWP_VIM_REF` set
+  to the tag is kept for older scripts). Download, verify and run are separate steps on purpose — no
   step pipes a download into a shell. `manual` and `windows` list the
   clone-at-tag alternatives; `consent` restates the installer's absolute
   rule: an existing config is moved aside only after an interactive yes,
