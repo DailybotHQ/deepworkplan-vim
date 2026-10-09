@@ -40,11 +40,23 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/DailybotHQ/deepworkplan-vim.git"
-REF="${DWP_VIM_REF:-main}"
+# The release this script belongs to: it installs exactly that tag unless
+# DWP_VIM_REF names another tag, branch or commit (DWP_VIM_REF=main follows
+# the moving main branch — only when asked for).
+RELEASE_REF="v0.4.1"
+REF="${DWP_VIM_REF:-$RELEASE_REF}"
 SOURCE="${DWP_VIM_SOURCE:-$REPO_URL}"
 DEST="${DWP_VIM_DIR:-$HOME/.config/nvim}"
 BACKUP_DIR="$HOME/.config/previous-deepworkplan-vim"
 BOOTSTRAP_TIMEOUT="${DWP_VIM_BOOTSTRAP_TIMEOUT:-900}"
+# Images and CI that already carry every dependency: install no system
+# package here, and install.lua skips its package step too. Off when unset,
+# empty or 0.
+SKIP_PACKAGES=0
+case "${DWP_VIM_SKIP_PACKAGES:-}" in
+  '' | 0) ;;
+  *) SKIP_PACKAGES=1 ;;
+esac
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
@@ -104,6 +116,13 @@ command -v curl >/dev/null 2>&1 || tools_missing+=(curl)
 LUA="$(find_lua || true)"
 if [ -z "$LUA" ]; then
   tools_missing+=(lua)
+fi
+
+if [ "$SKIP_PACKAGES" = 1 ]; then
+  if [ "${#tools_missing[@]}" -gt 0 ]; then
+    die "missing: ${tools_missing[*]} — DWP_VIM_SKIP_PACKAGES is set, so no system package is installed. Add them to the image (or unset DWP_VIM_SKIP_PACKAGES) and rerun."
+  fi
+  say "==> DWP_VIM_SKIP_PACKAGES is set: no system packages will be installed"
 fi
 
 if [ "${#tools_missing[@]}" -gt 0 ]; then
@@ -213,32 +232,56 @@ if is_ours "$DEST"; then
   # DWP_VIM_SOURCE redirects the update too (offline installs, local
   # mirrors); unset, the update pulls from the clone's own origin.
   FETCH_SOURCE="${DWP_VIM_SOURCE:-origin}"
-  git -C "$DEST" fetch "$FETCH_SOURCE" "$REF" ||
-    die "git fetch failed from $FETCH_SOURCE in $DEST (offline? set DWP_VIM_SOURCE to a local path)"
-  git -C "$DEST" checkout "$REF" >/dev/null ||
-    die "git checkout '$REF' failed in $DEST (ref missing, or local changes block it — see the error above)"
-  # Fast-forward to the fetched tip when it is ahead. merge --ff-only
-  # refuses a dirty tree, so local edits are never reset. A HEAD that
-  # DIVERGED from the source is not silently skipped either: the run
-  # dies loudly so "installed" never masks "still on the old commit"
-  # (final-review finding R2).
-  if [ "$(git -C "$DEST" rev-parse HEAD)" != "$(git -C "$DEST" rev-parse FETCH_HEAD)" ]; then
-    if git -C "$DEST" merge-base --is-ancestor HEAD FETCH_HEAD; then
-      git -C "$DEST" merge --ff-only FETCH_HEAD ||
-        die "could not fast-forward $DEST (local changes?). Resolve manually and rerun"
-    else
-      die "update skipped: $DEST has local commits that diverge from '$REF' — nothing was changed. Reconcile them (git -C '$DEST' pull --rebase) or ask your agent, then rerun."
+  if git -C "$DEST" fetch -q "$FETCH_SOURCE" "+refs/tags/$REF:refs/tags/$REF" 2>/dev/null; then
+    # A release tag (the default): pin the checkout to it, detached. Local
+    # work is never left behind silently: a HEAD carrying commits that no
+    # remote branch or tag holds stops the run, like the branch path below
+    # (final-review finding R2). An older or newer upstream commit simply
+    # moves to the tag.
+    TARGET="$(git -C "$DEST" rev-parse "refs/tags/$REF^{commit}")"
+    if [ "$(git -C "$DEST" rev-parse HEAD)" != "$TARGET" ]; then
+      if ! git -C "$DEST" merge-base --is-ancestor HEAD "$TARGET" &&
+        [ -n "$(git -C "$DEST" rev-list -n 1 HEAD --not --remotes --tags)" ]; then
+        die "update skipped: $DEST has local commits that are not in '$REF' — nothing was changed. Keep them on a branch of your own (they stay there), or ask your agent, then rerun."
+      fi
+      git -C "$DEST" -c advice.detachedHead=false checkout -q "$TARGET" ||
+        die "git checkout '$REF' failed in $DEST (local changes block it — see the error above)"
+    fi
+  else
+    git -C "$DEST" fetch "$FETCH_SOURCE" "$REF" ||
+      die "git fetch failed from $FETCH_SOURCE in $DEST (offline? set DWP_VIM_SOURCE to a local path)"
+    git -C "$DEST" checkout "$REF" >/dev/null ||
+      die "git checkout '$REF' failed in $DEST (ref missing, or local changes block it — see the error above)"
+    # A branch: fast-forward to the fetched tip when it is ahead. merge
+    # --ff-only refuses a dirty tree, so local edits are never reset. A HEAD
+    # that DIVERGED from the source is not silently skipped either: the run
+    # dies loudly so "installed" never masks "still on the old commit"
+    # (final-review finding R2).
+    if [ "$(git -C "$DEST" rev-parse HEAD)" != "$(git -C "$DEST" rev-parse 'FETCH_HEAD^{commit}')" ]; then
+      if git -C "$DEST" merge-base --is-ancestor HEAD FETCH_HEAD; then
+        git -C "$DEST" merge --ff-only FETCH_HEAD ||
+          die "could not fast-forward $DEST (local changes?). Resolve manually and rerun"
+      else
+        die "update skipped: $DEST has local commits that diverge from '$REF' — nothing was changed. Reconcile them (git -C '$DEST' pull --rebase) or ask your agent, then rerun."
+      fi
     fi
   fi
 else
   say "==> Cloning DeepWorkPlan Vim ('$REF') into $DEST"
   mkdir -p "$(dirname "$DEST")"
   git clone "$SOURCE" "$DEST" || die "clone from $SOURCE failed"
-  git -C "$DEST" checkout "$REF" >/dev/null ||
+  git -C "$DEST" -c advice.detachedHead=false checkout -q "$REF" ||
     die "git checkout '$REF' failed in the clone from $SOURCE (ref missing, or local changes block it — see the error above)"
 fi
 
 [ -f "$DEST/install.lua" ] || die "$DEST has no install.lua — not a DeepWorkPlan Vim checkout"
+
+# install.lua reads the same switch (it skips its system-package step).
+if [ "$SKIP_PACKAGES" = 1 ]; then
+  export DWP_VIM_SKIP_PACKAGES=1
+else
+  unset DWP_VIM_SKIP_PACKAGES
+fi
 
 # --- 3. The repository's own installer ---------------------------------------
 
@@ -316,5 +359,6 @@ say "DeepWorkPlan Vim is installed at $DEST"
 say "  Launch        nvim"
 say "  Command index Space h h   (the whole editor, listed)"
 say "  Plan browser  Space P"
-say "  Update        rerun this installer (idempotent) or: git -C '$DEST' pull"
+say "  Version       $REF"
+say "  Update        run a newer release's install.sh (each one pins its release; DWP_VIM_REF=main follows main)"
 say "  Remove        lua '$DEST/delete.lua'  (lists every path first, asks, keeps Neovim)"

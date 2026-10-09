@@ -3,7 +3,8 @@
 
   Install Neovim deps for pacman, apt, dnf, Homebrew, and winget.
   Package names are remapped per manager. pnpm is a core requirement;
-  if the distro has no pnpm package, we use the official installer.
+  if the distro has no pnpm package, npm installs it under the user prefix
+  (no downloaded script is ever piped into a shell).
 ]]
 
 local util = require("utilities.installation.util")
@@ -20,7 +21,8 @@ M.EXTRA_PACKAGES = {
 
 local CORE_BY_MANAGER = {
   pacman = { "neovim", "nodejs", "pnpm", "ripgrep", "fd", "python-neovim", "luarocks" },
-  ["apt-get"] = { "neovim", "nodejs", "ripgrep", "fd-find", "python3-neovim", "luarocks" },
+  -- Debian/Ubuntu ship npm separately from nodejs; it installs pnpm.
+  ["apt-get"] = { "neovim", "nodejs", "npm", "ripgrep", "fd-find", "python3-neovim", "luarocks" },
   dnf = { "neovim", "nodejs", "ripgrep", "fd-find", "python3-neovim", "luarocks" },
   brew = { "neovim", "node", "pnpm", "ripgrep", "fd", "luarocks" },
 }
@@ -121,15 +123,18 @@ function M.ensure_pnpm()
   if util.has_command("pnpm") then
     return true
   end
-  io.write("pnpm is not on PATH, using the official installer\n")
-  if util.is_windows() then
-    return exec_ok(
-      'powershell -NoProfile -Command "iwr https://get.pnpm.io/install.ps1 -useb | iex"'
-    )
+  -- npm (shipped with Node.js, a core package) installs pnpm from the
+  -- registry: no downloaded script is piped into a shell. On Unix it goes
+  -- under the user prefix PNPM_HOME, whose bin/ pnpm_env() puts on PATH.
+  if not util.has_command("npm") then
+    io.stderr:write("pnpm is missing and npm is not available to install it: install Node.js with npm, then rerun\n")
+    return false
   end
-  -- `sh -` has no $SHELL, and pnpm's installer exits with
-  -- ERR_PNPM_UNKNOWN_SHELL. A container build hits that path.
-  return exec_ok("curl -fsSL https://get.pnpm.io/install.sh | env SHELL=/bin/bash sh -")
+  io.write("pnpm is not on PATH, installing it with npm (user prefix)\n")
+  if util.is_windows() then
+    return exec_ok("npm install -g pnpm")
+  end
+  return exec_ok(string.format('npm install -g --prefix "%s" pnpm', M.pnpm_home()))
 end
 
 -- Global pnpm packages go under the user prefix. A system PNPM_HOME
