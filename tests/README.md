@@ -28,6 +28,14 @@ The authoritative gates, scoped patterns, and the fallback live in
 [docs/TESTING_GUIDE.md](../docs/TESTING_GUIDE.md); a mapping change in
 [lua/mapping/](../lua/README.md) updates `contract.go` in the same change.
 
+## Smoke suite
+
+`tests/smoke/` is the host-runnable runtime suite (bash + Neovim, no
+container): `lua/dwp` behavior over fixtures, the `lua/dwp`
+self-containment rule, and the truth of `addon/surface.json`. Run
+`bash tests/smoke/run.sh`; per-section docs in
+[tests/smoke/README.md](smoke/README.md).
+
 ## Installer harness
 
 `tests/installer/` is a separate, bash-only suite (not Go, not containerized):
