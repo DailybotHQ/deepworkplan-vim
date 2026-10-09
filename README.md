@@ -111,7 +111,7 @@ Root `compose.yml` still runs multi-distro installer smokes.
 
 ## Releases
 
-Merging to `main` publishes a GitHub Release (`v0.1.0`, then the next tag). Conventional commits: `feat:` / `fix:` / `perf:` bump minor; `BREAKING CHANGE` bumps major. `[skip release]` in the merge body publishes nothing.
+Merging to `main` publishes a GitHub Release (`v0.1.0`, then the next tag); [CHANGELOG.md](./CHANGELOG.md) records what each tag ships. Conventional commits: `feat:` / `fix:` / `perf:` bump minor; `BREAKING CHANGE` bumps major. `[skip release]` in the merge body publishes nothing.
 
 ## Lineage
 

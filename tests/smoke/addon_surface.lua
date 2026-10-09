@@ -90,21 +90,23 @@ if vim.v.shell_error == 0 then
 		end
 	end
 end
-if newest and version then
-	ok(
-		cmp(version, newest) >= 0,
-		("surface version %s is not older than the newest tag v%d.%d.%d"):format(s.version, newest[1], newest[2], newest[3])
+-- Each check below is always one assertion (vacuously true when its input
+-- is absent: no tags yet, an untagged HEAD) so the count never drifts.
+ok(
+	newest == nil or (version ~= nil and cmp(version, newest) >= 0),
+	("surface version %s is not older than the newest tag %s"):format(
+		tostring(s.version),
+		newest and ("v%d.%d.%d"):format(newest[1], newest[2], newest[3]) or "(none)"
 	)
-end
+)
 local exact = vim.fn.systemlist({ "git", "-C", repo, "tag", "--points-at", "HEAD", "-l", "v*" })
-if vim.v.shell_error == 0 and #exact > 0 then
-	ok(vim.tbl_contains(exact, s.version), "HEAD is tagged " .. table.concat(exact, ",") .. ": the surface names that tag")
+if vim.v.shell_error ~= 0 then
+	exact = {}
 end
+ok(#exact == 0 or vim.tbl_contains(exact, s.version), "at a tagged HEAD (" .. table.concat(exact, ",") .. ") the surface names that tag")
 local changelog = read("CHANGELOG.md")
-if changelog then
-	local top = changelog:match("\n## %[?(v%d+%.%d+%.%d+[%w%.%-]*)%]?")
-	ok(top == s.version, "CHANGELOG's newest release heading equals the surface version (got " .. tostring(top) .. ")")
-end
+local top = changelog and changelog:match("\n## %[?(v%d+%.%d+%.%d+[%w%.%-]*)%]?")
+ok(changelog == nil or top == s.version, "CHANGELOG's newest release heading equals the surface version (got " .. tostring(top) .. ")")
 
 -- 3. Detection describes what the install actually lays down.
 local detect = s.detect or {}
