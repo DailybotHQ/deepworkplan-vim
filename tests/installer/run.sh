@@ -527,7 +527,7 @@ scenario_pnpm_fallback_no_pipe() {
   lua5.4 "$L" "$REPO" unix npm >"$T/unix.log" 2>&1
   lua5.4 "$L" "$REPO" windows npm >"$T/win.log" 2>&1
   lua5.4 "$L" "$REPO" unix no-npm >"$T/nonpm.log" 2>&1
-  wg "unix: npm user prefix"  'EXEC npm install -g --prefix "/home/u/.local/share/pnpm" pnpm' "$T/unix.log"
+  wg "unix: npm user prefix"  'EXEC npm install -g --prefix "/stub-home/.local/share/pnpm" pnpm' "$T/unix.log"
   wg "unix: result true"      "RESULT true"            "$T/unix.log"
   wg "windows: npm global"    "EXEC npm install -g pnpm" "$T/win.log"
   wg "no npm: clear failure"  "npm is not available"   "$T/nonpm.log"

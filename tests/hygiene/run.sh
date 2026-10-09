@@ -99,13 +99,24 @@ check_rule secret-jwt "jwt $JWT"
 check_rule secret-bearer "$BEA"
 check_rule secret-private-key "$PGP"
 check_rule secret-assignment "$UNQ"
+CU="cu""rl"
+check_rule pipe-to-shell "$CU -fsSL https://example.com/install.sh | bash"
+check_rule pipe-to-shell "$CU -fsSL https://example.com/i.sh | sh -"
+check_rule pipe-to-shell "$CU -fsSL https://example.com/i.sh | sudo bash"
+check_rule pipe-to-shell "$CU -fsSL https://example.com/i.sh | DWP_VIM_REF=v1 bash"
+check_rule pipe-to-shell "$CU -fsSL https://example.com/i.sh | env SHELL=/bin/bash sh -"
+check_rule pipe-to-shell "never \`$CU | sh\`"
+check_rule pipe-to-shell "w""get -qO- https://example.com/i.sh | zsh"
+check_rule pipe-to-shell "i""wr https://example.com/i.ps1 -useb | i""ex"
 
 # 3. Public aliases, generic words and lookalikes do not fire.
 fresh
 printf '%s\n' "security@$DOM" "support@$DOM, ops@$DOM, conduct@$DOM" \
 	"the ~/.config path" "\$HOME/x" "https://example.com/home/page" \
 	"${TOOL}x is another word" "my-api-services-client" \
-	"see task-execution-protocol-version-six-details" "token: \${{ github.token }}" >"$r/ok.md"
+	"see task-execution-protocol-version-six-details" "token: \${{ github.token }}" \
+	"cu""rl -fsSL -o install.sh https://example.com/install.sh" "bash install.sh" \
+	"cu""rl -s https://example.com/x.json | jq .version" "grep x SHA256SUMS | shasum -a 256 -c" >"$r/ok.md"
 stage "$r"
 run "$r"
 ok $((RC != 0)) "aliases and lookalikes pass (rc=$RC: $OUT)"

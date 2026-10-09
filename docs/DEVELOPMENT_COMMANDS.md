@@ -5,8 +5,19 @@ Every command verbatim, with preconditions. The short table lives in
 
 ## Install (end user, host)
 
+Download → verify → run (the installer pins its own release):
+
 ```bash
-git clone https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
+curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh
+curl -fsSL -o install.sh.sha256 https://deepworkplan.com/vim/install.sh.sha256
+shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
+bash install.sh                         # DWP_VIM_REF=main follows main; DWP_VIM_SKIP_PACKAGES=1 for images
+```
+
+Manual:
+
+```bash
+git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
 cd ~/.config/nvim && lua install.lua      # needs lua / lua5.4 / luajit + git; sudo only for packages
 nvim
 ```

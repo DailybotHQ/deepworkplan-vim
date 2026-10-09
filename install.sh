@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 #
-# DeepWorkPlan Vim — self-contained installer.
+# DeepWorkPlan Vim — self-contained installer for release v0.4.1.
 #
-# Canonical URL : https://deepworkplan.com/vim/install.sh
-#                 (https://deepworkplan.com/install.sh 301-redirects there)
+# Published at  : https://deepworkplan.com/vim/install.sh
+#                 and as the install.sh asset (with SHA256SUMS) of each
+#                 release: https://github.com/DailybotHQ/deepworkplan-vim/releases
 # Repository    : https://github.com/DailybotHQ/deepworkplan-vim
 # License       : GPL-3.0 (the configuration it installs is GPL-3.0)
 #
-# Usage:
-#   curl -fsSL https://deepworkplan.com/vim/install.sh | bash
+# Usage — download, verify, then run:
+#   curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh
+#   curl -fsSL -o install.sh.sha256 https://deepworkplan.com/vim/install.sh.sha256
+#   shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
+#   bash install.sh
+# Run it from a terminal: it asks before touching an existing config.
 #
 # What it does, in order:
 #   1. Preflight — detects OS and package manager; installs git, curl, and
@@ -23,18 +28,21 @@
 #   5. Bootstraps plugins headlessly — no quit-and-reopen dance.
 #
 # Environment overrides:
-#   DWP_VIM_REF             branch, tag, or commit to install (default: main)
+#   DWP_VIM_REF             tag, branch, or commit to install (default: this
+#                           script's release, v0.4.1; "main" follows main)
 #   DWP_VIM_SOURCE          repository URL or a local path (offline installs)
 #   DWP_VIM_DIR             destination directory (default: ~/.config/nvim)
-#   DWP_VIM_SKIP_PACKAGES   set to 1 to skip system packages — the image
-#                           already has them (containers, CI)
+#   DWP_VIM_SKIP_PACKAGES   set to 1 to install no system package — the
+#                           image already has them (containers, CI): a
+#                           missing git, curl or Lua stops the run, and
+#                           install.lua skips its package step too
 #   DWP_VIM_BOOTSTRAP_TIMEOUT  seconds allowed for the headless plugin
 #                           install (default: 900)
 #
-# Windows: `curl | bash` is not the Windows gesture. Use winget plus Git
-# Bash, or run this script inside WSL where it works as-is:
+# Windows: use winget plus Git Bash, or run the steps above inside WSL,
+# where they work as-is:
 #   winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-#   git clone https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+#   git clone --branch v0.4.1 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 #   cd "$LOCALAPPDATA/nvim" && lua install.lua
 #
 set -euo pipefail
@@ -69,7 +77,7 @@ case "$(uname -s)" in
     say "Windows shell detected (Git Bash / MSYS). This script targets macOS, Linux, and WSL."
     say "On Windows use winget plus Git Bash, or WSL:"
     say "  winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements"
-    say "  git clone $REPO_URL \"\$LOCALAPPDATA/nvim\""
+    say "  git clone --branch $REF $REPO_URL \"\$LOCALAPPDATA/nvim\""
     say "  cd \"\$LOCALAPPDATA/nvim\" && lua install.lua"
     exit 1
     ;;
@@ -213,9 +221,10 @@ if [ -d "$DEST" ] && dir_has_content "$DEST" && ! is_ours "$DEST"; then
     say "An existing Neovim config was found at $DEST. Nothing was changed."
     say "This script ran without a terminal, so it cannot ask what to do."
     say "Either:"
-    say "  1. run it interactively:"
+    say "  1. run it interactively — download it, then run it in a terminal:"
+    say "       curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh"
     say "       bash install.sh"
-    say "  2. or move the config aside first, then rerun the one-liner:"
+    say "  2. or move the config aside first, then run the installer again:"
     say "       mv '$DEST' '$BACKUP_DIR'"
     die "refusing to touch an existing config unattended"
   fi

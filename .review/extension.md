@@ -29,7 +29,7 @@ secrets, and SSH surfaces; relaxed about stylistic Lua choices inside `lua/`.
   symlink surgery on `~/.claude*` for CLI persistence. A wrong path, missing
   guard, or non-idempotent rerun that can delete user data is critical.
 - **Always `critical`:** remote-fetch-and-execute in any installer path
-  (`curl … | sh` shapes) — including inside `utilities/installation/` and
+  (a download piped into a shell interpreter) — including inside `utilities/installation/` and
   `docker/custom_commands.sh`. Downloads must be verified (checksum) before
   execution, matching the pattern the vendored DWP/dailybot skills document.
 - **Escalate to `warning`:** unquoted or unvalidated variables in shell paths —

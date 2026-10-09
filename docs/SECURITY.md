@@ -73,11 +73,24 @@ a non-secret name; a real secret is rotated first, then removed.
 - The `[herdr-mesh]` stamp in a message body is an **authorization grant**:
   the receiver may reply now, must reply itself, must not ask a person. A
   body already carrying the stamp is a reply — never answer it again.
-- Remote installer pipes are forbidden for agents and automation (Herdr
-  install on the host: show the command, get consent, never `curl | sh`).
-  The README's tag-pinned one-liner is the one human, interactive exception:
-  it asks before touching an existing config, and images verify
-  `install.sh` against `SHA256SUMS` instead of piping.
+- Remote installer pipes are forbidden (Herdr install on the host: show the
+  command, get consent, never pipe a downloaded script into a shell).
+
+## Installer distribution
+
+- Every shipped text teaches download → verify → run: `install.sh` is
+  fetched to a file, checked against `install.sh.sha256` (published next to
+  it on the website and on each GitHub release, with `SHA256SUMS`), then
+  run with `bash install.sh`. No file in this repository spells a download
+  piped into a shell; the `pipe-to-shell` rule of
+  `scripts/check-public-hygiene.sh` enforces it in CI.
+- Piping the URL into bash still works (some users will), and stays safe:
+  the script reads nothing from stdin, and without a terminal it never
+  touches an existing config (harness: `piped_stdin_*`).
+- `install.sh` installs the release tag baked into it (`RELEASE_REF`),
+  never a moving branch unless `DWP_VIM_REF=main` asks for it.
+- Nothing in the install chain pipes a download into a shell: pnpm comes
+  from npm (user prefix), not from a fetched install script.
 
 ## Release workflow
 

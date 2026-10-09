@@ -14,9 +14,9 @@ package.preload["utilities.installation.util"] = function()
     has_command = function(cmd) return cmd == "npm" and npm == "npm" end,
     exec_ok = function(cmd) execs[#execs + 1] = cmd; return true end,
     mkdir_p = function() return true end,
-    home = function() return "/home/u" end,
+    home = function() return "/stub-home" end,
     path_join = function(...) return table.concat({ ... }, "/") end,
-    data_home = function() return "/home/u/.local/share" end,
+    data_home = function() return "/stub-home/.local/share" end,
   }
 end
 

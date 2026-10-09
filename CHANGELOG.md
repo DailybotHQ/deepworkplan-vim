@@ -10,6 +10,24 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.4.1] - 2026-10-09
+
+The installer the website publishes at `https://deepworkplan.com/vim/install.sh`,
+and the repository's public-standard baseline.
+
+### Fixed
+
+- `install.sh` installs the release it belongs to (`RELEASE_REF`, v0.4.1)
+  instead of the moving `main` branch; `DWP_VIM_REF=main` (or any tag,
+  branch or commit) still overrides it. Updating to a tag checks it out
+  detached and stops when the checkout holds local commits no remote branch
+  or tag has.
+- `DWP_VIM_SKIP_PACKAGES` works as documented: with `1` the preflight
+  installs no system package (a missing git, curl or Lua stops the run) and
+  `install.lua` skips its package step; `0` or empty means off in both.
+- The installer header no longer claims that `/install.sh` redirects to
+  `/vim/install.sh`.
+
 ### Added
 
 - `CONTRIBUTING.md`, `SECURITY.md` (private vulnerability reporting),
@@ -21,9 +39,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 - `scripts/check-public-hygiene.sh` with `.public-hygiene-allow` and a
   self-test (`tests/hygiene/run.sh`): blocks personal paths, private names
   and secret-shaped content in tracked files.
-- Release assets: the source archive, `install.sh` and `surface.json` with
-  `SHA256SUMS` (`scripts/release-assets.sh`), also attached to the existing
-  releases.
+- Release assets: the source archive, `install.sh`, `install.sh.sha256` and
+  `surface.json` with `SHA256SUMS` (`scripts/release-assets.sh`), also
+  attached to the existing releases.
+- Installer harness: 31 scenarios (release-tag default, explicit `main`, tag
+  updates, `DWP_VIM_SKIP_PACKAGES`, the pnpm fallback, the script read
+  through a pipe); the hygiene check's `pipe-to-shell` rule.
 
 ### Changed
 
@@ -33,10 +54,18 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   the CHANGELOG section disagree. Only `main` publishes; a re-run finishes a
   failed publish; manual dispatch defaults to a dry run and can cut a
   flagged pre-release.
-- README follows the ecosystem layout; the install line is pinned to the tag.
+- README follows the ecosystem layout. Every install instruction is
+  download → verify (`install.sh.sha256`) → `bash install.sh`.
+- `addon/surface.json` describes v0.4.1: the release asset URL, the
+  `install.sh.sha256` file and `DWP_VIM_SKIP_PACKAGES`.
 
 ### Security
 
+- No shipped text or code pipes a download into a shell: the installer's
+  usage teaches download → verify → run, and the pnpm fallback installs
+  pnpm with npm (user prefix) instead of piping a fetched script into `sh`
+  (or `iex` on Windows). Piping the URL into bash still works and stays
+  safe: without a terminal an existing config is never touched.
 - The release workflow no longer interpolates commit text into shell.
 - Third-party GitHub Actions are pinned by commit SHA.
 
@@ -137,7 +166,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...HEAD
+[v0.4.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.0...v0.4.1
 [v0.4.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.3.1...v0.4.0
 [v0.3.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.3.0...v0.3.1
 [v0.3.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.2.0...v0.3.0
