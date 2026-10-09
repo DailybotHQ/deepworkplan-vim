@@ -94,6 +94,25 @@ function M.resolve_extras(manager, chosen)
   return mapped
 end
 
+M.PCKR_URL = "https://github.com/lewis6991/pckr.nvim"
+
+-- pckr's pinned commit from the config's pckr/lockfile.lua (a plain
+-- `return { [url] = { commit = sha } }` table), or nil when the config
+-- carries no lock (releases before v0.5.1). Only a full 40-hex sha is
+-- returned: the value reaches a shell command.
+function M.pckr_pin(config_dir)
+  if not config_dir then
+    return nil
+  end
+  local ok, lock = pcall(dofile, util.path_join(config_dir, "pckr", "lockfile.lua"))
+  local entry = ok and type(lock) == "table" and lock[M.PCKR_URL] or nil
+  local sha = type(entry) == "table" and entry.commit or nil
+  if type(sha) == "string" and sha:match("^%x+$") and #sha == 40 then
+    return sha
+  end
+  return nil
+end
+
 function M.install_pckr(config_dir)
   -- Same path plugins.lua uses: stdpath("data")/pckr/pckr.nvim — where
   -- stdpath("data") follows the ACTIVE appname, which is the checkout's
@@ -109,12 +128,18 @@ function M.install_pckr(config_dir)
   end
 
   util.mkdir_p(pckr_dir:match("(.+)[/\\][^/\\]+$") or pckr_dir)
-  local ok = exec_ok(
-    'git clone --filter=blob:none https://github.com/lewis6991/pckr.nvim "' .. pckr_dir .. '"'
-  )
+  local ok = exec_ok('git clone --filter=blob:none ' .. M.PCKR_URL .. ' "' .. pckr_dir .. '"')
   if not ok then
     io.stderr:write("Failed to clone pckr.nvim\n")
     return false
+  end
+  -- Check out the commit the config's lock pins. A failure is a warning,
+  -- the same policy as lua/plugins.lua, which retries on the installer's
+  -- headless bootstrap (fetching first); install.sh --strict then fails if
+  -- pckr is still away from its pin.
+  local pin = M.pckr_pin(config_dir)
+  if pin and not exec_ok('git -C "' .. pckr_dir .. '" checkout -q ' .. pin) then
+    io.stderr:write("Warning: could not check out pckr.nvim at its pinned commit " .. pin .. "\n")
   end
   return true
 end

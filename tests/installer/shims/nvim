@@ -4,16 +4,48 @@
 # SHIM_NVIM_RC: exit code to return (a failed or timed-out bootstrap).
 # SHIM_NVIM_PLUGINS: plugin dirs to create under pckr's opt pack, each with
 # a file; SHIM_NVIM_EMPTY names one to leave as an empty clone (.git only).
+# SHIM_PLUGIN_PROTO: a directory of real git repositories (the fixture
+# lock pins their HEADs). A listed plugin found there is installed as a
+# clone — or, when already present, checked out at the prototype's HEAD,
+# as pckr's sync does with a pin — and pckr.nvim is placed where
+# lua/plugins.lua bootstraps it. SHIM_NVIM_DRIFT names one plugin to
+# leave one commit past its pin (a sync that ignored the lock).
 [ -n "${SHIM_LOG:-}" ] && {
   printf 'nvim %s\n' "$*" >>"$SHIM_LOG"
   printf 'nvim-env XDG_CONFIG_HOME=%s NVIM_APPNAME=%s\n' \
     "${XDG_CONFIG_HOME:-}" "${NVIM_APPNAME:-}" >>"$SHIM_LOG"
 }
 if [ -n "${SHIM_NVIM_PLUGINS:-}" ]; then
-  opt="$HOME/.local/share/${NVIM_APPNAME:-nvim}/site/pack/pckr/opt"
+  data="$HOME/.local/share/${NVIM_APPNAME:-nvim}"
+  opt="$data/site/pack/pckr/opt"
+  proto="${SHIM_PLUGIN_PROTO:-}"
+  # place <proto-repo> <dest>: a copy, or the existing checkout moved to
+  # the prototype's HEAD.
+  place() {
+    # The ceiling stops git at the plugin dir: an invalid .git must not
+    # make it answer (or check out) for a repository further up.
+    if [ -d "$2/.git" ] && GIT_CEILING_DIRECTORIES="${2%/*}" git -C "$2" rev-parse -q --verify HEAD >/dev/null 2>&1; then
+      GIT_CEILING_DIRECTORIES="${2%/*}" git -C "$2" checkout -q "$(git -C "$1" rev-parse HEAD)"
+    else
+      # git clone, not cp: the harness PATH carries git but no coreutils.
+      mkdir -p "${2%/*}"
+      git clone -q "$1" "$2"
+    fi
+  }
+  if [ -n "$proto" ] && [ -d "$proto/pckr.nvim" ]; then
+    place "$proto/pckr.nvim" "$data/pckr/pckr.nvim"
+  fi
   for p in $SHIM_NVIM_PLUGINS; do
-    mkdir -p "$opt/$p/.git"
-    if [ "$p" != "${SHIM_NVIM_EMPTY:-}" ]; then
+    if [ "$p" = "${SHIM_NVIM_EMPTY:-}" ]; then
+      mkdir -p "$opt/$p/.git"
+    elif [ -n "$proto" ] && [ -d "$proto/$p" ]; then
+      place "$proto/$p" "$opt/$p"
+      if [ "$p" = "${SHIM_NVIM_DRIFT:-}" ]; then
+        git -C "$opt/$p" -c user.name=t -c user.email=t@example.com -c commit.gpgsign=false \
+          commit -q --allow-empty -m "upstream moved on"
+      fi
+    else
+      mkdir -p "$opt/$p/.git"
       printf 'return {}\n' >"$opt/$p/init.lua"
     fi
   done

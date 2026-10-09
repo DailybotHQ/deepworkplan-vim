@@ -41,7 +41,7 @@ commands (plus the Go mapping contracts) and branch protection requires them:
 
 ```bash
 bash scripts/check-public-hygiene.sh && bash tests/hygiene/run.sh
-find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p
+find lua utilities pckr -name '*.lua' -print0 | xargs -0 luac5.4 -p
 for f in dev.sh install.sh docker/local/dwpvim/entrypoint.sh scripts/*.sh; do bash -n "$f"; done
 bash tests/smoke/run.sh
 bash tests/installer/run.sh
@@ -82,6 +82,35 @@ A DCO sign-off is **not** required.
 3. CI must be green and one maintainer review is required; head branches
    are deleted on merge.
 4. Never rewrite published history (`main`, tags).
+
+## Plugin lock
+
+Every plugin in `lua/plugin_specs.lua` (dependencies included) and pckr
+itself is pinned to a commit in `pckr/lockfile.lua`; installs and updates
+check those commits out, and `install.sh --strict` refuses any other.
+Plugins move only through the refresh script:
+
+```bash
+bash scripts/update-plugin-lock.sh            # update + test; review the lock diff
+bash scripts/update-plugin-lock.sh --commit   # same, then commit the lock alone
+```
+
+It syncs every plugin to its branch tip in a throwaway `HOME` (your
+`~/.config/nvim` and `~/.local/share/nvim` are never touched), writes the
+lock, reinstalls from it and requires every commit to match, then runs the
+smoke suite and the installer harness. It needs `nvim`, `git`, `lua5.4` and
+network. **It runs unreviewed upstream code** (each branch tip and its
+build hooks) with only `PATH`, `LANG`, `TERM` and `TMPDIR` from your
+environment — run it in the contributor container (`bash dev.sh shell`)
+or another disposable machine, not next to your credentials. Read the
+moved plugins' upstream changes before you open the PR: the lock is the
+line between upstream and every install. Do not use `:Pckr lock` instead —
+it drops pckr's own pin.
+
+Adding or removing a plugin: edit `lua/plugin_specs.lua`, then run the
+script — `tests/smoke/plugin_lock.lua` fails while a plugin has no lock
+entry or the lock names one that is gone. A lock change reaches users in
+the next release (below).
 
 ## Releases
 

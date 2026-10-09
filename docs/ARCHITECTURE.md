@@ -14,7 +14,10 @@ init.lua
   ├─ require('settings')      lua/settings.lua      vim.opt basics, perf flags
   ├─ require('mapping')       lua/mapping/init.lua  keybindings (contract-tested)
   ├─ require('autocommand')   lua/autocommand.lua   autocmds
-  ├─ require('plugins')       lua/plugins.lua       pckr.nvim bootstrap + plugin list
+  ├─ require('plugins')       lua/plugins.lua       pckr.nvim bootstrap at its pin, then
+  │                                                 lua/plugin_specs.lua (the list) pinned
+  │                                                 by lua/plugin_lock.lua from
+  │                                                 pckr/lockfile.lua (commit per plugin)
   └─ require('composition')   lua/composition.lua   wires the plugin set-up below
         ├─ lua/setUp/*        greeter, finder, statusline, file manager, autosave, …
         ├─ lua/lsp/*          lspconfig/mason servers, formatters, linters, completion

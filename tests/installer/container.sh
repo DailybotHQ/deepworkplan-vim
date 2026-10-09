@@ -81,6 +81,11 @@ want "no terminal"             "CHECK tty=no"
 want "version resolved"        "DeepWorkPlan Vim $RELEASE_REF (resolved from '${RELEASE_REF#v}' via --version)"
 want "Neovim sha256-verified"  "Neovim v$NVIM installed at /home/dev/.local/opt/nvim-v$NVIM, linked as /home/dev/.local/bin/nvim (sha256 verified)"
 want "plugins verified"        "Plugins verified"
+# Every lock entry (each plugin and pckr) at its pinned commit.
+LOCKED="$(grep -c '^  \["https://github.com/' pckr/lockfile.lua 2>/dev/null || true)"
+if [ "${LOCKED:-0}" -gt 0 ]; then
+  want "plugin commits pinned" "Plugin commits verified ($LOCKED pinned in pckr/lockfile.lua)"
+fi
 want "on the release tag"      "CHECK tag=$RELEASE_REF"
 want "nvim on the version"     "CHECK nvim=NVIM v$NVIM"
 [ "$RC" -eq 0 ] || { echo "  FAIL container exit status $RC"; fails=$((fails + 1)); }
