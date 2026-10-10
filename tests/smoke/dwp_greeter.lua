@@ -38,6 +38,14 @@ ok(second.text:find("Working", 1, true) ~= nil, "rows are status-worded (working
 ok(section.plan_lines[3].text:find("Done", 1, true) ~= nil, "third row is status-worded (done)")
 ok(first.record ~= nil and first.record.name ~= nil, "rows carry their records for the reader gesture")
 
+-- 1b. Alignment: alpha centres each row on its own, so every row must have
+--     the same display width or the columns drift (counts and status words
+--     differ per plan: 2/5 vs 11/11, Done vs Working).
+local w1 = vim.fn.strdisplaywidth(section.plan_lines[1].text)
+for i, row in ipairs(section.plan_lines) do
+	ok(vim.fn.strdisplaywidth(row.text) == w1, "plan row " .. i .. " has the same width as row 1 (columns align)")
+end
+
 -- 2. Title truncation holds at the greeter's 26-char cap.
 local long = greeter_plans.plan_line({
 	title = "A very long plan title that clearly exceeds the cap",
