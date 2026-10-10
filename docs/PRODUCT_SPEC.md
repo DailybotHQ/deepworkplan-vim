@@ -36,6 +36,12 @@ directions of independence hold at all times:
 > **integrated with Deep Work Plan** so the status of the plans is always in
 > view.
 
+The feeling to aim for is a **mini VS Code inside the terminal**: an explorer,
+quick open, a source-control view of what changed, a diff editor, tabs and a
+status bar, completion and go-to-definition, an integrated terminal and a
+welcome page — one familiar surface, with the plans of the work next to the
+code. ([PLUGINS.md](PLUGINS.md) maps each of those to what provides it.)
+
 Every decision — a plugin added or dropped, a mapping, a default — is judged
 against this sentence. If a feature does not help one of the six pillars, it
 needs a reason to exist.

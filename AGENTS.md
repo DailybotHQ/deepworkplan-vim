@@ -27,6 +27,7 @@ pillars ([Product spec](docs/PRODUCT_SPEC.md#product-focus),
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Boot chain, module map, container, tests, release |
 | [docs/STANDARDS.md](docs/STANDARDS.md) | Language, commits, Lua/shell conventions, hard rules |
 | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Gates, scoped patterns, mapping rule, fallback |
+| [docs/PLUGINS.md](docs/PLUGINS.md) | Every plugin, server and tool installed, and the reason for each |
 | [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md) | Every command verbatim, with preconditions |
 | [docs/SECURITY.md](docs/SECURITY.md) | Secrets, SSH surface, installer safety, mesh trust |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Startup budget, hot paths |

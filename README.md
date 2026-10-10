@@ -172,6 +172,7 @@ lua ~/.config/nvim/delete.lua              # Git Bash on Windows: lua "$LOCALAPP
 | Boot chain, modules, container, release flow | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Every command (install, container, gates, release) | [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md) |
 | Tests and gates | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) |
+| Every plugin and tool, and why it is there | [docs/PLUGINS.md](docs/PLUGINS.md) |
 | Key cheat sheet | [CheatSheet.md](CheatSheet.md) |
 | Addon surface for integrators | [addon/README.md](addon/README.md) |
 | Contributor container (Docker + Herdr mesh) | [docker/README.md](docker/README.md), [docker/local/README.md](docker/local/README.md) |
