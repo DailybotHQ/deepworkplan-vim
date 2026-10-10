@@ -16,8 +16,9 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   the DWP VIM wordmark with a "powered by Dailybot" credit on the left and
   a braille engraving of the Deep Work Plan lighthouse on the right (two
   heights, chosen by the window), in the site's cream and
-  oxblood. The wordmark is eight pixel rows tall so it reads at a glance, and
-  an engraved ship sails toward a small lighthouse beneath the credit line. The hero is composed when the dashboard draws and falls back to
+  oxblood. The DWP mark is the logo itself, converted to a braille engraving, with VIM
+  in block letters on its baseline; tall windows also get
+  an engraved ship sailing toward a small lighthouse beneath the credit line. The hero is composed when the dashboard draws and falls back to
   the wordmark alone in windows narrower than the full layout
   (`lua/setUp/greeter_art.lua`).
 

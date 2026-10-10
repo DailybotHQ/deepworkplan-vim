@@ -61,20 +61,37 @@ function M.compose(columns, lines_avail)
 	local variant = pick_variant(lines_avail or vim.o.lines)
 	local lighthouse = variant.lines
 
+	-- Compact windows drop the ship (and with it the tall left block) so the
+	-- plans and the buttons stay on screen.
+	local roomy = (lines_avail or vim.o.lines) >= #art.mark + #art.ship.lines + 4 + BELOW_HERO
+
 	-- Left block rows: { text = ..., spans = { {group, from, to}, ... } }.
 	local left = {}
 	local function text_row(text, group)
 		left[#left + 1] = { text = text, spans = text ~= "" and { { group, 0, #text } } or {} }
 	end
-	for _, l in ipairs(art.logo) do
-		text_row(l, "DwpGreeterLogo")
+	-- Wordmark: the DWP mark (braille engraving of the logo) with VIM in
+	-- block letters on its baseline.
+	local mark_bytes = #art.mark[1]
+	local vim_top = #art.mark - #art.vim
+	for r, l in ipairs(art.mark) do
+		local vim_row = art.vim[r - vim_top]
+		local text = l
+		local spans = { { "DwpArt5", 0, mark_bytes } }
+		if vim_row then
+			text = l .. "   " .. vim_row
+			spans[#spans + 1] = { "DwpGreeterLogo", mark_bytes + 3, #text }
+		end
+		left[#left + 1] = { text = text, spans = spans }
 	end
 	text_row("", "Normal")
 	text_row(M.tagline, "DwpGreeterDim")
 	text_row(M.powered, "DwpGreeterAccent")
-	text_row("", "Normal")
-	for r, l in ipairs(art.ship.lines) do
-		left[#left + 1] = { text = l, spans = spans_for_row(art.ship, r, 0) }
+	if roomy then
+		text_row("", "Normal")
+		for r, l in ipairs(art.ship.lines) do
+			left[#left + 1] = { text = l, spans = spans_for_row(art.ship, r, 0) }
+		end
 	end
 
 	local lw = 0
@@ -114,7 +131,7 @@ function M.compose(columns, lines_avail)
 			push(ptxt .. (lighthouse[r] or ""), spans)
 		end
 	else
-		local keep = columns >= lw and #left or #art.logo + 3
+		local keep = columns >= lw and #left or #art.mark + 3
 		for i = 1, keep do
 			push(left[i].text, left[i].spans)
 		end
