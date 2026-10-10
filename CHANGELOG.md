@@ -22,7 +22,11 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   (`vim.g.dwp_greeter_pulse = false` turns that off). The scene comes in
   six heights, chosen by the rows the rest of the dashboard leaves free
   (short windows tighten the plans overview first); narrower windows stack the wordmark
-  over it or show the wordmark alone (`lua/setUp/greeter_art.lua`).
+  over it or show the wordmark alone (`lua/setUp/greeter_art.lua`). The wordmark
+  sits in the scene's empty sky so the hero stays compact and centred, and wide
+  windows put the shortcuts and "Your plans" side by side
+  (`lua/setUp/greeter_bottom.lua`; Enter activates the row under the cursor,
+  `e` opens the plans sidebar), stacking them again when the window is narrow.
 
 ## [v0.5.1] - 2026-10-09
 

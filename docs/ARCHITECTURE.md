@@ -19,7 +19,7 @@ init.lua
   │                                                 by lua/plugin_lock.lua from
   │                                                 pckr/lockfile.lua (commit per plugin)
   └─ require('composition')   lua/composition.lua   wires the plugin set-up below
-        ├─ lua/setUp/*        greeter (+ greeter_art: wordmark and lighthouse), finder, statusline, file manager, autosave, …
+        ├─ lua/setUp/*        greeter (+ greeter_art, greeter_lighthouse, greeter_bottom: wordmark, scene, two-column bottom), finder, statusline, file manager, autosave, …
         ├─ lua/lsp/*          lspconfig/mason servers, formatters, linters, completion
         └─ lua/scheme/*       theme apply/picker + curated palettes (lua/scheme/palettes/)
 ```
