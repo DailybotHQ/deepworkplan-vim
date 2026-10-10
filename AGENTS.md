@@ -148,6 +148,17 @@ narrower scope, plan gates, or this repository's rules above.
 - **Communicate directly and precisely**; distinguish facts from assumptions.
 - **Verify before declaring completion.** Never claim a check that did not run.
 
+## Pull requests only (MANDATORY)
+
+Every change reaches `main` through a pull request validated by CI. As an
+agent: work on a branch (never on `main`), keep to one concern per branch, run
+the gate (`bash tests/smoke/run.sh`, `bash scripts/boot-check.sh`,
+`bash scripts/check-public-hygiene.sh`), and open a pull request with a
+Conventional Commit title once the owner authorizes publishing. **Never** push to
+`main`, force-push, merge your own pull request, or bypass the `CI gate`; the
+owner reviews and merges. Process: [CONTRIBUTING.md](CONTRIBUTING.md#pull-requests-only),
+enforcement: [docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md).
+
 ## Do not
 
 - Commit secrets or private hostnames

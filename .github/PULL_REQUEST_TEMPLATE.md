@@ -13,10 +13,14 @@
 - [ ] `bash scripts/check-public-hygiene.sh && bash tests/hygiene/run.sh`
 - [ ] `find lua utilities -name '*.lua' -print0 | xargs -0 luac5.4 -p` and `bash -n` on touched scripts
 - [ ] `bash tests/smoke/run.sh`
+- [ ] `bash scripts/boot-check.sh` (plugin, LSP or config changes; needs the plugins installed)
 - [ ] `bash tests/installer/run.sh` (installer changes)
 - [ ] Go mapping contracts (keymap changes; CI runs them)
 
 ## Checklist
+
+- [ ] The title is a Conventional Commit (`feat: …`, `fix: …`) — it becomes the release note on a squash merge
+- [ ] `CI gate` is green before asking for a merge
 
 - [ ] No secrets, tokens, private hostnames, personal paths or other private context
 - [ ] Conventional Commit messages; one concern per PR

@@ -34,6 +34,29 @@ your own config first) or use `NVIM_APPNAME`:
 git clone <your-fork> ~/.config/dwpvim-dev && NVIM_APPNAME=dwpvim-dev nvim
 ```
 
+## Pull requests only
+
+Nothing reaches `main` except through a pull request, for people and for
+agents alike. No direct pushes, no force-pushes, no history rewrites.
+
+1. Branch from `main` (`feat/…`, `fix/…`, `chore/…`, `docs/…`); one concern per
+   branch.
+2. Run the [gate](#the-gate) locally. The smoke suite and the boot check must
+   pass; keymap changes update `tests/contract.go` in the same change.
+3. Open a pull request with a **Conventional Commit title** (`feat: …`,
+   `fix: …`): the release flow reads commit prefixes, so a squash merge turns the
+   title into the release note. Fill in the template, with the gate results.
+4. CI runs on the pull request. **`CI gate` is the one required check** — it
+   passes only when hygiene, lint, the smoke suite, the installer harness, the
+   mapping contracts and the container install (with the boot check) all passed.
+   Fix failures on the branch; never merge around a red gate.
+5. The owner ([CODEOWNERS](.github/CODEOWNERS)) reviews and merges. Before
+   asking, review your own diff; the local AI Diff Reviewer
+   (`.agents/skills/ai-diff-reviewer/`) is available for that.
+
+The rules are enforced by a GitHub ruleset the owner applies once:
+[docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md).
+
 ## The gate
 
 Run the full host gate before opening a pull request — CI runs the same
