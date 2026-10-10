@@ -93,6 +93,13 @@ local configs = {
       end
       on_dir(vim.fs.root(bufnr, { ".git" }) or vim.fs.dirname(name))
     end,
+    -- Keep what marksman is for (go to a link's target, link and heading
+    -- completion, the outline, heading rename) and drop its diagnostics: a
+    -- warning triangle beside README.md in the tree for an ambiguous or
+    -- ignored link is noise, not something to act on while editing.
+    handlers = {
+      ["textDocument/publishDiagnostics"] = function() end,
+    },
   },
 
   ts_ls = {

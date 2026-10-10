@@ -136,7 +136,7 @@ packages.
 | `jsonls` | JSON | Schemas and validation for configs. |
 | `yamlls` | YAML | CI, Compose and plan files. |
 | `taplo` | TOML | Cargo and project configs. |
-| `marksman` | Markdown | Links and headings in docs and plans. |
+| `marksman` | Markdown | Follow a link to its target, complete links and headings, outline and rename headings — in docs and plans. Its **diagnostics are silenced** on purpose (`lua/lsp/server.lua`): a warning icon beside a file in the tree for an ambiguous or git-ignored link is noise. |
 | `dockerls` | Dockerfile | The contributor image. |
 | `emmet_ls` | HTML/CSS | Emmet expansion. |
 | `rust_analyzer` | Rust | The rust toolchain. |
@@ -156,6 +156,9 @@ tailwindcss, grammarly, bashls, astro, svelte, vuels, angularls, sqlls, vimls.
 | trailing-whitespace remover | every file | built into formatter.nvim |
 
 There is no prettier and no separate linter; nvim-lint was retired in PLAN_013.
+**Markdown has no formatter, deliberately**: neither prettier nor mdformat is
+installed (`:Format` on a `.md` only trims trailing whitespace). Adding one is a
+decision for the owner, not a default.
 
 ## External tools the installer asks for
 
