@@ -9,7 +9,8 @@
 local M = {}
 
 local LEFT_WIDTH = 36
-local GAP = 6
+local GAP = 11 -- five spaces, a hairline rule, five spaces
+local RULE = "│"
 
 local function dw(s)
 	return vim.fn.strdisplaywidth(s)
@@ -108,12 +109,16 @@ function M.compose(shortcuts, data, actions)
 	for i = 1, n do
 		local l = left[i] or { text = "" }
 		local r = right[i] or { text = "" }
-		local ltxt = pad(l.text, LEFT_WIDTH) .. string.rep(" ", GAP)
+		local half = string.rep(" ", (GAP - 1) / 2)
+		local ltxt = pad(l.text, LEFT_WIDTH) .. half .. RULE .. half
 		local text = ltxt .. r.text
 		local spans = {}
 		if l.group and l.text ~= "" then
 			spans[#spans + 1] = { l.group, 0, #l.text }
 		end
+		-- The rule runs the full height of the block, in the dimmest tone.
+		local rule_from = #pad(l.text, LEFT_WIDTH) + #half
+		spans[#spans + 1] = { "DwpGreeterDim", rule_from, rule_from + #RULE }
 		if r.group and r.text ~= "" then
 			spans[#spans + 1] = { r.group, #ltxt, #text }
 		end

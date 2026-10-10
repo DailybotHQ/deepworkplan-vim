@@ -13,6 +13,40 @@ local art = require("setUp.greeter_lighthouse")
 -- Rows the dashboard needs below the hero (plans overview + buttons).
 local BELOW_HERO = 24
 
+-- The scene's last rows are sparse stipple (the sea fading out). Drop the
+-- tail so the content below the hero can sit higher. Cached per variant.
+local function trimmed(v)
+	if v._trimmed then
+		return v._trimmed
+	end
+	local function density(r)
+		local n = 0
+		for i = 1, #v.cols[r] do
+			if v.cols[r]:sub(i, i) ~= " " then
+				n = n + 1
+			end
+		end
+		return n
+	end
+	local total = 0
+	for r = 1, #v.lines do
+		total = total + density(r)
+	end
+	local mean = total / #v.lines
+	-- The sea's last stipple rows go regardless (about 7% of the height, at
+	-- least one), then any row that is still nearly empty.
+	local keep = #v.lines - math.max(1, math.floor(#v.lines * 0.07 + 0.5))
+	while keep > 1 and density(keep) < 0.4 * mean do
+		keep = keep - 1
+	end
+	local out = { lines = {}, cols = {} }
+	for r = 1, keep do
+		out.lines[r], out.cols[r] = v.lines[r], v.cols[r]
+	end
+	v._trimmed = out
+	return out
+end
+
 -- Highlight spans of row `r` of a lighthouse variant, byte offsets shifted by `offset`.
 local function spans_for_row(variant, r, offset, skip)
 	local spans, cols = {}, variant.cols[r]:sub((skip or 0) + 1)
@@ -131,7 +165,8 @@ function M.compose(columns, lines_avail, below)
 
 	-- Tallest variant that fits both; else the tallest that fits the width.
 	local variant, top, shift, leads
-	for _, v in ipairs(art.variants) do
+	for _, v0 in ipairs(art.variants) do
+		local v = trimmed(v0)
 		local t, d, ld = place(v)
 		if columns >= d + vim.fn.strdisplaywidth(v.lines[1]) + 4 then
 			if not variant then
