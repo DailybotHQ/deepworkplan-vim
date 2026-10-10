@@ -13,7 +13,6 @@ end)
 
 safe_require("lsp.capabilities")
 safe_require("lsp.server")
-safe_require("lsp.linter")
 safe_require("lsp.formatter")
 safe_require("lsp.completion")
 safe_require("lsp.alias")
