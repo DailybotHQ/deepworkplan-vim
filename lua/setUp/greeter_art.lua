@@ -14,8 +14,8 @@ local art = require("setUp.greeter_lighthouse")
 local BELOW_HERO = 24
 
 -- Highlight spans of row `r` of a lighthouse variant, byte offsets shifted by `offset`.
-local function spans_for_row(variant, r, offset)
-	local spans, cols = {}, variant.cols[r]
+local function spans_for_row(variant, r, offset, skip)
+	local spans, cols = {}, variant.cols[r]:sub((skip or 0) + 1)
 	local run, start = nil, nil
 	local byte = offset
 	for i = 1, #cols do
@@ -63,8 +63,8 @@ function M.compose(columns, lines_avail, below)
 	for r, l in ipairs(art.mark) do
 		local vim_row = art.vim[r - vim_top]
 		-- Blank braille cells at the end of a mark row are padding: drop them
-		-- on the rows VIM shares so it sits against the P.
-		local l = vim_row and vim.fn.substitute(l, "\\%u2800\\+$", "", "") or l
+		-- so the row is as wide as what it draws (VIM then sits against the P).
+		l = vim.fn.substitute(l, "\\%u2800\\+$", "", "")
 		local text = l
 		local spans = { { "DwpArt7", 0, #l } }
 		if vim_row then
@@ -77,22 +77,68 @@ function M.compose(columns, lines_avail, below)
 	text_row(M.tagline, "DwpGreeterDim")
 	text_row(M.powered, "DwpGreeterAccent")
 
-	local lw = 0
-	for _, row in ipairs(left) do
-		lw = math.max(lw, vim.fn.strdisplaywidth(row.text))
+	local gap = 3
+	local left_w = {}
+	for i, row in ipairs(left) do
+		left_w[i] = vim.fn.strdisplaywidth(row.text)
 	end
-	local gap = 4
-	local function width_of(v)
-		return vim.fn.strdisplaywidth(v.lines[1])
+
+	-- Blank cells at the start of each scene row: the wordmark is tucked
+	-- into the empty sky on the scene's left instead of sitting in a column
+	-- of its own, which keeps the whole hero compact and centred.
+	local function leads_of(v)
+		local leads = {}
+		for r, l in ipairs(v.lines) do
+			local n = 0
+			for i = 1, #v.cols[r] do
+				if v.cols[r]:sub(i, i) ~= " " or l:sub(i * 3 - 2, i * 3) ~= "\226\160\128" then
+					break
+				end
+				n = n + 1
+			end
+			leads[r] = n
+		end
+		return leads
+	end
+
+	-- How far right the scene must start (D) when the wordmark's first row
+	-- lands on scene row `t + 1`; the wordmark never overlaps a drawn cell.
+	local function need(leads, t)
+		local d = 0
+		for i = 1, #left do
+			local lead = leads[i + t]
+			if lead and left_w[i] > 0 then
+				d = math.max(d, left_w[i] + gap - lead)
+			end
+		end
+		return d
+	end
+
+	-- Best vertical placement: smallest D, ties toward the top so the beam
+	-- sweeps across the wordmark.
+	local function place(v)
+		local leads = leads_of(v)
+		local best_t, best_d = 0, math.huge
+		local want = math.floor((#v.lines - #left) * 0.4)
+		for t = 0, math.max(0, #v.lines - #left) do
+			local d = need(leads, t)
+			if d < best_d or (d == best_d and math.abs(t - want) < math.abs(best_t - want)) then
+				best_t, best_d = t, d
+			end
+		end
+		return best_t, best_d, leads
 	end
 
 	-- Tallest variant that fits both; else the tallest that fits the width.
-	local variant
+	local variant, top, shift, leads
 	for _, v in ipairs(art.variants) do
-		if columns >= lw + gap + width_of(v) + 4 then
-			variant = variant or v
+		local t, d, ld = place(v)
+		if columns >= d + vim.fn.strdisplaywidth(v.lines[1]) + 4 then
+			if not variant then
+				variant, top, shift, leads = v, t, d, ld
+			end
 			if #v.lines + below <= lines_avail then
-				variant = v
+				variant, top, shift, leads = v, t, d, ld
 				break
 			end
 		end
@@ -110,19 +156,27 @@ function M.compose(columns, lines_avail, below)
 	end
 
 	if variant then
-		local rows = math.max(#left, #variant.lines)
-		-- Biased toward the top so the beam sweeps across the wordmark.
-		local top = math.floor((rows - #left) * 0.4)
+		local rows = math.max(#left + top, #variant.lines)
 		for r = 1, rows do
-			local row = left[r - top] or { text = "", spans = {} }
-			local ptxt = pad(row.text, lw) .. string.rep(" ", gap)
+			local li = r - top
+			local row = left[li] or { text = "", spans = {} }
+			local lw = left_w[li] or 0
+			local ptxt, skip
+			if lw + gap <= shift then
+				ptxt, skip = pad(row.text, shift), 0
+			else
+				-- The scene row starts with enough blank cells to give up.
+				ptxt, skip = row.text .. string.rep(" ", gap), lw + gap - shift
+			end
 			local spans = vim.deepcopy(row.spans)
-			if variant.lines[r] then
-				for _, sp in ipairs(spans_for_row(variant, r, #ptxt)) do
+			local scene = variant.lines[r]
+			if scene then
+				for _, sp in ipairs(spans_for_row(variant, r, #ptxt, skip)) do
 					spans[#spans + 1] = sp
 				end
+				scene = scene:sub(skip * 3 + 1)
 			end
-			push(ptxt .. (variant.lines[r] or ""), spans)
+			push(ptxt .. (scene or ""), spans)
 		end
 	else
 		for _, row in ipairs(left) do
@@ -131,6 +185,7 @@ function M.compose(columns, lines_avail, below)
 	end
 	return { lines = lines, hl = hl }
 end
+
 
 -- Brand colours: cream ink, oxblood beam, slate sea. Fixed hexes so the
 -- hero reads the same under every editor colour scheme.
