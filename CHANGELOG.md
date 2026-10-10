@@ -13,7 +13,7 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 ### Changed
 
 - **The dashboard is DWP Vim's own.** The "MU VIM" wordmark is replaced by
-  the DWP logo, converted to a braille engraving, with a small serif VIM
+  the DWP logo, converted to a braille engraving, with a small solid-block VIM
   tucked under its P, a "powered by Dailybot" credit beneath, and one
   engraved scene on the right: the Deep Work Plan lighthouse with a ship
   sailing in the same sea, in the site's cream and oxblood. The scene comes

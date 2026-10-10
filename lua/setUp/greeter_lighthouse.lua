@@ -4,7 +4,7 @@
 --   palette   class -> hex
 --   variants  the scene (lighthouse with a ship sailing in its sea) at three
 --             heights; the greeter picks the tallest that fits the window
---   mark      the DWP logo; vim  the small serif VIM tucked under its P
+--   mark      the DWP logo; vim  the small solid-block VIM tucked under its P
 return {
 	palette = {
 		"#5a5852",
@@ -212,7 +212,8 @@ return {
 		"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣿⡀⠀⠀⠀⠀⠀⠀",
 	},
 	vim = {
-		"⠙⣿⡁⢹⠋⠀⠉⣿⠉⠁⠈⡟⢿⡄⢠⠏⣿⠁",
-		"⠀⠘⣷⡏⠀⠀⣀⣿⣀⡀⢀⣇⠈⢿⡞⢀⣿⡀",
+		"▀██ ██▀ ▀▀█▀▀ ███   ███",
+		" ▀█▄█▀    █   ██ ▀▄▀ ██",
+		"  ▀█▀   ▄▄█▄▄ ██▄   ▄██",
 	},
 }

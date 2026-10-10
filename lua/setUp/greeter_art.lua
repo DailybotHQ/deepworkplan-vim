@@ -56,9 +56,9 @@ function M.compose(columns, lines_avail)
 		left[#left + 1] = { text = text, spans = text ~= "" and { { group, 0, #text } } or {} }
 	end
 	-- VIM sits in the empty corner under the P's bowl, to the right of its
-	-- stem, one row above the stem's foot.
-	local VIM_COL = 21
-	local vim_top = #art.mark - #art.vim - 1
+	-- stem, on the last rows of the mark (its bottom meets the P's foot).
+	local VIM_COL = 22
+	local vim_top = #art.mark - #art.vim
 	for r, l in ipairs(art.mark) do
 		local vim_row = art.vim[r - vim_top]
 		-- Blank braille cells at the end of a mark row are padding: drop them
