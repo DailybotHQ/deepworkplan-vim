@@ -50,7 +50,11 @@ vim.api.nvim_create_autocmd("ColorScheme", { callback = art.define_highlights })
 default.header = {
 	type = "group",
 	val = function()
-		local hero = art.compose()
+		-- Rows the dashboard needs below the hero: buttons, paddings and the
+		-- plans overview (built here so its size is known; it is cached).
+		local ok, plans = pcall(default.plans_section.val)
+		local below = 9 + ((ok and type(plans) == "table") and math.max(2, 2 * #plans) or 2)
+		local hero = art.compose(nil, nil, below)
 		return { { type = "text", val = hero.lines, opts = { position = "center", hl = hero.hl } } }
 	end,
 }

@@ -23,14 +23,14 @@ local function spans_for_row(variant, r, offset)
 		local c = ch ~= " " and ch or nil
 		if c ~= run then
 			if run then
-				spans[#spans + 1] = { "DwpArt" .. run, start, byte }
+				spans[#spans + 1] = { "DwpArt" .. tonumber(run, 36), start, byte }
 			end
 			run, start = c, byte
 		end
 		byte = byte + 3 -- one braille cell is 3 bytes
 	end
 	if run then
-		spans[#spans + 1] = { "DwpArt" .. run, start, byte }
+		spans[#spans + 1] = { "DwpArt" .. tonumber(run, 36), start, byte }
 	end
 	return spans
 end
@@ -46,7 +46,8 @@ end
 -- a ship sailing at its foot). The scene is the tallest variant that fits
 -- both the window width and its height; narrower windows stack the wordmark
 -- over the smallest scene that fits, or show the wordmark alone.
-function M.compose(columns, lines_avail)
+function M.compose(columns, lines_avail, below)
+	below = below or BELOW_HERO
 	columns = columns or vim.o.columns
 	lines_avail = lines_avail or vim.o.lines
 
@@ -65,7 +66,7 @@ function M.compose(columns, lines_avail)
 		-- on the rows VIM shares so it sits against the P.
 		local l = vim_row and vim.fn.substitute(l, "\\%u2800\\+$", "", "") or l
 		local text = l
-		local spans = { { "DwpArt5", 0, #l } }
+		local spans = { { "DwpArt7", 0, #l } }
 		if vim_row then
 			text = pad(l, VIM_COL) .. vim_row
 			spans[#spans + 1] = { "DwpGreeterLogo", #pad(l, VIM_COL), #text }
@@ -90,7 +91,7 @@ function M.compose(columns, lines_avail)
 	for _, v in ipairs(art.variants) do
 		if columns >= lw + gap + width_of(v) + 4 then
 			variant = variant or v
-			if #v.lines + BELOW_HERO <= lines_avail then
+			if #v.lines + below <= lines_avail then
 				variant = v
 				break
 			end
