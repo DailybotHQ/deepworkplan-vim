@@ -18,7 +18,7 @@ bash install.sh --version 0.5.0 --nvim 0.12.5 --skip-packages --strict   # image
 Manual:
 
 ```bash
-git clone --branch v0.5.0 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
+git clone --branch v0.5.1 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim
 cd ~/.config/nvim && lua install.lua      # needs lua / lua5.4 / luajit + git; sudo only for packages
 nvim
 ```
