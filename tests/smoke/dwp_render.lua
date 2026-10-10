@@ -98,8 +98,24 @@ end
 -- No-wrap proof: the LAST buffer line ("click a plan to expand…")
 -- renders exactly at screen row n (n = buffer line count) — any earlier
 -- row wrapping onto a second screen line would push it lower.
+-- The sidebar draws two thin rules as virtual lines (under the header and above
+-- the footer); each occupies one screen row without being buffer text, so the
+-- expected screen row is the buffer line count plus those.
+local function virtual_rows(win)
+	local buf = vim.api.nvim_win_get_buf(win)
+	local ns = vim.api.nvim_get_namespaces()["dwp-sidebar"]
+	local count = 0
+	for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, { details = true })) do
+		local vl = mark[4].virt_lines
+		if vl then
+			count = count + #vl
+		end
+	end
+	return count
+end
+
 local function footer_on_expected_row(win, lines)
-	local n = buf_line_count(win)
+	local n = buf_line_count(win) + virtual_rows(win)
 	local row = lines[n]
 	return row ~= nil and row:find("click a plan to expand", 1, true) ~= nil, n
 end

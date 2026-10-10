@@ -259,6 +259,103 @@ ok(announced == 2, "reopening through toggle announces again")
 sidebar.close()
 vim.api.nvim_del_augroup_by_name("SmokeSidebarEvent")
 
+-- 12. Visual hierarchy (UX_AUDIT F2, F3, F4, F5, F9, F10). The row text is
+--     unchanged; hierarchy lives in highlights and virtual lines.
+local NSID = vim.api.nvim_get_namespaces()["dwp-sidebar"]
+sidebar.open({ FIXTURES })
+local hwin = vim.fn.bufwinid(sidebar_buf())
+local hbuf = sidebar_buf()
+local htext = table.concat(vim.api.nvim_buf_get_lines(hbuf, 0, -1, false), "\n")
+local first_line = vim.api.nvim_buf_get_lines(hbuf, 0, 1, false)[1]
+ok(first_line:find("Plans", 1, true) == 1 and first_line:find("1 working", 1, true) ~= nil, "the header carries a summary of what is live")
+ok(htext:find("Working · 1", 1, true) ~= nil, "an expanded section header carries its count")
+ok(vim.api.nvim_get_hl(0, { name = "DwpPlansHeader" }).bold == true, "the header group is bold (derived from the theme, not a fixed colour)")
+ok(vim.api.nvim_get_hl(0, { name = "DwpPlansDim" }).italic ~= true, "the dim group is not italic")
+
+local function groups_on_line(pattern)
+	local lines = vim.api.nvim_buf_get_lines(hbuf, 0, -1, false)
+	for i, line in ipairs(lines) do
+		if line:find(pattern, 1, true) then
+			local set = {}
+			for _, m in ipairs(vim.api.nvim_buf_get_extmarks(hbuf, NSID, { i - 1, 0 }, { i - 1, -1 }, { details = true })) do
+				if m[4].hl_group then
+					set[m[4].hl_group] = true
+				end
+			end
+			return set
+		end
+	end
+	return {}
+end
+local running = groups_on_line("Fixture running plan")
+local done = groups_on_line("Fixture done plan")
+ok(running.DwpPlansTitle == true and running.MoreMsg == true, "a live plan: strong title and its status colour on icon and bar")
+ok(done.DwpPlansDim == true and done.DwpPlansTitle ~= true, "a settled plan recedes: dim title, no strong title")
+ok(running.DwpPlansDim == true, "the percent and the empty bar cells are dim")
+
+local vlines = 0
+for _, m in ipairs(vim.api.nvim_buf_get_extmarks(hbuf, NSID, 0, -1, { details = true })) do
+	vlines = vlines + (m[4].virt_lines and #m[4].virt_lines or 0)
+end
+ok(vlines == 2, "two thin virtual rules: under the header and above the footer (no buffer text added)")
+sidebar.close()
+
+-- Done opens collapsed when it holds more than six plans, and stays under the
+-- user's control afterwards.
+local many = vim.fn.tempname()
+for i = 1, 8 do
+	local d = string.format("%s/PLAN_%03d_finished_%d", many, 900 + i, i)
+	vim.fn.mkdir(many, "p")
+	vim.fn.system({ "cp", "-R", FIXTURES .. "/PLAN_992_fixture_done", d })
+end
+sidebar.open({ many })
+local dbuf = sidebar_buf()
+local function dtext()
+	return table.concat(vim.api.nvim_buf_get_lines(dbuf, 0, -1, false), "\n")
+end
+ok(dtext():find("Done ▸ 8 hidden", 1, true) ~= nil, "a Done group of eight opens collapsed with its count")
+local before_rows = #vim.api.nvim_buf_get_lines(dbuf, 0, -1, false)
+local enter
+for _, m in ipairs(vim.api.nvim_buf_get_keymap(dbuf, "n")) do
+	if m.lhs == "<CR>" then
+		enter = m
+	end
+end
+for i, line in ipairs(vim.api.nvim_buf_get_lines(dbuf, 0, -1, false)) do
+	if line:find("Done ▸ 8 hidden", 1, true) then
+		vim.api.nvim_win_set_cursor(vim.fn.bufwinid(dbuf), { i, 0 })
+	end
+end
+enter.callback()
+ok(dtext():find("Done · 8", 1, true) ~= nil and #vim.api.nvim_buf_get_lines(dbuf, 0, -1, false) > before_rows, "Enter on the header expands it")
+sidebar.refresh()
+ok(dtext():find("Done · 8", 1, true) ~= nil, "the user's choice sticks across a refresh (no re-collapse)")
+sidebar.close()
+vim.fn.delete(many, "rf")
+
+-- Titles use the room the window has: a 70-column sidebar shows more of a long
+-- title than the default 48-column one (cap 28 -> up to 44).
+local HOSTILE_ROOT = vim.uv.cwd() .. "/tests/fixtures/dwp_render"
+local function widest_title_row(width)
+	vim.g.dwp_plans_width = width
+	vim.o.columns = 200
+	sidebar.open({ HOSTILE_ROOT })
+	local lines = vim.api.nvim_buf_get_lines(sidebar_buf(), 0, -1, false)
+	local best = 0
+	for _, line in ipairs(lines) do
+		if line:find("▸▰", 1, true) or line:find("▸▱", 1, true) then
+			local head = line:match("^(.-)  [▸▾]") or line
+			best = math.max(best, vim.fn.strdisplaywidth(head))
+		end
+	end
+	sidebar.close()
+	vim.g.dwp_plans_width = nil
+	return best
+end
+local narrow_w, wide_w = widest_title_row(48), widest_title_row(70)
+ok(wide_w > narrow_w, "a wider window shows more of a long title (" .. narrow_w .. " -> " .. wide_w .. " cells)")
+vim.o.columns = 80
+
 if fails > 0 then
 	print(("SIDEBAR SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")
