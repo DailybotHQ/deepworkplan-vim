@@ -54,6 +54,10 @@ end
 
 require("mason-lspconfig").setup({
   ensure_installed = wanted,
+  -- Only the servers listed here start (the explicit vim.lsp.enable loop below):
+  -- a server a previous config installed (tailwindcss freezes a monorepo,
+  -- grammarly and bashls crash on Node 24) must not wake up on its own.
+  automatic_enable = false,
 })
 
 local ok_caps, capabilities = pcall(require, "lsp.capabilities")

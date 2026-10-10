@@ -69,6 +69,11 @@ function M._ensure(data_dir)
     return { ok = true }
   end
   local cli = M.real_npm_cli()
+  -- A link to a file that cannot be executed would fail every Mason npm call
+  -- silently: treat it as "no real npm" so the warning explains it.
+  if cli and not vim.uv.fs_access(cli, "X") then
+    cli = nil
+  end
   if not cli then
     return { ok = false, reason = "npm on PATH is a pnpm stand-in (" .. npm .. ") and no real npm was found next to node" }
   end

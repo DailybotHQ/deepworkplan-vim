@@ -82,6 +82,10 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ### Fixed
 
+- **Servers a previous config installed no longer start on their own.** Only the
+  servers this config lists are enabled (`automatic_enable = false`); tailwindcss,
+  grammarly, bashls and the retired servers stay off even when Mason still has them.
+
 - **Language servers no longer fail to install behind an `npm` that is not
   npm.** Some environments put a script named `npm` first on PATH that
   forwards to pnpm; Mason runs `npm init --scope=mason`, pnpm rejects the

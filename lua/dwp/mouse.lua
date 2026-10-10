@@ -43,7 +43,10 @@ function M.click()
 		return M.default_click(1)
 	end
 	if vim.api.nvim_get_current_win() ~= pos.winid then
-		vim.api.nvim_set_current_win(pos.winid)
+		-- Refused in the command-line window (E11) or under textlock (E565).
+		if not pcall(vim.api.nvim_set_current_win, pos.winid) then
+			return
+		end
 	end
 	mod.click(pos)
 end
