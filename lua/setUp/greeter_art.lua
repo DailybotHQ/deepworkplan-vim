@@ -81,7 +81,7 @@ function M.compose(columns, lines_avail, below)
 	for _, row in ipairs(left) do
 		lw = math.max(lw, vim.fn.strdisplaywidth(row.text))
 	end
-	local gap = 6
+	local gap = 4
 	local function width_of(v)
 		return vim.fn.strdisplaywidth(v.lines[1])
 	end
@@ -111,7 +111,8 @@ function M.compose(columns, lines_avail, below)
 
 	if variant then
 		local rows = math.max(#left, #variant.lines)
-		local top = math.floor((rows - #left) / 2)
+		-- Biased toward the top so the beam sweeps across the wordmark.
+		local top = math.floor((rows - #left) * 0.4)
 		for r = 1, rows do
 			local row = left[r - top] or { text = "", spans = {} }
 			local ptxt = pad(row.text, lw) .. string.rep(" ", gap)
@@ -143,6 +144,69 @@ function M.define_highlights()
 	for i, hex in ipairs(art.palette) do
 		hi("DwpArt" .. (i - 1), { fg = hex })
 	end
+end
+
+-- Slow pulse of the beam: the four red classes breathe between dim and
+-- bright while the dashboard is on screen. One uv timer, started when the
+-- dashboard draws and stopped as soon as its buffer is hidden or wiped;
+-- `vim.g.dwp_greeter_pulse = false` turns it off. Nothing runs at boot.
+local PULSE_STEP_MS = 160
+local PULSE_PERIOD_STEPS = 24
+local pulse_timer = nil
+
+local function scaled(hex, k)
+	local r, g, b = hex:match("#(%x%x)(%x%x)(%x%x)")
+	local function ch(v)
+		return math.min(255, math.floor(tonumber(v, 16) * k + 0.5))
+	end
+	return string.format("#%02x%02x%02x", ch(r), ch(g), ch(b))
+end
+
+local function stop_pulse()
+	if pulse_timer then
+		pulse_timer:stop()
+		pulse_timer:close()
+		pulse_timer = nil
+		M.define_highlights()
+	end
+end
+
+function M.start_pulse(buf)
+	if vim.g.dwp_greeter_pulse == false or #vim.api.nvim_list_uis() == 0 then
+		return
+	end
+	stop_pulse()
+	local timer = vim.uv.new_timer()
+	if not timer then
+		return
+	end
+	pulse_timer = timer
+	local step = 0
+	timer:start(
+		PULSE_STEP_MS,
+		PULSE_STEP_MS,
+		vim.schedule_wrap(function()
+			if pulse_timer ~= timer then
+				return
+			end
+			if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].filetype ~= "alpha" then
+				return stop_pulse()
+			end
+			if vim.fn.bufwinid(buf) == -1 then
+				return -- hidden: skip the tick, stop when the buffer goes
+			end
+			step = (step + 1) % PULSE_PERIOD_STEPS
+			local k = 0.84 + 0.2 * (1 + math.sin(2 * math.pi * step / PULSE_PERIOD_STEPS)) / 2
+			for i = 9, 12 do
+				vim.api.nvim_set_hl(0, "DwpArt" .. (i - 1), { fg = scaled(art.palette[i], k) })
+			end
+		end)
+	)
+	vim.api.nvim_create_autocmd({ "BufWipeout", "BufUnload" }, {
+		buffer = buf,
+		once = true,
+		callback = stop_pulse,
+	})
 end
 
 return M

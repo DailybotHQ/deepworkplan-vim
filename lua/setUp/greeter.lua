@@ -53,7 +53,7 @@ default.header = {
 		-- Rows the dashboard needs below the hero: buttons, paddings and the
 		-- plans overview (built here so its size is known; it is cached).
 		local ok, plans = pcall(default.plans_section.val)
-		local below = 9 + ((ok and type(plans) == "table") and math.max(2, 2 * #plans) or 2)
+		local below = 11 + ((ok and type(plans) == "table") and math.max(2, 2 * #plans) or 2)
 		local hero = art.compose(nil, nil, below)
 		return { { type = "text", val = hero.lines, opts = { position = "center", hl = hero.hl } } }
 	end,
@@ -143,7 +143,7 @@ end, opts = { spacing = 1 } }
 
 alpha.setup({
 	layout = {
-		{ type = "padding", val = 1 },
+		{ type = "padding", val = 3 },
 		default.header,
 		{ type = "padding", val = 1 },
 		default.plans_section,
@@ -157,6 +157,13 @@ alpha.setup({
 -- opened), and starting at require made every boot — even +qa! boots
 -- that never show a dashboard — pay the alpha layout plus the plans
 -- scan (startup ceiling; UX_AUDIT §10, D-5).
+-- The beam pulses while the dashboard is on screen (see greeter_art).
+vim.api.nvim_create_autocmd("User", {
+	pattern = "AlphaReady",
+	callback = function()
+		art.start_pulse(vim.api.nvim_get_current_buf())
+	end,
+})
 vim.api.nvim_create_autocmd("VimEnter", {
 	once = true,
 	callback = function()
