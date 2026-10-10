@@ -12,6 +12,15 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ### Changed
 
+- **The plans sidebar and the file tree toggle for each other.** Opening one closes
+  the other (`sidebars.exclusive` in `dwpvim.json`, on by default).
+- **A clearer plans sidebar.** The window is quiet (no dots for spaces or arrows at
+  line ends, a fixed width, editing keys do nothing instead of printing `E21`); the
+  list has a hierarchy — a header with a summary, sections with their counts,
+  status colours on the icon and the bar, strong titles for live plans and dim ones
+  for settled plans, thin rules, titles that use a wider window — and a long Done
+  group opens collapsed. See `docs/PLANS_SIDEBAR.md`.
+
 - **The file tree opens on the left**, like the plans sidebar, and is 40 columns
   wide (it still shrinks to its content). It used to open on the right at 60.
 - **Both sidebars are configurable from a file.** `dwpvim.json` in the repository

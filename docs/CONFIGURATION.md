@@ -23,7 +23,8 @@ next layer's value for that key.
 ```json
 {
   "tree":  { "side": "left", "width": 40 },
-  "plans": { "side": "left", "width": 48 }
+  "plans": { "side": "left", "width": 48 },
+  "sidebars": { "exclusive": true }
 }
 ```
 
@@ -33,6 +34,7 @@ next layer's value for that key.
 | `tree.width` | whole number, 20–120 | `40` | its maximum width; the tree still shrinks to its content |
 | `plans.side` | `"left"` or `"right"` | `"left"` | the plans sidebar (`SPC P`) |
 | `plans.width` | whole number, 20–120 | `48` | its maximum width; a narrow terminal still gets a proportional share, never an unreadable one |
+| `sidebars.exclusive` | `true` or `false` | `true` | one sidebar at a time: opening the plans closes the file tree and opening the tree closes the plans; `false` lets both stay open |
 
 Keys starting with `$` or `_` (such as the `"$comment"` the shipped file carries)
 are documentation and are ignored. JSON has no comments, so use one of those keys.

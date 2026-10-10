@@ -32,6 +32,7 @@ updates flow through pckr, not through this repo's git.
 
 ```
 lua/                 the editor config (see lua/README.md)
+lua/setUp/sidebars.lua  one sidebar at a time: closes the file tree when the plans open and back (events)
 lua/userconfig.lua   dwpvim.json (editor dir) + .dwpvim.json (project): merge, validate, :DwpConfig
 lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
                      state (machine states + rich plain-language model),

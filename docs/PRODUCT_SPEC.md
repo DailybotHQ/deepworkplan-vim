@@ -133,7 +133,9 @@ delivered, the last list says so.
   clickable segment; the dashboard lists the top three plans and opens
   any of them in the reader. Read-only: the surfaces
   explain plans, they never write under `.dwp/` (`lua/dwp/`, smoke-covered
-  in `tests/smoke/`).
+  in `tests/smoke/`). The sidebar and the file tree toggle for each other
+  (one at a time), and the sidebar is built for a glance: live plans stand
+  out, finished ones recede ([PLANS_SIDEBAR.md](PLANS_SIDEBAR.md)).
 
 ### Friendly and lightweight
 - **A dashboard that orients** — the shortcuts and the top plans on one
