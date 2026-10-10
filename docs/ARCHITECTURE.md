@@ -20,7 +20,7 @@ init.lua
   │                                                 pckr/lockfile.lua (commit per plugin)
   └─ require('composition')   lua/composition.lua   wires the plugin set-up below
         ├─ lua/setUp/*        greeter, finder, statusline, file manager, autosave, …
-        ├─ lua/lsp/*          lspconfig/mason servers (npm_guard keeps Mason's npm real), formatters, linters, completion
+        ├─ lua/lsp/*          lspconfig/mason servers (npm_guard keeps Mason's npm real), formatters, completion
         └─ lua/scheme/*       theme apply/picker + curated palettes (lua/scheme/palettes/)
 ```
 

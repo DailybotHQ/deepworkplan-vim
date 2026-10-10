@@ -10,6 +10,19 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+### Removed
+
+- **nvim-lint**: no linter was ever configured, so it did nothing (its
+  lock entry and `lua/lsp/linter.lua` go with it).
+- **The prettier formatter entries** (html, markdown, scss, less, yaml,
+  svelte, vue, angular): nothing installed prettier. `:Format` keeps biome
+  (JS/TS/JSON/CSS/GraphQL), black, shfmt and stylua.
+- **Eleven Mason servers** nobody asked for: efm and diagnosticls (no
+  configuration in this repository), tailwindcss, grammarly and bashls
+  (installed but never started), and the servers for astro, svelte, Vue 2
+  (vuels), Angular, SQL and Vim script. Fewer plugins to pin and fewer
+  packages to install and update at first start.
+
 ### Fixed
 
 - **Language servers no longer fail to install behind an `npm` that is not
