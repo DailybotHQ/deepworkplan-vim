@@ -283,6 +283,7 @@ do
 	-- mid-codepoint), cap continuations at width minus indent, and
 	-- spend exactly the goal's own cells plus the indent per line.
 	vim.o.columns = 44
+	vim.cmd("new | only") -- a fresh window: headless keeps a reused window at its old width
 	vim.cmd("redraw")
 	reader.open(cjk_rec)
 	vim.cmd("redraw")

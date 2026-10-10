@@ -433,6 +433,40 @@ click_on("Working ▸ 1 hidden", 3)
 ok(table.concat(vim.api.nvim_buf_get_lines(sidebar_buf(), 0, -1, false), "\n"):find("Working · 1", 1, true) ~= nil, "and a second click brings it back")
 sidebar.close()
 
+-- 13e. opening a SECOND plan while the reader shows the first replaces the
+--      reader, never the sidebar, and the sidebar keeps the focus for the click.
+sidebar.open({ FIXTURES })
+local function click_nth_plan(n)
+	local sbuf = sidebar_buf()
+	local swin = vim.fn.bufwinid(sbuf)
+	local seen = 0
+	local tline
+	for i, line in ipairs(vim.api.nvim_buf_get_lines(sbuf, 0, -1, false)) do
+		if line:find("▸[▰▱]") then
+			seen = seen + 1
+			if seen == n then
+				tline = i
+			end
+		end
+	end
+	vim.fn.getmousepos = function()
+		return { winid = swin, line = tline, wincol = 6, column = 1 }
+	end
+	require("dwp.mouse").click()
+	vim.fn.getmousepos = real_getmousepos
+end
+click_nth_plan(1)
+click_nth_plan(2)
+local filetypes = {}
+for _, w in ipairs(vim.api.nvim_list_wins()) do
+	filetypes[#filetypes + 1] = vim.bo[vim.api.nvim_win_get_buf(w)].filetype
+end
+ok(vim.tbl_contains(filetypes, "dwp-plans"), "after a second click the sidebar is still there (" .. table.concat(filetypes, ",") .. ")")
+ok(vim.tbl_contains(filetypes, "dwp-plan"), "and the reader shows the second plan")
+ok(vim.bo[vim.api.nvim_get_current_buf()].filetype == "dwp-plans", "the focus returns to the sidebar after a click")
+close_reader()
+sidebar.close()
+
 -- 13d. a click in another window is ignored, the double-click is a no-op
 sidebar.open({ FIXTURES })
 local dbuf = sidebar_buf()
@@ -454,7 +488,16 @@ for _, m in ipairs(vim.api.nvim_buf_get_keymap(dbuf, "n")) do
 		dbl = m
 	end
 end
-ok(dbl ~= nil and (dbl.rhs == "<Nop>" or dbl.rhs == ""), "the second click of a double-click is a no-op")
+ok(dbl ~= nil and dbl.callback ~= nil, "the second click of a double-click is routed (never Vim's word selection)")
+for _, lhs in ipairs({ "<3-LeftMouse>", "<4-LeftMouse>" }) do
+	local found
+	for _, m in ipairs(vim.api.nvim_buf_get_keymap(dbuf, "n")) do
+		if m.lhs:lower() == lhs:lower() then
+			found = m
+		end
+	end
+	ok(found ~= nil, lhs .. " is routed too")
+end
 sidebar.close()
 
 -- 14. Keyboard: j/k (and the arrows, Ctrl-n/Ctrl-p) jump between selectable rows

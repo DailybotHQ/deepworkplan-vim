@@ -14,6 +14,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 - **The plans sidebar and the file tree toggle for each other.** Opening one closes
   the other (`sidebars.exclusive` in `dwpvim.json`, on by default).
+- **Plan clicks route by the window under the pointer.** A mapped `<LeftMouse>` is
+  resolved against the focused buffer, so with the reader focused a click on the
+  sidebar was ignored; the double-click fell through to Vim's word selection.
+  `dwp.mouse` now decides every click by the pointer's window, the sidebar keeps
+  the focus after opening a plan, and a second plan replaces the reader instead of
+  the sidebar.
 - **The plans sidebar reacts to the mouse and the keyboard jumps between plans.** A
   click opens the plan under the pointer (a mapped `<LeftMouse>` does not move the
   cursor, so clicks used to act on the wrong row), the small arrow shows its tasks,

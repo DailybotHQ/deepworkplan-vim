@@ -640,35 +640,36 @@ local function activate()
 	end
 end
 
--- The row under the pointer. A mapped <LeftMouse> does NOT move the cursor (the
--- unmapped click would), so the position comes from getmousepos() and the cursor
--- is moved here — acting on the cursor's old row was why clicks seemed dead.
-local function pointer_row()
-	local pos = vim.fn.getmousepos()
-	if not st.win or pos.winid ~= st.win or pos.line < 1 then
-		return nil
+--- True when `winid` is the sidebar window (lua/dwp/mouse.lua routes by this).
+function S.owns_window(winid)
+	return st.win ~= nil and winid == st.win and vim.api.nvim_win_is_valid(st.win)
+end
+
+--- A click on the sidebar, resolved from the pointer position `pos`
+--- (vim.fn.getmousepos()), never from the cursor: a mapped <LeftMouse> does not
+--- move it. One click acts: a plan opens in the reader (the small marker toggles
+--- its checklist), a section header shows or hides the group, a task or file
+--- opens. The focus stays here, so the next plan is one click away.
+function S.click(pos)
+	if not S.is_open() or pos.winid ~= st.win or pos.line < 1 then
+		return
 	end
 	local line = math.min(pos.line, #st.rows)
 	local row = st.rows[line]
 	if not row then
-		return nil
-	end
-	pcall(vim.api.nvim_win_set_cursor, st.win, { line, 0 })
-	return row, pos.wincol
-end
-
--- One click acts: a plan opens in the reader (the small marker toggles its
--- checklist), a section header shows or hides the group, a task or file opens.
-local function on_click()
-	local row, wincol = pointer_row()
-	if not row then
 		return
 	end
-	if row.kind == "plan" and row.marker_col and wincol >= row.marker_col - 1 and wincol <= row.marker_col + 1 then
+	pcall(vim.api.nvim_win_set_cursor, st.win, { line, 0 })
+	if row.kind == "plan" and row.marker_col and pos.wincol >= row.marker_col - 1 and pos.wincol <= row.marker_col + 1 then
 		S.toggle_expand(row.plan.name)
 		return
 	end
+	local origin = st.win
 	activate()
+	-- Opening a plan moves the focus to the reader; a mouse user keeps browsing.
+	if row.kind == "plan" and vim.api.nvim_win_is_valid(origin) then
+		pcall(vim.api.nvim_set_current_win, origin)
+	end
 end
 
 local HELP_LINES = {
@@ -790,9 +791,19 @@ function set_keys()
 	vim.keymap.set("n", "?", S.help, opts)
 	vim.keymap.set("n", "q", S.close, opts)
 	vim.keymap.set("n", "<Esc>", S.close, opts)
-	vim.keymap.set("n", "<LeftMouse>", on_click, opts)
-	-- The first click already acted; the second of a double-click does nothing.
-	vim.keymap.set("n", "<2-LeftMouse>", "<Nop>", opts)
+	local mouse = function()
+		return require("dwp.mouse")
+	end
+	vim.keymap.set("n", "<LeftMouse>", function()
+		mouse().click()
+	end, opts)
+	-- The first click already acted; the rest of a multi-click does nothing (and
+	-- never falls through to Vim's word selection).
+	for count = 2, 4 do
+		vim.keymap.set("n", ("<%d-LeftMouse>"):format(count), function()
+			mouse().multi_click(count)()
+		end, opts)
+	end
 	-- The buffer is read-only: editing keys do nothing, silently, instead of
 	-- printing E21 and a "Press ENTER" (UX_AUDIT F8).
 	for _, key in ipairs({ "i", "I", "a", "A", "o", "O", "c", "C", "s", "S", "x", "X", "d", "D", "p", "P", "R", "u", "U", "<C-r>", "J", "gi" }) do

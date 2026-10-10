@@ -397,12 +397,33 @@ end
 --- Open the rendered reader for one plan record (from dwp.plans.scan()).
 --- Opening again (same or another plan) replaces the previous reader
 --- buffer — one reader at a time, no name collisions.
+--- True when `winid` shows the reader (lua/dwp/mouse.lua routes by this).
+function R.owns_window(winid)
+	return st.buf ~= nil and vim.api.nvim_buf_is_valid(st.buf) and vim.fn.bufwinid(st.buf) == winid
+end
+
+--- A click on the reader, resolved from the pointer: a file line opens the file.
+function R.click(pos)
+	if pos.line < 1 then
+		return
+	end
+	local row = st.rows[pos.line]
+	if row and row.kind == "jump" and row.file then
+		open_file(row.file)
+	end
+end
+
 function R.open(record)
 	if not record or not record.path then
 		return
 	end
-	if st.buf and vim.api.nvim_buf_is_valid(st.buf) then
-		pcall(vim.api.nvim_buf_delete, st.buf, { force = true })
+	-- The previous reader is deleted only AFTER the new one occupies its window:
+	-- deleting first closes that window, and the next plan would land in the
+	-- sidebar (the only window left) and replace it.
+	local previous = st.buf
+	if previous and vim.api.nvim_buf_is_valid(previous) then
+		-- Free its name now: the same plan reopened must not collide with it.
+		pcall(vim.api.nvim_buf_set_name, previous, "")
 	end
 	st.buf = vim.api.nvim_create_buf(false, true)
 	vim.bo[st.buf].buftype = "nofile"
@@ -422,6 +443,9 @@ function R.open(record)
 	-- A quiet window, like the sidebar: the editor's global `list` would paint
 	-- every space as a dot and every line end as an arrow.
 	vim.wo[win].list = false
+	if previous and previous ~= st.buf and vim.api.nvim_buf_is_valid(previous) then
+		pcall(vim.api.nvim_buf_delete, previous, { force = true })
+	end
 
 	local opts = { buffer = st.buf, silent = true, nowait = true }
 	vim.keymap.set("n", "<CR>", function()
@@ -430,18 +454,16 @@ function R.open(record)
 			open_file(row.file)
 		end
 	end, opts)
-	-- A mapped <LeftMouse> does not move the cursor: resolve the row from the
-	-- pointer position, not from where the cursor happened to be.
+	-- Clicks are routed by the window under the pointer (lua/dwp/mouse.lua): a
+	-- mapped <LeftMouse> is resolved against the current buffer, not the pointer.
 	vim.keymap.set("n", "<LeftMouse>", function()
-		local pos = vim.fn.getmousepos()
-		if pos.winid ~= vim.fn.bufwinid(st.buf) or pos.line < 1 then
-			return
-		end
-		local row = st.rows[pos.line]
-		if row and row.kind == "jump" and row.file then
-			open_file(row.file)
-		end
+		require("dwp.mouse").click()
 	end, opts)
+	for count = 2, 4 do
+		vim.keymap.set("n", ("<%d-LeftMouse>"):format(count), function()
+			require("dwp.mouse").multi_click(count)()
+		end, opts)
+	end
 	-- Read-only: editing keys do nothing, silently, instead of printing E21.
 	for _, key in ipairs({ "i", "I", "a", "A", "o", "O", "c", "C", "s", "S", "x", "X", "d", "D", "p", "P", "R", "u", "U", "<C-r>", "J", "gi" }) do
 		vim.keymap.set("n", key, "<Nop>", opts)
