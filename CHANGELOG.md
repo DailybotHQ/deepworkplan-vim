@@ -16,7 +16,6 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   the DWP logo, converted to a braille engraving, with a tiny VIM tucked
   under its P, a "powered by Dailybot" credit beneath, and one engraved
   scene on the right: the Deep Work Plan lighthouse, a ship sailing in its
-  sea, and the dashed red course from the ship to the light that the
   website uses. The lighthouse is the brightest element, shadows are cool
   and highlights warm, the rim of the scene dissolves instead of ending in
   a hard edge, and the beam pulses slowly while the dashboard is on screen
