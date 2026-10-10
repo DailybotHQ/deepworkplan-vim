@@ -100,12 +100,25 @@ local text = table.concat(uc.describe(), "\n")
 ok(text:find("tree.side", 1, true) and text:find("plans.width", 1, true) and text:find("(default)", 1, true), "describe() lists every key and its source")
 ok(text:find("No problems.", 1, true) ~= nil, "describe() says so when there are no problems")
 
+-- 6b. sidebars.exclusive: default true, accepts false, rejects non-booleans.
+ok(uc.load(dir("cfg6b"), dir("proj6b")).values.sidebars.exclusive == true, "sidebars.exclusive defaults to true")
+cfg = dir("cfg6c")
+write(cfg .. "/dwpvim.json", '{ "sidebars": { "exclusive": false } }')
+ok(uc.load(cfg, dir("proj6c")).values.sidebars.exclusive == false, "sidebars.exclusive = false is honoured")
+write(cfg .. "/dwpvim.json", '{ "sidebars": { "exclusive": "no" } }')
+st = uc.load(cfg, dir("proj6d"))
+ok(st.values.sidebars.exclusive == true and has(st.problems, "sidebars.exclusive"), "a non-boolean exclusive is ignored and reported")
+
 -- 7. The shipped file parses and validates cleanly, with the documented defaults.
 local repo = vim.uv.cwd()
 st = uc.load(repo, dir("proj7"))
 ok(#st.problems == 0, "the shipped dwpvim.json has no problems")
 ok(
-	st.values.tree.side == "left" and st.values.tree.width == 40 and st.values.plans.side == "left" and st.values.plans.width == 48,
+	st.values.tree.side == "left"
+		and st.values.tree.width == 40
+		and st.values.plans.side == "left"
+		and st.values.plans.width == 48
+		and st.values.sidebars.exclusive == true,
 	"the shipped file ships the documented defaults"
 )
 

@@ -16,6 +16,8 @@ local M = {}
 local DEFAULTS = {
 	tree = { side = "left", width = 40 },
 	plans = { side = "left", width = 48 },
+	-- Opening one sidebar (plans or the file tree) closes the other.
+	sidebars = { exclusive = true },
 }
 
 local MIN_WIDTH, MAX_WIDTH = 20, 120
@@ -27,6 +29,12 @@ local RULES = {
 			return v
 		end
 		return nil, 'must be "left" or "right"'
+	end,
+	exclusive = function(v)
+		if type(v) == "boolean" then
+			return v
+		end
+		return nil, "must be true or false"
 	end,
 	width = function(v)
 		if type(v) == "number" and v == math.floor(v) and v >= MIN_WIDTH and v <= MAX_WIDTH then

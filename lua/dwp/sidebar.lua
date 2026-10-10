@@ -400,6 +400,9 @@ function S.open(roots)
 	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
 	render()
 	set_keys()
+	-- Announce the sidebar: the editor side (lua/setUp/sidebars.lua) may close a
+	-- competing sidebar. An event, so lua/dwp never requires a plugin.
+	vim.api.nvim_exec_autocmds("User", { pattern = "DwpPlansOpened", modeline = false })
 
 	-- Plans appear as agent sessions work: refresh on focus, debounced
 	-- cancel-and-rearm (the pending timer is stopped, not just dropped —

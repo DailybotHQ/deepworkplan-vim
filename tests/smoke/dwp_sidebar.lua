@@ -244,6 +244,21 @@ end
 vim.o.list = false
 sidebar.close()
 
+-- 11. The sidebar announces itself (lua/setUp/sidebars.lua listens and may close
+--     a competing sidebar; lua/dwp never requires a plugin).
+local announced = 0
+local aug = vim.api.nvim_create_augroup("SmokeSidebarEvent", { clear = true })
+vim.api.nvim_create_autocmd("User", { group = aug, pattern = "DwpPlansOpened", callback = function() announced = announced + 1 end })
+sidebar.open({ FIXTURES })
+ok(announced == 1, "opening the sidebar fires User DwpPlansOpened once")
+sidebar.open({ FIXTURES })
+ok(announced == 1, "focusing an already-open sidebar does not announce again")
+sidebar.close()
+sidebar.toggle()
+ok(announced == 2, "reopening through toggle announces again")
+sidebar.close()
+vim.api.nvim_del_augroup_by_name("SmokeSidebarEvent")
+
 if fails > 0 then
 	print(("SIDEBAR SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")

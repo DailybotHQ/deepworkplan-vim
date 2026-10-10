@@ -1,5 +1,6 @@
 {
-  "$comment": "DeepWorkPlan Vim settings. Edit here, or put a .dwpvim.json in a project to override it for that project. side: left or right. width: 20 to 120 columns. See docs/CONFIGURATION.md; check the result with :DwpConfig.",
+  "$comment": "DeepWorkPlan Vim settings. Edit here, or put a .dwpvim.json in a project to override it for that project. side: left or right. width: 20 to 120 columns. exclusive: true shows one sidebar at a time. See docs/CONFIGURATION.md; check the result with :DwpConfig.",
   "tree": { "side": "left", "width": 40 },
-  "plans": { "side": "left", "width": 48 }
+  "plans": { "side": "left", "width": 48 },
+  "sidebars": { "exclusive": true }
 }

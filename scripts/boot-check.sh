@@ -10,8 +10,9 @@
 #      checkout is the config, whatever the user's own config is;
 #   2. nvim starts headless, waits for the deferred setup to settle, then
 #      collects :messages;
-#   3. it fails on any error line, on a missing core module, and if a
-#      retired plugin still loads.
+#   3. it fails on any error line, on a missing core module, if a retired
+#      plugin still loads, and if opening the plans sidebar and the file tree
+#      does not toggle one for the other (sidebars.exclusive).
 #
 # Usage: scripts/boot-check.sh
 # Needs: bash, nvim 0.12+, the plugins installed (run the installer first).
@@ -55,6 +56,31 @@ vim.defer_fn(function()
     if pcall(require, mod) then
       bad[#bad + 1] = "retired module still loads: " .. mod
     end
+  end
+  -- One sidebar at a time (lua/setUp/sidebars.lua), both ways, unless the
+  -- configuration turns it off.
+  local okc, uc = pcall(require, "userconfig")
+  if okc and uc.get("sidebars.exclusive") ~= false then
+    local function seen()
+      local p, t = 0, 0
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        local ft = vim.bo[vim.api.nvim_win_get_buf(w)].filetype
+        if ft == "dwp-plans" then p = p + 1 elseif ft == "NvimTree" then t = t + 1 end
+      end
+      return p, t
+    end
+    pcall(vim.cmd, "DwpPlans")
+    vim.wait(300)
+    local p, t = seen()
+    if not (p == 1 and t == 0) then bad[#bad + 1] = "opening the plans sidebar left plans=" .. p .. " tree=" .. t end
+    pcall(vim.cmd, "NvimTreeOpen")
+    vim.wait(300)
+    p, t = seen()
+    if not (p == 0 and t == 1) then bad[#bad + 1] = "opening the tree left plans=" .. p .. " tree=" .. t end
+    pcall(vim.cmd, "DwpPlans")
+    vim.wait(300)
+    p, t = seen()
+    if not (p == 1 and t == 0) then bad[#bad + 1] = "reopening the plans sidebar left plans=" .. p .. " tree=" .. t end
   end
   local f = assert(io.open("$tmp/result.txt", "w"))
   f:write(#bad == 0 and "OK" or table.concat(bad, "\n"))
