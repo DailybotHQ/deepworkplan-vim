@@ -1,7 +1,6 @@
 -- Space f -> :Format
 -- Python: black
--- JS/TS/JSON/CSS/GraphQL: biome (Rust, faster than Prettier)
--- HTML/Markdown/Vue/Svelte/SCSS/Less/YAML: Prettier (pnpm)
+-- JS/TS/JSON/CSS/GraphQL: biome (Rust)
 -- Shell: shfmt  Lua: stylua
 
 local function biome()
@@ -25,15 +24,6 @@ require("formatter").setup({
 		json = { biome },
 		css = { biome },
 		graphql = { biome },
-
-		html = { require("formatter.filetypes.html").prettier },
-		markdown = { require("formatter.filetypes.markdown").prettier },
-		scss = { require("formatter.filetypes.css").prettier },
-		less = { require("formatter.filetypes.css").prettier },
-		yaml = { require("formatter.filetypes.yaml").prettier },
-		svelte = { require("formatter.filetypes.svelte").prettier },
-		vue = { require("formatter.filetypes.javascript").prettier },
-		angular = { require("formatter.filetypes.javascript").prettier },
 
 		python = { require("formatter.filetypes.python").black },
 
