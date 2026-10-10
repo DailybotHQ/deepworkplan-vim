@@ -10,6 +10,8 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.6.0] - 2026-10-10
+
 ### Changed
 
 - **The plans sidebar and the file tree toggle for each other.** Opening one closes
@@ -383,7 +385,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.6.0...HEAD
+[v0.6.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...v0.5.0
 [v0.4.2]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...v0.4.2

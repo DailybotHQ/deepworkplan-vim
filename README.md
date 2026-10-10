@@ -39,7 +39,7 @@ sha256, the read-only plan reader, and the features this tag ships
 
 ## Install
 
-Release **v0.5.1** — macOS, Linux or WSL; requires
+Release **v0.6.0** — macOS, Linux or WSL; requires
 [Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
 Download the installer, verify it, then run it from a terminal:
 
@@ -51,14 +51,14 @@ bash install.sh
 ```
 
 The same two files are assets of the
-[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.5.1)
+[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.6.0)
 (with `SHA256SUMS` for every asset) — comparing the website's copy with the
 release's `SHA256SUMS` checks it against a second origin; release tags are
 immutable:
 
 ```bash
-curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.5.1/install.sh
-curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.5.1/install.sh.sha256
+curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh
+curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh.sha256
 shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
 bash install.sh
 ```
@@ -66,7 +66,7 @@ bash install.sh
 That is the whole install: preflight (installs git, curl and Lua if they
 are missing), clone into `~/.config/nvim`, the system setup
 (`lua install.lua`), and a headless plugin install — no quit-and-reopen
-dance. The installer installs **the release it belongs to** (v0.5.1);
+dance. The installer installs **the release it belongs to** (v0.6.0);
 `DWP_VIM_REF=main bash install.sh` follows the moving `main` branch instead.
 An existing Neovim config is **never overwritten**: you are asked before it
 is moved to `~/.config/previous-deepworkplan-vim`, and a run without a
@@ -81,7 +81,7 @@ Choose a version like the Dailybot CLI installer does — a flag (also after
 `bash -s --` when the script arrives on stdin) or its environment twin:
 
 ```bash
-bash install.sh --version 0.5.1          # or v0.5.1;  env: DWP_VIM_VERSION=0.5.1
+bash install.sh --version 0.6.0          # or v0.6.0;  env: DWP_VIM_VERSION=0.6.0
 bash install.sh --version latest         # newest stable release
 bash install.sh --version '>=0.5.1'      # newest stable release at or above the floor
 bash install.sh --help                   # every option and its env twin
@@ -103,10 +103,10 @@ build when the plugins did not install:
 
 ```dockerfile
 USER dev
-RUN curl -fsSL -o /tmp/install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.5.1/install.sh \
- && curl -fsSL -o /tmp/install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.5.1/install.sh.sha256 \
+RUN curl -fsSL -o /tmp/install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh \
+ && curl -fsSL -o /tmp/install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh.sha256 \
  && (cd /tmp && sha256sum -c install.sh.sha256) \
- && bash /tmp/install.sh --version 0.5.1 --nvim 0.12.5 --skip-packages --strict
+ && bash /tmp/install.sh --version 0.6.0 --nvim 0.12.5 --skip-packages --strict
 ENV PATH="/home/dev/.local/bin:${PATH}"
 ```
 
@@ -129,7 +129,7 @@ Offline and manual:
 
 ```bash
 DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh   # local/offline source or mirror — set it for every update too
-git clone --branch v0.5.1 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
+git clone --branch v0.6.0 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
 cd ~/.config/nvim && lua install.lua
 ```
 
@@ -141,7 +141,7 @@ where they work as-is:
 
 ```bash
 winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-git clone --branch v0.5.1 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+git clone --branch v0.6.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 cd "$LOCALAPPDATA/nvim" && lua install.lua
 ```
 
