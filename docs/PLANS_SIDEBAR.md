@@ -53,16 +53,23 @@ line ends), keeps a fixed width so a neighbour cannot stretch it, and ignores
 editing keys silently — it is read-only, so `i`, `a`, `x` and friends do nothing
 instead of printing `E21`.
 
-## Keys
+## Mouse and keyboard
 
-| Key | Does |
+| Action | Does |
 |---|---|
-| `Enter` | open the plan in the reader; on a section name, show or hide the group |
+| **click a plan** | open it in the reader (the click acts on the row under the pointer) |
+| click the small `▸` / `▾` arrow | show or hide that plan's tasks and files |
+| click a section name | show or hide the group |
+| click a task or file | open it |
+| `j` `k` / `↓` `↑` / `Ctrl-n` `Ctrl-p` | jump to the next / previous plan (and to section names, tasks and files); blanks, rules and the footer are skipped; `3j` repeats |
+| `gg` / `G` | first / last row you can act on |
+| `Enter` | open the plan; on a section name, show or hide the group |
 | `Tab` | show or hide a plan's tasks and files |
-| `r` | refresh |
-| `?` | help |
-| `q` / `Esc` | close |
-| click / double-click | expand / open |
+| `r` · `?` · `q` / `Esc` | refresh · help · close |
+
+The cursor lands on the first plan when the sidebar opens. The reader window on
+the right is as quiet as the sidebar (no dots or arrows) and a click on one of its
+file lines opens that file.
 
 ## Guarded by
 

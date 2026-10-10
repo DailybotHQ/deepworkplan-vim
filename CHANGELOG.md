@@ -14,6 +14,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 - **The plans sidebar and the file tree toggle for each other.** Opening one closes
   the other (`sidebars.exclusive` in `dwpvim.json`, on by default).
+- **The plans sidebar reacts to the mouse and the keyboard jumps between plans.** A
+  click opens the plan under the pointer (a mapped `<LeftMouse>` does not move the
+  cursor, so clicks used to act on the wrong row), the small arrow shows its tasks,
+  and `j`/`k`, the arrows and `Ctrl-n`/`Ctrl-p` move from plan to plan, skipping
+  blanks and decoration. The reader window is as quiet as the sidebar, and its
+  clicks open the file under the pointer.
 - **A clearer plans sidebar.** The window is quiet (no dots for spaces or arrows at
   line ends, a fixed width, editing keys do nothing instead of printing `E21`); the
   list has a hierarchy — a header with a summary, sections with their counts,
