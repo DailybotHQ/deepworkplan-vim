@@ -56,13 +56,16 @@ function M.compose(columns, lines_avail)
 		left[#left + 1] = { text = text, spans = text ~= "" and { { group, 0, #text } } or {} }
 	end
 	-- VIM sits in the empty corner under the P's bowl, to the right of its
-	-- stem, on the last rows of the mark.
-	local VIM_COL = 24
-	local vim_top = #art.mark - #art.vim
+	-- stem, one row above the stem's foot.
+	local VIM_COL = 21
+	local vim_top = #art.mark - #art.vim - 1
 	for r, l in ipairs(art.mark) do
+		local vim_row = art.vim[r - vim_top]
+		-- Blank braille cells at the end of a mark row are padding: drop them
+		-- on the rows VIM shares so it sits against the P.
+		local l = vim_row and vim.fn.substitute(l, "\\%u2800\\+$", "", "") or l
 		local text = l
 		local spans = { { "DwpArt5", 0, #l } }
-		local vim_row = art.vim[r - vim_top]
 		if vim_row then
 			text = pad(l, VIM_COL) .. vim_row
 			spans[#spans + 1] = { "DwpGreeterLogo", #pad(l, VIM_COL), #text }
