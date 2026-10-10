@@ -17,25 +17,9 @@ require("mason").setup({
   },
 })
 
--- Installed by Mason, but not started. The loop below calls vim.lsp.enable
--- on every name in `servers`, which ignores mason-lspconfig's exclude list.
--- tailwindcss walks a monorepo and freezes the editor. grammarly and bashls
--- crash on Node 24.
-local installed_only = {
-  "tailwindcss",
-  "grammarly",
-  "bashls",
-}
-
 local servers = {
-  "efm",
-  "astro",
-  "sqlls",
   "taplo",
-  "vimls",
-  "vuels",
   "yamlls",
-  "svelte",
   "jsonls",
   "lua_ls",
   "eslint",
@@ -43,8 +27,6 @@ local servers = {
   "dockerls",
   "marksman",
   "ts_ls",
-  "angularls",
-  "diagnosticls",
   "rust_analyzer",
   "jedi_language_server",
 }
@@ -53,13 +35,11 @@ local servers = {
 -- they are left out of ensure_installed (one notice, not one error per server
 -- on every start).
 local npm_servers = {
-  astro = true, sqlls = true, vimls = true, vuels = true, yamlls = true,
-  svelte = true, jsonls = true, eslint = true, emmet_ls = true, dockerls = true,
-  ts_ls = true, angularls = true, diagnosticls = true,
-  tailwindcss = true, grammarly = true, bashls = true,
+  yamlls = true, jsonls = true, eslint = true, emmet_ls = true, dockerls = true,
+  ts_ls = true,
 }
 
-local wanted = vim.list_extend(vim.deepcopy(servers), installed_only)
+local wanted = vim.deepcopy(servers)
 if not npm_state.ok then
   wanted = vim.tbl_filter(function(name)
     return not npm_servers[name]
@@ -74,9 +54,6 @@ end
 
 require("mason-lspconfig").setup({
   ensure_installed = wanted,
-  automatic_enable = {
-    exclude = installed_only,
-  },
 })
 
 local ok_caps, capabilities = pcall(require, "lsp.capabilities")
@@ -187,9 +164,6 @@ local alias_fts = {
   "javascriptreact",
   "typescript",
   "typescriptreact",
-  "vue",
-  "svelte",
-  "astro",
 }
 
 vim.api.nvim_create_autocmd("FileType", {
