@@ -12,6 +12,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ### Changed
 
+- **marksman no longer reports diagnostics.** It still follows links, completes
+  links and headings and gives the outline, but the warning triangles it put
+  beside Markdown files in the tree (broken or ambiguous links, git-ignored
+  targets) are gone. Markdown stays without a formatter on purpose: neither
+  prettier nor mdformat is installed.
+
 - **The file tree opens on the left**, like the plans sidebar, and is 40 columns
   wide (it still shrinks to its content). It used to open on the right at 60.
 - **Both sidebars are configurable from a file.** `dwpvim.json` in the repository

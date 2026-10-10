@@ -188,6 +188,8 @@ end
 ok(n_servers >= 5, "the server list was found in lsp/server.lua (" .. n_servers .. " servers)")
 ok(#undocumented == 0, "docs/PLUGINS.md documents every server in lsp/server.lua (missing: " .. table.concat(undocumented, ", ") .. ")")
 ok(doc:find("lewis6991/pckr.nvim", 1, true) ~= nil, "pckr, the plugin manager, is documented")
+ok(server_src:find("textDocument/publishDiagnostics", 1, true) ~= nil, "marksman's diagnostics stay silenced (no warning icons beside markdown files)")
+ok(not server_src:find("prettier", 1, true) and not doc:find("`mdformat`", 1, true), "no prettier or mdformat is configured or documented as installed")
 
 if fails > 0 then
 	print(("PLUGIN REFS SMOKE: %d FAILED of %d assertions"):format(fails, count))
