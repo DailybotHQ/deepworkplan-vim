@@ -457,6 +457,65 @@ end
 ok(dbl ~= nil and (dbl.rhs == "<Nop>" or dbl.rhs == ""), "the second click of a double-click is a no-op")
 sidebar.close()
 
+-- 14. Keyboard: j/k (and the arrows, Ctrl-n/Ctrl-p) jump between selectable rows
+--     — plans, section headers, tasks, files — and skip blanks, rules and the footer.
+sidebar.open({ FIXTURES })
+local kbuf = sidebar_buf()
+local kwin = vim.fn.bufwinid(kbuf)
+vim.api.nvim_set_current_win(kwin)
+local function klines()
+	return vim.api.nvim_buf_get_lines(kbuf, 0, -1, false)
+end
+local function cur()
+	return vim.api.nvim_win_get_cursor(kwin)[1]
+end
+local function cur_text()
+	return klines()[cur()]
+end
+local function selectable(text)
+	return text ~= "" and not text:find("^Plans") and not text:find("^%?") and not text:find("^click a plan")
+end
+ok(cur_text():find("▸", 1, true) ~= nil, "the sidebar opens with the cursor on a plan, not on the title")
+local seen = { cur() }
+for _ = 1, 40 do
+	local before = cur()
+	vim.cmd("normal j")
+	if cur() == before then
+		break
+	end
+	seen[#seen + 1] = cur()
+	ok(selectable(cur_text()), "j lands on a selectable row (line " .. cur() .. ": '" .. cur_text():sub(1, 24) .. "')")
+end
+ok(#seen >= 4, "j visits several rows on the way down (" .. #seen .. ")")
+local last = cur()
+vim.cmd("normal j")
+ok(cur() == last, "j stops at the last selectable row (no wrap onto the footer)")
+vim.cmd("normal gg")
+local first = cur()
+ok(cur_text():find("^Working") ~= nil or cur_text():find("▸", 1, true) ~= nil, "gg goes to the first selectable row")
+vim.cmd("normal k")
+ok(cur() == first, "k stops at the first selectable row")
+vim.cmd("normal G")
+ok(cur() == last, "G goes to the last selectable row")
+vim.cmd("normal gg")
+vim.cmd("normal 2j")
+ok(cur() == seen[1] or cur() > first, "a count moves several rows (2j)")
+local two = cur()
+vim.cmd("normal gg")
+vim.cmd("normal j")
+vim.cmd("normal j")
+ok(cur() == two, "2j equals j twice")
+for _, key in ipairs({ "<Down>", "<C-n>", "<Up>", "<C-p>" }) do
+	local m
+	for _, km in ipairs(vim.api.nvim_buf_get_keymap(kbuf, "n")) do
+		if km.lhs:lower() == key:lower() then -- Neovim reports <C-N> for <C-n>
+			m = km
+		end
+	end
+	ok(m ~= nil and m.callback ~= nil, key .. " is mapped to the same row navigation")
+end
+sidebar.close()
+
 if fails > 0 then
 	print(("SIDEBAR SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")

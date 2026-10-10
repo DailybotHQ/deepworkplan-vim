@@ -164,6 +164,48 @@ local TITLE_GROUP = {
 -- Done opens collapsed once it holds more than this many plans.
 local DONE_COLLAPSE_OVER = 6
 
+-- ---------------------------------------------------------- navigation --
+
+-- Rows the cursor may rest on: a plan, a section header (to show a collapsed
+-- group), a task, a file. Blanks, rules, labels, hints and the footer are skipped,
+-- so j/k jump from plan to plan instead of crawling over decoration.
+local SELECTABLE = { plan = true, section = true, task = true, file = true }
+
+local function selectable_line(from, step)
+	local i = from + step
+	while i >= 1 and i <= #st.rows do
+		if SELECTABLE[st.rows[i].kind] then
+			return i
+		end
+		i = i + step
+	end
+	return nil
+end
+
+-- A cursor on decoration (after a refresh, or on open) moves to the nearest
+-- selectable row; on open it prefers the first plan.
+local function settle_cursor(prefer_plan)
+	if not (st.win and vim.api.nvim_win_is_valid(st.win)) then
+		return
+	end
+	local line = vim.api.nvim_win_get_cursor(st.win)[1]
+	local row = st.rows[line]
+	if prefer_plan then
+		for i, r in ipairs(st.rows) do
+			if r.kind == "plan" then
+				return vim.api.nvim_win_set_cursor(st.win, { i, 0 })
+			end
+		end
+	end
+	if row and SELECTABLE[row.kind] then
+		return
+	end
+	local target = selectable_line(line, 1) or selectable_line(line, -1)
+	if target then
+		vim.api.nvim_win_set_cursor(st.win, { target, 0 })
+	end
+end
+
 -- -------------------------------------------------------------- render --
 
 local function task_rows(record)
@@ -425,6 +467,7 @@ local function render()
 		if line > #st.rows then
 			vim.api.nvim_win_set_cursor(st.win, { math.max(1, #st.rows), 0 })
 		end
+		settle_cursor()
 	end
 end
 
@@ -515,6 +558,7 @@ function S.open(roots)
 	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
 	render()
 	set_keys()
+	settle_cursor(true) -- land on the first plan, not on the title
 	-- Announce the sidebar: the editor side (lua/setUp/sidebars.lua) may close a
 	-- competing sidebar. An event, so lua/dwp never requires a plugin.
 	vim.api.nvim_exec_autocmds("User", { pattern = "DwpPlansOpened", modeline = false })
@@ -633,7 +677,9 @@ local HELP_LINES = {
 	"Enter    open the plan under the cursor",
 	"         (on a section name: show or hide that group)",
 	"Tab      show or hide a plan's tasks and files",
-	"j / k    move up and down (or the arrow keys)",
+	"j / k    jump to the next / previous plan",
+	"         (arrow keys and Ctrl-n / Ctrl-p too; 3j repeats;",
+	"         gg / G go to the first / last)",
 	"r        refresh the list",
 	"?        close this help",
 	"q / Esc  close the sidebar",
@@ -686,8 +732,53 @@ function S.help()
 	end
 end
 
+-- j/k and friends move between selectable rows; a count repeats (3j).
+local function move(step)
+	if not S.is_open() then
+		return
+	end
+	local line = vim.api.nvim_win_get_cursor(st.win)[1]
+	local target = line
+	for _ = 1, vim.v.count1 do
+		local nxt = selectable_line(target, step)
+		if not nxt then
+			break
+		end
+		target = nxt
+	end
+	if target ~= line then
+		vim.api.nvim_win_set_cursor(st.win, { target, 0 })
+	end
+end
+
+local function edge(first)
+	if not S.is_open() then
+		return
+	end
+	local target = first and selectable_line(0, 1) or selectable_line(#st.rows + 1, -1)
+	if target then
+		vim.api.nvim_win_set_cursor(st.win, { target, 0 })
+	end
+end
+
 function set_keys()
 	local opts = { buffer = st.buf, silent = true, nowait = true }
+	for _, key in ipairs({ "j", "<Down>", "<C-n>" }) do
+		vim.keymap.set("n", key, function()
+			move(1)
+		end, opts)
+	end
+	for _, key in ipairs({ "k", "<Up>", "<C-p>" }) do
+		vim.keymap.set("n", key, function()
+			move(-1)
+		end, opts)
+	end
+	vim.keymap.set("n", "gg", function()
+		edge(true)
+	end, opts)
+	vim.keymap.set("n", "G", function()
+		edge(false)
+	end, opts)
 	vim.keymap.set("n", "<CR>", activate, opts)
 	vim.keymap.set("n", "<Tab>", function()
 		local row = current_row()
