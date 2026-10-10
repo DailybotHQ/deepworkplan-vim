@@ -33,9 +33,9 @@ local function trimmed(v)
 		total = total + density(r)
 	end
 	local mean = total / #v.lines
-	-- The sea's last stipple rows go regardless (about 7% of the height, at
+	-- The sea's last stipple rows go regardless (about 4% of the height, at
 	-- least one), then any row that is still nearly empty.
-	local keep = #v.lines - math.max(1, math.floor(#v.lines * 0.07 + 0.5))
+	local keep = #v.lines - math.max(1, math.floor(#v.lines * 0.04 + 0.5))
 	while keep > 1 and density(keep) < 0.4 * mean do
 		keep = keep - 1
 	end
