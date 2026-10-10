@@ -16,7 +16,7 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   the DWP logo, converted to a braille engraving, with a tiny one-row VIM
   tucked under its P, a "powered by Dailybot" credit beneath, and one
   engraved scene on the right: the Deep Work Plan lighthouse with a ship
-  sailing in the same sea that reflects below, with two small clouds, in the site's cream and oxblood. The scene comes
+  sailing in the same sea in the site's cream and oxblood. The scene comes
   in three heights, chosen by the window; narrower windows stack the
   wordmark over it or show the wordmark alone (`lua/setUp/greeter_art.lua`).
 
