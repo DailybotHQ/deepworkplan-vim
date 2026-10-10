@@ -13,17 +13,6 @@ local art = require("setUp.greeter_lighthouse")
 -- Rows the dashboard needs below the hero (plans overview + buttons).
 local BELOW_HERO = 24
 
--- The tallest variant that fits `lines` window rows, else the smallest.
-local function pick_variant(lines)
-	local chosen = art.variants[#art.variants]
-	for _, v in ipairs(art.variants) do
-		if #v.lines + BELOW_HERO <= lines then
-			return v
-		end
-	end
-	return chosen
-end
-
 -- Highlight spans of row `r` of a lighthouse variant, byte offsets shifted by `offset`.
 local function spans_for_row(variant, r, offset)
 	local spans, cols = {}, variant.cols[r]
@@ -52,26 +41,20 @@ local function pad(s, w)
 	return d >= w and s or s .. string.rep(" ", w - d)
 end
 
--- Compose the hero: a left block (wordmark, tagline, credit, ship) vertically
--- centred beside the lighthouse. Returns { lines = {...}, hl = {...} } with
--- alpha-style per-line highlight spans ({group, byte_start, byte_end}).
--- Narrow windows stack the left block alone; very narrow ones drop the ship.
+-- Compose the hero: the wordmark block (DWP mark with VIM on its baseline,
+-- tagline, credit) vertically centred beside the scene (the lighthouse with
+-- a ship sailing at its foot). The scene is the tallest variant that fits
+-- both the window width and its height; narrower windows stack the wordmark
+-- over the smallest scene that fits, or show the wordmark alone.
 function M.compose(columns, lines_avail)
 	columns = columns or vim.o.columns
-	local variant = pick_variant(lines_avail or vim.o.lines)
-	local lighthouse = variant.lines
+	lines_avail = lines_avail or vim.o.lines
 
-	-- Compact windows drop the ship (and with it the tall left block) so the
-	-- plans and the buttons stay on screen.
-	local roomy = (lines_avail or vim.o.lines) >= #art.mark + #art.ship.lines + 4 + BELOW_HERO
-
-	-- Left block rows: { text = ..., spans = { {group, from, to}, ... } }.
+	-- Wordmark rows: { text = ..., spans = { {group, from, to}, ... } }.
 	local left = {}
 	local function text_row(text, group)
 		left[#left + 1] = { text = text, spans = text ~= "" and { { group, 0, #text } } or {} }
 	end
-	-- Wordmark: the DWP mark (braille engraving of the logo) with VIM in
-	-- block letters on its baseline.
 	local mark_bytes = #art.mark[1]
 	local vim_top = #art.mark - #art.vim
 	for r, l in ipairs(art.mark) do
@@ -87,23 +70,27 @@ function M.compose(columns, lines_avail)
 	text_row("", "Normal")
 	text_row(M.tagline, "DwpGreeterDim")
 	text_row(M.powered, "DwpGreeterAccent")
-	if roomy then
-		text_row("", "Normal")
-		for r, l in ipairs(art.ship.lines) do
-			left[#left + 1] = { text = l, spans = spans_for_row(art.ship, r, 0) }
-		end
-	end
 
 	local lw = 0
 	for _, row in ipairs(left) do
 		lw = math.max(lw, vim.fn.strdisplaywidth(row.text))
 	end
-	local rw = 0
-	for _, l in ipairs(lighthouse) do
-		rw = math.max(rw, vim.fn.strdisplaywidth(l))
-	end
 	local gap = 6
-	local side_by_side = columns >= lw + gap + rw + 4
+	local function width_of(v)
+		return vim.fn.strdisplaywidth(v.lines[1])
+	end
+
+	-- Tallest variant that fits both; else the tallest that fits the width.
+	local variant
+	for _, v in ipairs(art.variants) do
+		if columns >= lw + gap + width_of(v) + 4 then
+			variant = variant or v
+			if #v.lines + BELOW_HERO <= lines_avail then
+				variant = v
+				break
+			end
+		end
+	end
 
 	local lines, hl = {}, {}
 	-- alpha tells per-line highlight tables apart by the first line
@@ -116,24 +103,23 @@ function M.compose(columns, lines_avail)
 		hl[#hl + 1] = spans
 	end
 
-	if side_by_side then
-		local rows = math.max(#left, #lighthouse)
+	if variant then
+		local rows = math.max(#left, #variant.lines)
 		local top = math.floor((rows - #left) / 2)
 		for r = 1, rows do
 			local row = left[r - top] or { text = "", spans = {} }
 			local ptxt = pad(row.text, lw) .. string.rep(" ", gap)
 			local spans = vim.deepcopy(row.spans)
-			if lighthouse[r] then
+			if variant.lines[r] then
 				for _, sp in ipairs(spans_for_row(variant, r, #ptxt)) do
 					spans[#spans + 1] = sp
 				end
 			end
-			push(ptxt .. (lighthouse[r] or ""), spans)
+			push(ptxt .. (variant.lines[r] or ""), spans)
 		end
 	else
-		local keep = columns >= lw and #left or #art.mark + 3
-		for i = 1, keep do
-			push(left[i].text, left[i].spans)
+		for _, row in ipairs(left) do
+			push(row.text, row.spans)
 		end
 	end
 	return { lines = lines, hl = hl }
