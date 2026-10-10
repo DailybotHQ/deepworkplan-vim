@@ -18,7 +18,6 @@ return {
   ["https://github.com/jiangmiao/auto-pairs"] = { commit = "39f06b873a8449af8ff6a3eee716d3da14d63a76" },
   ["https://github.com/lewis6991/pckr.nvim"] = { commit = "e681c23738326ee9e00e35d5b4a7c173f0240157" },
   ["https://github.com/lukas-reineke/indent-blankline.nvim"] = { commit = "f1e186e44d3b7f9ae918008e2c28ce37c6023d2d" },
-  ["https://github.com/mfussenegger/nvim-lint"] = { commit = "f6230a5c06ba59e6059c14637f1dbe29a7978b9b" },
   ["https://github.com/mhartington/formatter.nvim"] = { commit = "b9d7f853da1197b83b8edb4cc4952f7ad3a42e41" },
   ["https://github.com/mhinz/vim-signify"] = { commit = "e7557022f94270e887cbb391a746c1818e570d7f" },
   ["https://github.com/neovim/nvim-lspconfig"] = { commit = "c59fc922f718fa055f69f5f3bc888f23211571eb" },

@@ -70,20 +70,31 @@ end
 --- — always status-worded (the greeter has no section headers to carry
 --- meaning). The percent is the number a non-technical reader parses
 --- without dividing (UX_AUDIT F-01).
-function M.plan_line(record)
+function M.plan_line(record, widths)
 	local title = truncate(record.title or record.name, TITLE_CAP)
 	local pad = string.rep(" ", math.max(1, TITLE_CAP + 2 - vim.fn.strdisplaywidth(title)))
+	local counts = M.counts_text(record)
+	local label = record.label or "Unknown"
+	if widths then
+		-- Equal-width columns across rows: alpha centres each row on its
+		-- own, so rows of unequal width would drift out of alignment.
+		counts = counts .. string.rep(" ", math.max(0, (widths.counts or 0) - vim.fn.strdisplaywidth(counts)))
+		label = label .. string.rep(" ", math.max(0, (widths.label or 0) - vim.fn.strdisplaywidth(label)))
+	end
 	return string.format(
-		"%s %s%s%s %d/%d · %d%%  %s",
+		"%s %s%s%s %s  %s",
 		record.icon or "·",
 		title,
 		pad,
 		progress_bar(record.tasks_done or 0, record.tasks_total or 0),
-		record.tasks_done or 0,
-		record.tasks_total or 0,
-		record.percent or 0,
-		record.label or "Unknown"
+		counts,
+		label
 	)
+end
+
+--- `done/total · percent`, the counts column of an overview row.
+function M.counts_text(record)
+	return string.format("%d/%d · %d%%", record.tasks_done or 0, record.tasks_total or 0, record.percent or 0)
 end
 
 --- Build the section data: header, top-N plan rows (records newest
@@ -104,13 +115,20 @@ function M.build(roots)
 		-- "my plans vanished" (UX_AUDIT F-02).
 		empty_line = "No plans yet — ask your agent to plan work (open the editor in your project folder).",
 	}
+	local shown = {}
+	local widths = { counts = 0, label = 0 }
 	for i, record in ipairs(records) do
 		if i > TOP_N then
 			break
 		end
+		shown[#shown + 1] = record
+		widths.counts = math.max(widths.counts, vim.fn.strdisplaywidth(M.counts_text(record)))
+		widths.label = math.max(widths.label, vim.fn.strdisplaywidth(record.label or "Unknown"))
+	end
+	for _, record in ipairs(shown) do
 		section.plan_lines[#section.plan_lines + 1] = {
 			record = record,
-			text = M.plan_line(record),
+			text = M.plan_line(record, widths),
 		}
 	end
 	return section

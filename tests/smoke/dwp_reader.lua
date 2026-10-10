@@ -162,6 +162,41 @@ if plan_line > 0 then
 end
 sidebar.close()
 
+-- 9. A quiet window, and a click that opens the file under the POINTER (a mapped
+--    <LeftMouse> does not move the cursor).
+vim.o.list = true -- the editor's global setting the window must not inherit
+local qbuf = reader.open(running)
+local qwin = vim.fn.bufwinid(qbuf)
+ok(vim.wo[qwin].list == false, "the reader window has list off even when the editor sets it globally")
+local function qmap(lhs)
+	for _, m in ipairs(vim.api.nvim_buf_get_keymap(qbuf, "n")) do
+		if m.lhs == lhs then
+			return m
+		end
+	end
+end
+for _, key in ipairs({ "i", "a", "o", "x", "d", "p", "u" }) do
+	local m = qmap(key)
+	ok(m ~= nil and (m.rhs == "<Nop>" or m.rhs == ""), "edit key '" .. key .. "' is silent in the reader")
+end
+local jump_line
+for i, row in ipairs(reader.rows()) do
+	if row.kind == "jump" and row.file and row.file:find("README.md", 1, true) then
+		jump_line = i
+	end
+end
+ok(jump_line ~= nil, "the reader has a README jump line to click")
+vim.api.nvim_win_set_cursor(qwin, { 1, 0 }) -- the cursor is NOT on the jump line
+local real_getmousepos = vim.fn.getmousepos
+vim.fn.getmousepos = function()
+	return { winid = qwin, line = jump_line, wincol = 4, column = 1 }
+end
+qmap("<LeftMouse>").callback()
+vim.fn.getmousepos = real_getmousepos
+ok(vim.fn.expand("%:t") == "README.md", "a click opens the file under the pointer, not the cursor's old row (got " .. vim.fn.expand("%:t") .. ")")
+vim.o.list = false
+pcall(vim.cmd, "bdelete")
+
 if fails > 0 then
 	print(("READER SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")

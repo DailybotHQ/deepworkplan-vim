@@ -8,7 +8,16 @@ DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03 and 2026-10-09; s
 
 DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: download `https://deepworkplan.com/vim/install.sh` (or the release asset), verify it against `install.sh.sha256` / `SHA256SUMS`, then `bash install.sh` — it installs its own release tag (README → Install); or manually: clone the tag to `~/.config/nvim` and `lua install.lua`. Never spell a download piped into a shell in this repo (`scripts/check-public-hygiene.sh` rejects it). This repo **is** the config: in the contributor container `/workspace` is linked to `~/.config/nvim` at start (the release config the image bakes through the installer is only its standalone fallback); never clone a second copy of the repo inside the container — `/workspace` is the only working tree.
 
-Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.0.1 per the provenance line above; the addon registry is the tracked `.dwp/config.json`.
+Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.0.1 per the provenance line above; the addon registry and the benchmark flags (`benchmark.enabled`, `benchmark.learnings`: a plan then closes with `analysis_results/learnings.json` and `DWP_REPORT.md`) live in the tracked `.dwp/config.json`.
+
+## Product focus
+
+A very good **terminal editor** to navigate files, see which files changed, see
+the diff and approve or discard changes easily — friendly, lightweight,
+**agent-first**, and integrated with Deep Work Plan so plan status is always in
+view. Judge every change against it: if it does not serve one of the six
+pillars ([Product spec](docs/PRODUCT_SPEC.md#product-focus),
+[Capability map](docs/ARCHITECTURE.md#capability-map)), it needs a reason.
 
 ## Documentation index
 
@@ -18,6 +27,7 @@ Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Boot chain, module map, container, tests, release |
 | [docs/STANDARDS.md](docs/STANDARDS.md) | Language, commits, Lua/shell conventions, hard rules |
 | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Gates, scoped patterns, mapping rule, fallback |
+| [docs/PLUGINS.md](docs/PLUGINS.md) | Every plugin, server and tool installed, and the reason for each |
 | [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md) | Every command verbatim, with preconditions |
 | [docs/SECURITY.md](docs/SECURITY.md) | Secrets, SSH surface, installer safety, mesh trust |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Startup budget, hot paths |
@@ -137,6 +147,17 @@ narrower scope, plan gates, or this repository's rules above.
 - **Apply proportionate rigor** — match validation to impact.
 - **Communicate directly and precisely**; distinguish facts from assumptions.
 - **Verify before declaring completion.** Never claim a check that did not run.
+
+## Pull requests only (MANDATORY)
+
+Every change reaches `main` through a pull request validated by CI. As an
+agent: work on a branch (never on `main`), keep to one concern per branch, run
+the gate (`bash tests/smoke/run.sh`, `bash scripts/boot-check.sh`,
+`bash scripts/check-public-hygiene.sh`), and open a pull request with a
+Conventional Commit title once the owner authorizes publishing. **Never** push to
+`main`, force-push, merge your own pull request, or bypass the `CI gate`; the
+owner reviews and merges. Process: [CONTRIBUTING.md](CONTRIBUTING.md#pull-requests-only),
+enforcement: [docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md).
 
 ## Do not
 

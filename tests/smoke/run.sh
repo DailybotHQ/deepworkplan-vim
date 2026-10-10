@@ -36,6 +36,9 @@ run_smoke consistency tests/smoke/dwp_consistency.lua
 run_smoke "self-contained" tests/smoke/dwp_self_contained.lua
 run_smoke "addon surface" tests/smoke/addon_surface.lua
 run_smoke "plugin lock" tests/smoke/plugin_lock.lua
+run_smoke "npm guard" tests/smoke/npm_guard.lua
+run_smoke "plugin refs" tests/smoke/plugin_refs.lua
+run_smoke "user config" tests/smoke/userconfig.lua
 
 if [ "$overall" -eq 0 ]; then
 	echo "DWP SMOKE SUITE: OK"

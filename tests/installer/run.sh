@@ -1206,7 +1206,7 @@ scenario_strict_lock_absent() {
   # under --strict; the run says its commits are not verified.
   local T; T="$(lock_root)"
   run_install_args "$T" "$T/out.log" DWP_VIM_SOURCE="$FIXTURE" DWP_VIM_REF=nolock SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --strict --skip-packages
-  wg "absent noted"       "NOTE: nolock has no plugin lock (pckr/lockfile.lua, v0.5.1+): plugin commits are not verified" "$T/out.log"
+  wg "absent noted"       "NOTE: nolock has no plugin lock (pckr/lockfile.lua, 0.5.1+): plugin commits are not verified" "$T/out.log"
   wg "plugins verified"   "Plugins verified"           "$T/out.log"
   wx "exit 0"             test "$RC" -eq 0
   # A release tag from v0.5.1 on always ships the lock: under --strict its
@@ -1215,7 +1215,7 @@ scenario_strict_lock_absent() {
   git clone -q --bare "$FIXTURE" "$T2/src.git"
   git -C "$T2/src.git" tag v0.9.0 nolock
   run_install_args "$T2" "$T2/out.log" DWP_VIM_SOURCE="$T2/src.git" SHIM_NVIM_PLUGINS="alpha-nvim nvim-cmp mason.nvim" -- --version 0.9.0 --strict --skip-packages
-  wg "v0.5.1+ needs a lock" "--strict: v0.9.0 ships pckr/lockfile.lua (v0.5.1+), but" "$T2/out.log"
+  wg "v0.5.1+ needs a lock" "--strict: v0.9.0 ships pckr/lockfile.lua (0.5.1+), but" "$T2/out.log"
   wx "missing lock: rc non-zero" test "$RC" -ne 0
 }
 

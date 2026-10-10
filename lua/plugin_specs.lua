@@ -10,7 +10,6 @@ return {
   "neovim/nvim-lspconfig",
   "williamboman/mason.nvim",
   "williamboman/mason-lspconfig.nvim",
-  "mfussenegger/nvim-lint",
   "mhartington/formatter.nvim",
 
   -- Completion

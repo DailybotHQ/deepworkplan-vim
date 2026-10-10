@@ -10,6 +10,95 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.6.0] - 2026-10-10
+
+### Changed
+
+- **The plans sidebar and the file tree toggle for each other.** Opening one closes
+  the other (`sidebars.exclusive` in `dwpvim.json`, on by default).
+- **The plan reader closes with the plans sidebar.** Switching to the file tree (or
+  closing the plans) now hides the plan being read too, and the window gets back the
+  file it was showing, instead of leaving an orphan reader beside the tree.
+- **Plan clicks route by the window under the pointer.** A mapped `<LeftMouse>` is
+  resolved against the focused buffer, so with the reader focused a click on the
+  sidebar was ignored; the double-click fell through to Vim's word selection.
+  `dwp.mouse` now decides every click by the pointer's window, the sidebar keeps
+  the focus after opening a plan, and a second plan replaces the reader instead of
+  the sidebar.
+- **The plans sidebar reacts to the mouse and the keyboard jumps between plans.** A
+  click opens the plan under the pointer (a mapped `<LeftMouse>` does not move the
+  cursor, so clicks used to act on the wrong row), the small arrow shows its tasks,
+  and `j`/`k`, the arrows and `Ctrl-n`/`Ctrl-p` move from plan to plan, skipping
+  blanks and decoration. The reader window is as quiet as the sidebar, and its
+  clicks open the file under the pointer.
+- **A clearer plans sidebar.** The window is quiet (no dots for spaces or arrows at
+  line ends, a fixed width, editing keys do nothing instead of printing `E21`); the
+  list has a hierarchy — a header with a summary, sections with their counts,
+  status colours on the icon and the bar, strong titles for live plans and dim ones
+  for settled plans, thin rules, titles that use a wider window — and a long Done
+  group opens collapsed. See `docs/PLANS_SIDEBAR.md`.
+- **marksman no longer reports diagnostics.** It still follows links, completes
+  links and headings and gives the outline, but the warning triangles it put
+  beside Markdown files in the tree (broken or ambiguous links, git-ignored
+  targets) are gone. Markdown stays without a formatter on purpose: neither
+  prettier nor mdformat is installed.
+
+- **The file tree opens on the left**, like the plans sidebar, and is 40 columns
+  wide (it still shrinks to its content). It used to open on the right at 60.
+- **Both sidebars are configurable from a file.** `dwpvim.json` in the repository
+  sets `tree.side`, `tree.width`, `plans.side` and `plans.width`; a
+  `.dwpvim.json` in a project overrides it for that project. Invalid values are
+  ignored and reported by the new `:DwpConfig`, which also shows where each value
+  came from. See `docs/CONFIGURATION.md`.
+- **The dashboard is DWP Vim's own.** The "MU VIM" wordmark is replaced by
+  the DWP logo, converted to a braille engraving, with a tiny VIM tucked
+  under its P, a "powered by Dailybot" credit beneath, and one engraved
+  scene on the right: the Deep Work Plan lighthouse, a ship sailing in its
+  sea. The lighthouse is the brightest element, shadows are cool
+  and highlights warm, the rim of the scene dissolves instead of ending in
+  a hard edge, and the beam pulses slowly while the dashboard is on screen
+  (`vim.g.dwp_greeter_pulse = false` turns that off). The scene comes in
+  six heights, chosen by the rows the rest of the dashboard leaves free
+  (short windows tighten the plans overview first); narrower windows stack the wordmark
+  over it or show the wordmark alone (`lua/setUp/greeter_art.lua`). The wordmark
+  sits in the scene's empty sky so the hero stays compact and centred, and wide
+  windows put the shortcuts and "Your plans" side by side
+  (`lua/setUp/greeter_bottom.lua`; Enter activates the row under the cursor,
+  `e` opens the plans sidebar), stacking them again when the window is narrow.
+
+
+### Removed
+
+- **nvim-lint**: no linter was ever configured, so it did nothing (its
+  lock entry and `lua/lsp/linter.lua` go with it).
+- **The prettier formatter entries** (html, markdown, scss, less, yaml,
+  svelte, vue, angular): nothing installed prettier. `:Format` keeps biome
+  (JS/TS/JSON/CSS/GraphQL), black, shfmt and stylua.
+- **Eleven Mason servers** nobody asked for: efm and diagnosticls (no
+  configuration in this repository), tailwindcss, grammarly and bashls
+  (installed but never started), and the servers for astro, svelte, Vue 2
+  (vuels), Angular, SQL and Vim script. Fewer plugins to pin and fewer
+  packages to install and update at first start.
+
+### Fixed
+
+- **Servers a previous config installed no longer start on their own.** Only the
+  servers this config lists are enabled (`automatic_enable = false`); tailwindcss,
+  grammarly, bashls and the retired servers stay off even when Mason still has them.
+
+- **Language servers no longer fail to install behind an `npm` that is not
+  npm.** Some environments put a script named `npm` first on PATH that
+  forwards to pnpm; Mason runs `npm init --scope=mason`, pnpm rejects the
+  flag, and 16 npm-based servers (astro, svelte, vuels, vimls, yamlls,
+  ts_ls, jsonls, eslint, …) failed on every start, ending in a "Press ENTER"
+  prompt. `lua/lsp/npm_guard.lua`, run first in `lua/lsp/init.lua` (Mason
+  snapshots PATH when it first loads), detects such a stand-in and links the real
+  npm that ships beside `node` first on PATH (a symlink under
+  `stdpath("data")/dwp-bin`); when no real npm exists, the npm-based servers
+  are left out of `ensure_installed` and one warning explains why. The
+  no-op `npm = { package_manager = "pnpm" }` Mason setting, which Mason has
+  no such key for, is removed.
+
 ## [v0.5.1] - 2026-10-09
 
 ### Fixed
@@ -321,7 +410,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.6.0...HEAD
+[v0.6.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...v0.5.0
 [v0.4.2]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.1...v0.4.2

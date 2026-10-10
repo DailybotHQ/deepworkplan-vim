@@ -12,6 +12,7 @@ A single-product repository: the Neovim config tree (`lua/`), its installer
 ```
 init.lua
   ├─ require('settings')      lua/settings.lua      vim.opt basics, perf flags
+  ├─ require('userconfig')    lua/userconfig.lua    dwpvim.json -> sidebar side/width (vim.g for lua/dwp)
   ├─ require('mapping')       lua/mapping/init.lua  keybindings (contract-tested)
   ├─ require('autocommand')   lua/autocommand.lua   autocmds
   ├─ require('plugins')       lua/plugins.lua       pckr.nvim bootstrap at its pin, then
@@ -19,8 +20,8 @@ init.lua
   │                                                 by lua/plugin_lock.lua from
   │                                                 pckr/lockfile.lua (commit per plugin)
   └─ require('composition')   lua/composition.lua   wires the plugin set-up below
-        ├─ lua/setUp/*        greeter, finder, statusline, file manager, autosave, …
-        ├─ lua/lsp/*          lspconfig/mason servers, formatters, linters, completion
+        ├─ lua/setUp/*        greeter (+ greeter_art, greeter_lighthouse, greeter_bottom: wordmark, scene, two-column bottom), finder, statusline, file manager, autosave, …
+        ├─ lua/lsp/*          lspconfig/mason servers (npm_guard keeps Mason's npm real), formatters, completion
         └─ lua/scheme/*       theme apply/picker + curated palettes (lua/scheme/palettes/)
 ```
 
@@ -31,6 +32,8 @@ updates flow through pckr, not through this repo's git.
 
 ```
 lua/                 the editor config (see lua/README.md)
+lua/setUp/sidebars.lua  one sidebar at a time: closes the file tree when the plans open and back (events)
+lua/userconfig.lua   dwpvim.json (editor dir) + .dwpvim.json (project): merge, validate, :DwpConfig
 lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
                      state (machine states + rich plain-language model),
                      sidebar (SPC P), reader (Enter on a plan),
@@ -62,6 +65,28 @@ install.sh           downloadable entry (pins its release tag): preflight, conse
 install.lua          multi-distro installer (runs on user machines, sudo for packages)
 delete.lua           uninstaller
 ```
+
+## Capability map
+
+The [product focus](PRODUCT_SPEC.md#product-focus) has six pillars; this is
+where each one lives and what guards it. A change to a module on the right is
+checked by the test on the right.
+
+| Pillar | Modules and plugins | Guarded by |
+|---|---|---|
+| Navigate | `nvim-tree` (`SPC n`, `lua/setUp/fileManager.lua`), `telescope` (`lua/setUp/finder.lua`, `SPC t…`), the dashboard shortcuts (`lua/setUp/greeter*.lua`) | Go mapping contracts (`tests/contract.go`); `scripts/boot-check.sh` loads the modules |
+| See what changed | nvim-tree git marks, `vim-signify` margin signs, `vim-fugitive` (`SPC g s`), the diff panel's file list | boot check (plugins load); no hermetic test of the git state |
+| Review the diff | `diffview.nvim` (`SPC g d`, `lua/setUp/diff.lua`), `vim-fugitive` blame and show | boot check; `lua/setUp/diff.lua` loads only when the plugin does |
+| Approve or discard | diffview panel (stage; `d` or right-click discards a file after a confirmation), `SPC g a p` stage a file by hunks, `SPC g a a`, `SPC g c` | Go mapping contracts for the chords; the confirmation lives in `lua/setUp/diff.lua` |
+| Agent-first | the pinned mapping contract, the command index (`lua/mapping/glossary.lua`, `SPC h h`), the contributor container and Herdr mesh (`dev.sh`), the headless smoke suite | `tests/` (Go contracts), `tests/smoke/` |
+| Deep Work Plan in view | `lua/dwp/` (plans, state, sidebar, reader, statusline, greeter overview) — self-contained, no plugin required | `tests/smoke/dwp_*.lua`, incl. the self-contained and consistency smokes |
+| Lightweight | the pinned plugin set (`lua/plugin_specs.lua`, `pckr/lockfile.lua`), `vim.loader` in `init.lua`, deferred setup | `tests/smoke/plugin_lock.lua`, `tests/smoke/plugin_refs.lua`, the startup numbers recorded in the plans |
+| Tested and reviewed | `.github/workflows/ci.yml` and its `gate` job; pull-request-only flow | CI on every pull request; see [BRANCH_PROTECTION.md](BRANCH_PROTECTION.md) |
+
+Dependency rule: `lua/dwp/` requires only `dwp.*` (the extraction boundary,
+proven by `dwp_self_contained.lua`), and the editor reaches it lazily — the
+plan surfaces never make a plugin a requirement, and no plugin makes the plan
+surfaces fail.
 
 ## Contributor environment (feature area)
 
@@ -123,7 +148,10 @@ run (assets as a workflow artifact) and cuts pre-releases by suffix.
 `.github/workflows/ci.yml`, on every pull request and push to `main`: public
 hygiene (+ its self-test), lint (`luac5.4 -p`, `bash -n`), the smoke suite
 (Neovim pinned by version and sha256), the installer harness, and the Go
-mapping contracts. Branch protection on `main` requires these checks.
+mapping contracts, and the container install (which also runs `scripts/boot-check.sh`
+on the installed config). A final `gate` job needs all of them and fails unless each
+succeeded; it is the one check branch protection requires
+([BRANCH_PROTECTION.md](BRANCH_PROTECTION.md)).
 
 ## DWP harness layer
 

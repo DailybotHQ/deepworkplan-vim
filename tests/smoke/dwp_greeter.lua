@@ -38,6 +38,14 @@ ok(second.text:find("Working", 1, true) ~= nil, "rows are status-worded (working
 ok(section.plan_lines[3].text:find("Done", 1, true) ~= nil, "third row is status-worded (done)")
 ok(first.record ~= nil and first.record.name ~= nil, "rows carry their records for the reader gesture")
 
+-- 1b. Alignment: alpha centres each row on its own, so every row must have
+--     the same display width or the columns drift (counts and status words
+--     differ per plan: 2/5 vs 11/11, Done vs Working).
+local w1 = vim.fn.strdisplaywidth(section.plan_lines[1].text)
+for i, row in ipairs(section.plan_lines) do
+	ok(vim.fn.strdisplaywidth(row.text) == w1, "plan row " .. i .. " has the same width as row 1 (columns align)")
+end
+
 -- 2. Title truncation holds at the greeter's 26-char cap.
 local long = greeter_plans.plan_line({
 	title = "A very long plan title that clearly exceeds the cap",
@@ -62,6 +70,34 @@ ok(
 		== "No plans yet — ask your agent to plan work (open the editor in your project folder).",
 	"empty-state teaches the project folder (F-02)"
 )
+
+-- 5. Two-column bottom (shortcuts | your plans): pure composition.
+local bottom = require("setUp.greeter_bottom")
+local ran = {}
+local shortcuts = {
+	{ label = "  Plans  ", key = "Space P", run = function() ran[#ran + 1] = "plans" end },
+	{ label = "  Find File  ", key = "Space f f", run = function() ran[#ran + 1] = "find" end },
+}
+local block = bottom.compose(shortcuts, section, {
+	sidebar = function() ran[#ran + 1] = "sidebar" end,
+	open_plan = function(rec) ran[#ran + 1] = "plan:" .. rec.name end,
+})
+ok(block.lines[1]:find("Shortcuts", 1, true) and block.lines[1]:find("Your plans", 1, true), "both column headers share the first row")
+ok(block.rows[3].left and block.rows[3].right, "the first shortcut row also carries the first plan's action")
+block.rows[3].left()
+block.rows[3].right()
+ok(ran[1] == "plans" and ran[2]:find("plan:", 1, true) == 1, "left activates the shortcut, right opens the plan")
+local split = block.split[3]
+ok(block.lines[3]:sub(1, split):find("Plans", 1, true) ~= nil, "the left column ends at the split")
+ok(block.lines[3]:sub(split + 1):find("Fixture", 1, true) ~= nil, "the right column starts at the split")
+local bw = vim.fn.strdisplaywidth(block.lines[#block.lines])
+ok(block.width >= bw, "block width covers its widest row")
+local empty_block = bottom.compose(shortcuts, empty, { sidebar = function() end, open_plan = function() end })
+local joined = table.concat(empty_block.lines, "\n")
+ok(joined:find("No plans yet", 1, true) ~= nil, "empty state is rendered in the right column")
+for _, l in ipairs(empty_block.lines) do
+	ok(vim.fn.strdisplaywidth(l) <= empty_block.width, "wrapped empty-state rows stay inside the block")
+end
 
 if fails > 0 then
 	print(("GREETER SMOKE: %d FAILED of %d assertions"):format(fails, count))

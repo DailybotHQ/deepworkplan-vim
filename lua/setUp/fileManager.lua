@@ -33,9 +33,11 @@ require("nvim-tree").setup({
 		custom = {},
 	},
 
+	-- Side and width come from dwpvim.json (lua/userconfig.lua): left, 40 by
+	-- default. adaptive_size still shrinks the tree to its content.
 	view = {
-		width = 60,
-		side = "right",
+		width = require("userconfig").get("tree.width"),
+		side = require("userconfig").get("tree.side"),
 		adaptive_size = true,
 		centralize_selection = false,
 		preserve_window_proportions = false,

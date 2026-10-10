@@ -86,18 +86,33 @@ end
 -- terminal gave the sidebar 77% of the screen (UX_AUDIT F-03).
 local function layout_width()
 	local cols = vim.o.columns
-	local w = MAX_WIDTH
-	if cols < MAX_WIDTH * 2 - 14 then
-		w = math.max(MIN_WIDTH, math.floor(cols * 0.55))
+	-- A configured width (vim.g.dwp_plans_width, set from dwpvim.json) replaces
+	-- the 48-column ceiling; the responsive rule below still applies.
+	local ceiling = MAX_WIDTH
+	local want = vim.g.dwp_plans_width
+	if type(want) == "number" and want >= 20 then
+		ceiling = math.floor(want)
+	end
+	local w = ceiling
+	if cols < ceiling * 2 - 14 then
+		w = math.max(math.min(MIN_WIDTH, ceiling), math.floor(cols * 0.55))
+		w = math.min(w, ceiling)
 	end
 	return math.min(w, math.max(20, cols - 2))
+end
+
+-- Which edge the sidebar docks to: vim.g.dwp_plans_side, "left" unless "right".
+local function dock_command()
+	return vim.g.dwp_plans_side == "right" and "botright" or "topleft"
 end
 
 -- Title cap follows the actual window so a plan row always fits on one
 -- screen line: counts may never clip (F-03), so the cap gives up cells
 -- before anything else does. Cap rule recorded in UX_AUDIT F-03/F-07.
 local function title_cap(win_width)
-	return math.min(TITLE_CAP, math.max(10, win_width - 20))
+	-- 28 at the default 48 columns (the pinned cap), growing with a wider
+	-- window up to 44: use the room there is (UX_AUDIT F3).
+	return math.min(math.max(TITLE_CAP, 44), math.max(10, win_width - 20))
 end
 
 local function progress_bar(done, total)
@@ -109,6 +124,86 @@ local function progress_bar(done, total)
 		filled = BAR_CELLS
 	end
 	return string.rep("▰", filled) .. string.rep("▱", BAR_CELLS - filled)
+end
+
+-- ---------------------------------------------------------- highlights --
+
+-- Colours come from the active theme: each group takes the foreground of a
+-- standard group and adds weight; re-derived on :colorscheme. Nothing here is
+-- a fixed hex value (UX_AUDIT design 6).
+local function fg_of(name)
+	local ok, h = pcall(vim.api.nvim_get_hl, 0, { name = name, link = false })
+	return ok and h and h.fg or nil
+end
+
+local function derive(group, base, extra)
+	local spec = vim.tbl_extend("force", { fg = fg_of(base) }, extra or {})
+	vim.api.nvim_set_hl(0, group, spec)
+end
+
+local function setup_highlights()
+	derive("DwpPlansHeader", "Title", { bold = true })
+	derive("DwpPlansSummary", "Comment", { italic = false })
+	derive("DwpPlansSection", "Normal", { bold = true })
+	derive("DwpPlansRule", "Comment", { italic = false })
+	derive("DwpPlansTitle", "Normal", { bold = true })
+	derive("DwpPlansPlain", "Normal")
+	derive("DwpPlansDim", "Comment", { italic = false })
+end
+
+-- Per-status look: icon and bar fill take the status group the model already
+-- carries; the title is strong while the plan is live and recedes when settled.
+local TITLE_GROUP = {
+	["Working"] = "DwpPlansTitle",
+	["Needs attention"] = "DwpPlansTitle",
+	["Ready"] = "DwpPlansPlain",
+	["Not started"] = "DwpPlansPlain",
+	["Done"] = "DwpPlansDim",
+}
+
+-- Done opens collapsed once it holds more than this many plans.
+local DONE_COLLAPSE_OVER = 6
+
+-- ---------------------------------------------------------- navigation --
+
+-- Rows the cursor may rest on: a plan, a section header (to show a collapsed
+-- group), a task, a file. Blanks, rules, labels, hints and the footer are skipped,
+-- so j/k jump from plan to plan instead of crawling over decoration.
+local SELECTABLE = { plan = true, section = true, task = true, file = true }
+
+local function selectable_line(from, step)
+	local i = from + step
+	while i >= 1 and i <= #st.rows do
+		if SELECTABLE[st.rows[i].kind] then
+			return i
+		end
+		i = i + step
+	end
+	return nil
+end
+
+-- A cursor on decoration (after a refresh, or on open) moves to the nearest
+-- selectable row; on open it prefers the first plan.
+local function settle_cursor(prefer_plan)
+	if not (st.win and vim.api.nvim_win_is_valid(st.win)) then
+		return
+	end
+	local line = vim.api.nvim_win_get_cursor(st.win)[1]
+	local row = st.rows[line]
+	if prefer_plan then
+		for i, r in ipairs(st.rows) do
+			if r.kind == "plan" then
+				return vim.api.nvim_win_set_cursor(st.win, { i, 0 })
+			end
+		end
+	end
+	if row and SELECTABLE[row.kind] then
+		return
+	end
+	local target = selectable_line(line, 1) or selectable_line(line, -1)
+	if target then
+		vim.api.nvim_win_set_cursor(st.win, { target, 0 })
+	end
 end
 
 -- -------------------------------------------------------------- render --
@@ -192,17 +287,43 @@ end
 local function plan_row(record, cap)
 	local title = truncate(record.title or record.name, cap)
 	local marker = st.expanded[record.name] and "▾" or "▸"
+	local icon = record.icon or "·"
+	local pad = string.rep(" ", math.max(1, cap - display_width(title) + 2))
+	local bar = progress_bar(record.tasks_done or 0, record.tasks_total or 0)
+	local percent = string.format("%d%%", record.percent or 0)
+	local text = string.format("%s %s  %s %s", icon, title .. pad, marker .. bar, percent)
+
+	-- Segment highlights, by byte offset into `text`.
+	local label = record.label or "Unknown"
+	local status_hl = record.highlight or "Comment"
+	local settled = label == "Done"
+	local spans = {}
+	local at = 0
+	local function span(len, group)
+		if group and len > 0 then
+			spans[#spans + 1] = { from = at, to = at + len, group = group }
+		end
+		at = at + len
+	end
+	span(#icon, status_hl) -- the status icon, in the status colour
+	span(1, nil)
+	span(#title, TITLE_GROUP[label] or "DwpPlansPlain")
+	span(#pad + 2, nil)
+	span(#marker, "DwpPlansDim") -- the expand marker
+	local filled = bar:match("^▰*")
+	span(#filled, settled and "DwpPlansDim" or status_hl) -- the bar's fill
+	span(#bar - #filled, "DwpPlansDim") -- the bar's empty cells
+	span(1, nil)
+	span(#percent, "DwpPlansDim")
+
 	return {
-		text = string.format(
-			"%s %s  %s %d%%",
-			record.icon or "·",
-			title .. string.rep(" ", math.max(1, cap - display_width(title) + 2)),
-			marker .. progress_bar(record.tasks_done or 0, record.tasks_total or 0),
-			record.percent or 0
-		),
-		hl = record.highlight or "Comment",
+		text = text,
+		spans = spans,
 		kind = "plan",
 		plan = record,
+		-- Window column (1-based) of the expand marker: a click there toggles
+		-- the checklist instead of opening the plan.
+		marker_col = display_width(icon .. " " .. title .. pad .. "  ") + 1,
 	}
 end
 
@@ -214,22 +335,52 @@ local function build_rows(records, cap)
 		by_section[label][#by_section[label] + 1] = record
 	end
 
+	-- Auto-collapse a long Done group once; the user's own choice (expanded or
+	-- collapsed) is kept afterwards because it is no longer nil.
+	if st.collapsed_sections["Done"] == nil and #(by_section["Done"] or {}) > DONE_COLLAPSE_OVER then
+		st.collapsed_sections["Done"] = true
+	end
+
+	-- Header: the title in an accent, then a quiet summary of what is live.
+	local summary = {}
+	local function count_of(label)
+		return #(by_section[label] or {})
+	end
+	if count_of("Working") > 0 then
+		summary[#summary + 1] = count_of("Working") .. " working"
+	end
+	if count_of("Needs attention") > 0 then
+		summary[#summary + 1] = count_of("Needs attention") .. " need attention"
+	end
+	local header_text = "Plans"
+	local header_spans = { { from = 0, to = #header_text, group = "DwpPlansHeader" } }
+	if #summary > 0 then
+		local tail = "  " .. table.concat(summary, " · ")
+		header_spans[#header_spans + 1] = { from = #header_text, to = #header_text + #tail, group = "DwpPlansSummary" }
+		header_text = header_text .. tail
+	end
 	local rows = {
-		{ text = "Plans", hl = "Title", kind = "header" },
+		{ text = header_text, spans = header_spans, kind = "header", rule_below = true },
 		{ text = "", kind = "blank" },
 	}
 	local any = false
 	for _, label in ipairs(SECTION_ORDER) do
 		local group = by_section[label]
 		if group then
+			-- A blank row between groups: proximity makes each section read as one block.
+			if any then
+				rows[#rows + 1] = { text = "", kind = "blank" }
+			end
 			any = true
 			-- Collapsed sections keep their header (with a count marker):
 			-- the header row is the only way back, so removing it made
 			-- collapse a one-way trap (final-review finding 1).
 			local collapsed = st.collapsed_sections[label]
+			local section_text = collapsed and string.format("%s ▸ %d hidden", label, #group)
+				or string.format("%s · %d", label, #group)
 			rows[#rows + 1] = {
-				text = collapsed and string.format("%s ▸ %d hidden", label, #group) or label,
-				hl = "Comment",
+				text = section_text,
+				spans = { { from = 0, to = #section_text, group = collapsed and "DwpPlansDim" or "DwpPlansSection" } },
 				kind = "section",
 				label = label,
 			}
@@ -266,8 +417,8 @@ local function build_rows(records, cap)
 		rows[#rows + 1] = { text = "and the editor's config folder.", hl = "Comment", kind = "blank" }
 	end
 	rows[#rows + 1] = { text = "", kind = "blank" }
-	rows[#rows + 1] = { text = "? help · r refresh · Enter open · Tab expand", hl = "Comment", kind = "footer" }
-	rows[#rows + 1] = { text = "click a plan to expand · double-click opens it", hl = "Comment", kind = "footer" }
+	rows[#rows + 1] = { text = "? help · r refresh · Enter open · Tab expand", hl = "DwpPlansDim", kind = "footer", rule_above = true }
+	rows[#rows + 1] = { text = "click a plan to open it · the arrow shows tasks", hl = "DwpPlansDim", kind = "footer" }
 	return rows
 end
 
@@ -283,8 +434,20 @@ local function render()
 	vim.api.nvim_buf_set_lines(st.buf, 0, -1, false, lines)
 	vim.bo[st.buf].modifiable = false
 	pcall(vim.api.nvim_buf_clear_namespace, st.buf, NS, 0, -1)
+	-- A thin rule is a virtual line (not buffer text), as wide as the window, so
+	-- the row text the other surfaces and the tests pin does not change.
+	local width = (st.win and vim.api.nvim_win_is_valid(st.win)) and vim.api.nvim_win_get_width(st.win) or 40
+	local rule = { { string.rep("─", math.max(1, width - 2)), "DwpPlansRule" } }
 	for i, row in ipairs(st.rows) do
-		if row.hl then
+		if row.spans then
+			for _, sp in ipairs(row.spans) do
+				vim.api.nvim_buf_set_extmark(st.buf, NS, i - 1, sp.from, {
+					end_row = i - 1,
+					end_col = sp.to,
+					hl_group = sp.group,
+				})
+			end
+		elseif row.hl then
 			vim.api.nvim_buf_set_extmark(st.buf, NS, i - 1, 0, {
 				end_row = i,
 				end_col = 0,
@@ -292,12 +455,19 @@ local function render()
 				hl_eol = true,
 			})
 		end
+		if row.rule_below then
+			vim.api.nvim_buf_set_extmark(st.buf, NS, i - 1, 0, { virt_lines = { rule } })
+		end
+		if row.rule_above then
+			vim.api.nvim_buf_set_extmark(st.buf, NS, i - 1, 0, { virt_lines = { rule }, virt_lines_above = true })
+		end
 	end
 	if st.win and vim.api.nvim_win_is_valid(st.win) then
 		local line = vim.api.nvim_win_get_cursor(st.win)[1]
 		if line > #st.rows then
 			vim.api.nvim_win_set_cursor(st.win, { math.max(1, #st.rows), 0 })
 		end
+		settle_cursor()
 	end
 end
 
@@ -320,6 +490,11 @@ function S.refresh()
 end
 
 function S.close()
+	-- The reader belongs to the sidebar: hiding the plans hides the plan being read.
+	local ok_reader, reader = pcall(require, "dwp.reader")
+	if ok_reader then
+		reader.close()
+	end
 	if st.win and vim.api.nvim_win_is_valid(st.win) then
 		if #vim.api.nvim_list_wins() == 1 then
 			-- Closing would take the editor down with it (E444): swap in a
@@ -365,7 +540,7 @@ function S.open(roots)
 	vim.bo[st.buf].filetype = "dwp-plans"
 	vim.bo[st.buf].swapfile = false
 
-	vim.cmd("topleft vertical " .. layout_width() .. "split")
+	vim.cmd(dock_command() .. " vertical " .. layout_width() .. "split")
 	st.win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(st.win, st.buf)
 	vim.wo[st.win].wrap = false
@@ -374,19 +549,43 @@ function S.open(roots)
 	vim.wo[st.win].relativenumber = false
 	vim.wo[st.win].signcolumn = "no"
 	vim.wo[st.win].fillchars = "eob: "
+	-- A quiet window: the editor's global `list` would paint every space as a
+	-- dot and every line end as an arrow, and a neighbouring sidebar must not
+	-- stretch this one (UX_AUDIT F1, F7).
+	vim.wo[st.win].list = false
+	vim.wo[st.win].winfixwidth = true
+	vim.wo[st.win].spell = false
+	vim.wo[st.win].colorcolumn = ""
+	vim.wo[st.win].foldcolumn = "0"
 
+	setup_highlights()
 	local records = plans.scan(st.roots)
 	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
 	render()
 	set_keys()
+	settle_cursor(true) -- land on the first plan, not on the title
+	-- Announce the sidebar: the editor side (lua/setUp/sidebars.lua) may close a
+	-- competing sidebar. An event, so lua/dwp never requires a plugin.
+	vim.api.nvim_exec_autocmds("User", { pattern = "DwpPlansOpened", modeline = false })
 
 	-- Plans appear as agent sessions work: refresh on focus, debounced
 	-- cancel-and-rearm (the pending timer is stopped, not just dropped —
 	-- the statusline module's pattern) so a burst of events costs one scan.
 	-- A terminal resize re-fits the rows the same way (F-03: the cap
 	-- follows the actual window, so stale-width rows are a defect).
+	local aug = vim.api.nvim_create_augroup("DwpSidebar", { clear = true })
+	vim.api.nvim_create_autocmd("ColorScheme", {
+		group = aug,
+		callback = function()
+			if not S.is_open() then
+				return true
+			end
+			setup_highlights()
+			render()
+		end,
+	})
 	vim.api.nvim_create_autocmd({ "FocusGained", "VimResized" }, {
-		group = vim.api.nvim_create_augroup("DwpSidebar", { clear = true }),
+		group = aug,
 		callback = function()
 			if not S.is_open() then
 				return true
@@ -446,18 +645,35 @@ local function activate()
 	end
 end
 
-local function on_click()
-	-- The click has already moved the cursor to this line.
-	local row = current_row()
-	if row and row.kind == "plan" then
-		S.toggle_expand(row.plan.name)
-	end
+--- True when `winid` is the sidebar window (lua/dwp/mouse.lua routes by this).
+function S.owns_window(winid)
+	return st.win ~= nil and winid == st.win and vim.api.nvim_win_is_valid(st.win)
 end
 
-local function on_double_click()
-	local row = current_row()
-	if row and row.kind == "plan" then
-		open_plan_reader(row.plan)
+--- A click on the sidebar, resolved from the pointer position `pos`
+--- (vim.fn.getmousepos()), never from the cursor: a mapped <LeftMouse> does not
+--- move it. One click acts: a plan opens in the reader (the small marker toggles
+--- its checklist), a section header shows or hides the group, a task or file
+--- opens. The focus stays here, so the next plan is one click away.
+function S.click(pos)
+	if not S.is_open() or pos.winid ~= st.win or pos.line < 1 then
+		return
+	end
+	local line = math.min(pos.line, #st.rows)
+	local row = st.rows[line]
+	if not row then
+		return
+	end
+	pcall(vim.api.nvim_win_set_cursor, st.win, { line, 0 })
+	if row.kind == "plan" and row.marker_col and pos.wincol >= row.marker_col - 1 and pos.wincol <= row.marker_col + 1 then
+		S.toggle_expand(row.plan.name)
+		return
+	end
+	local origin = st.win
+	activate()
+	-- Opening a plan moves the focus to the reader; a mouse user keeps browsing.
+	if row.kind == "plan" and vim.api.nvim_win_is_valid(origin) then
+		pcall(vim.api.nvim_set_current_win, origin)
 	end
 end
 
@@ -467,13 +683,15 @@ local HELP_LINES = {
 	"Enter    open the plan under the cursor",
 	"         (on a section name: show or hide that group)",
 	"Tab      show or hide a plan's tasks and files",
-	"j / k    move up and down (or the arrow keys)",
+	"j / k    jump to the next / previous plan",
+	"         (arrow keys and Ctrl-n / Ctrl-p too; 3j repeats;",
+	"         gg / G go to the first / last)",
 	"r        refresh the list",
 	"?        close this help",
 	"q / Esc  close the sidebar",
 	"",
-	"Mouse: click a plan to expand it,",
-	"double-click to open it.",
+	"Mouse: click a plan to open it;",
+	"click the small arrow to show its tasks.",
 	"",
 	"The sidebar never changes your plans —",
 	"it only reads and explains them.",
@@ -520,8 +738,53 @@ function S.help()
 	end
 end
 
+-- j/k and friends move between selectable rows; a count repeats (3j).
+local function move(step)
+	if not S.is_open() then
+		return
+	end
+	local line = vim.api.nvim_win_get_cursor(st.win)[1]
+	local target = line
+	for _ = 1, vim.v.count1 do
+		local nxt = selectable_line(target, step)
+		if not nxt then
+			break
+		end
+		target = nxt
+	end
+	if target ~= line then
+		vim.api.nvim_win_set_cursor(st.win, { target, 0 })
+	end
+end
+
+local function edge(first)
+	if not S.is_open() then
+		return
+	end
+	local target = first and selectable_line(0, 1) or selectable_line(#st.rows + 1, -1)
+	if target then
+		vim.api.nvim_win_set_cursor(st.win, { target, 0 })
+	end
+end
+
 function set_keys()
 	local opts = { buffer = st.buf, silent = true, nowait = true }
+	for _, key in ipairs({ "j", "<Down>", "<C-n>" }) do
+		vim.keymap.set("n", key, function()
+			move(1)
+		end, opts)
+	end
+	for _, key in ipairs({ "k", "<Up>", "<C-p>" }) do
+		vim.keymap.set("n", key, function()
+			move(-1)
+		end, opts)
+	end
+	vim.keymap.set("n", "gg", function()
+		edge(true)
+	end, opts)
+	vim.keymap.set("n", "G", function()
+		edge(false)
+	end, opts)
 	vim.keymap.set("n", "<CR>", activate, opts)
 	vim.keymap.set("n", "<Tab>", function()
 		local row = current_row()
@@ -533,8 +796,24 @@ function set_keys()
 	vim.keymap.set("n", "?", S.help, opts)
 	vim.keymap.set("n", "q", S.close, opts)
 	vim.keymap.set("n", "<Esc>", S.close, opts)
-	vim.keymap.set("n", "<LeftMouse>", on_click, opts)
-	vim.keymap.set("n", "<2-LeftMouse>", on_double_click, opts)
+	local mouse = function()
+		return require("dwp.mouse")
+	end
+	vim.keymap.set("n", "<LeftMouse>", function()
+		mouse().click()
+	end, opts)
+	-- The first click already acted; the rest of a multi-click does nothing (and
+	-- never falls through to Vim's word selection).
+	for count = 2, 4 do
+		vim.keymap.set("n", ("<%d-LeftMouse>"):format(count), function()
+			mouse().multi_click(count)()
+		end, opts)
+	end
+	-- The buffer is read-only: editing keys do nothing, silently, instead of
+	-- printing E21 and a "Press ENTER" (UX_AUDIT F8).
+	for _, key in ipairs({ "i", "I", "a", "A", "o", "O", "c", "C", "s", "S", "x", "X", "d", "D", "p", "P", "R", "u", "U", "<C-r>", "J", "gi" }) do
+		vim.keymap.set("n", key, "<Nop>", opts)
+	end
 end
 
 return S

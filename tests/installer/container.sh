@@ -68,6 +68,9 @@ runuser -u dev -- env RELEASE_VERSION="$RELEASE_VERSION" NVIM="$NVIM" DWP_TEST_T
   echo "CHECK nvim=$("$HOME/.local/bin/nvim" --version | head -n 1)"
   opt="$HOME/.local/share/nvim/site/pack/pckr/opt"
   echo "CHECK plugins=$(ls "$opt" | wc -l | tr -d " ")"
+  # The installed config, with its plugins, boots clean (scripts/boot-check.sh).
+  bash "$HOME/.config/nvim/scripts/boot-check.sh"
+  echo "CHECK boot=ok"
 '
 IN_CONTAINER
 
@@ -88,6 +91,7 @@ if [ "${LOCKED:-0}" -gt 0 ]; then
 fi
 want "on the release tag"      "CHECK tag=$RELEASE_REF"
 want "nvim on the version"     "CHECK nvim=NVIM v$NVIM"
+want "boot check"              "CHECK boot=ok"
 [ "$RC" -eq 0 ] || { echo "  FAIL container exit status $RC"; fails=$((fails + 1)); }
 if [ "$fails" -ne 0 ]; then
   echo "---- container log ($LOG) ----"

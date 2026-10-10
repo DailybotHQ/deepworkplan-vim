@@ -1,13 +1,11 @@
+-- Mason runs `npm`; make sure that is the real npm (see lsp/npm_guard.lua).
+local npm_state = require("lsp.npm_guard").ensure()
+
 require("mason").setup({
   PATH = "append",
 
   pip = {
     upgrade_pip = true,
-  },
-
-  -- Mason names this key "npm"; the manager we actually run is pnpm.
-  npm = {
-    package_manager = "pnpm",
   },
 
   ui = {
@@ -19,25 +17,9 @@ require("mason").setup({
   },
 })
 
--- Installed by Mason, but not started. The loop below calls vim.lsp.enable
--- on every name in `servers`, which ignores mason-lspconfig's exclude list.
--- tailwindcss walks a monorepo and freezes the editor. grammarly and bashls
--- crash on Node 24.
-local installed_only = {
-  "tailwindcss",
-  "grammarly",
-  "bashls",
-}
-
 local servers = {
-  "efm",
-  "astro",
-  "sqlls",
   "taplo",
-  "vimls",
-  "vuels",
   "yamlls",
-  "svelte",
   "jsonls",
   "lua_ls",
   "eslint",
@@ -45,17 +27,37 @@ local servers = {
   "dockerls",
   "marksman",
   "ts_ls",
-  "angularls",
-  "diagnosticls",
   "rust_analyzer",
   "jedi_language_server",
 }
 
+-- Servers Mason installs with npm. With no usable npm they cannot install, so
+-- they are left out of ensure_installed (one notice, not one error per server
+-- on every start).
+local npm_servers = {
+  yamlls = true, jsonls = true, eslint = true, emmet_ls = true, dockerls = true,
+  ts_ls = true,
+}
+
+local wanted = vim.deepcopy(servers)
+if not npm_state.ok then
+  wanted = vim.tbl_filter(function(name)
+    return not npm_servers[name]
+  end, wanted)
+  vim.schedule(function()
+    vim.notify(
+      "DeepWorkPlan Vim: skipped " .. "the language servers that need npm: " .. npm_state.reason,
+      vim.log.levels.WARN
+    )
+  end)
+end
+
 require("mason-lspconfig").setup({
-  ensure_installed = vim.list_extend(vim.deepcopy(servers), installed_only),
-  automatic_enable = {
-    exclude = installed_only,
-  },
+  ensure_installed = wanted,
+  -- Only the servers listed here start (the explicit vim.lsp.enable loop below):
+  -- a server a previous config installed (tailwindcss freezes a monorepo,
+  -- grammarly and bashls crash on Node 24) must not wake up on its own.
+  automatic_enable = false,
 })
 
 local ok_caps, capabilities = pcall(require, "lsp.capabilities")
@@ -95,6 +97,13 @@ local configs = {
       end
       on_dir(vim.fs.root(bufnr, { ".git" }) or vim.fs.dirname(name))
     end,
+    -- Keep what marksman is for (go to a link's target, link and heading
+    -- completion, the outline, heading rename) and drop its diagnostics: a
+    -- warning triangle beside README.md in the tree for an ambiguous or
+    -- ignored link is noise, not something to act on while editing.
+    handlers = {
+      ["textDocument/publishDiagnostics"] = function() end,
+    },
   },
 
   ts_ls = {
@@ -166,9 +175,6 @@ local alias_fts = {
   "javascriptreact",
   "typescript",
   "typescriptreact",
-  "vue",
-  "svelte",
-  "astro",
 }
 
 vim.api.nvim_create_autocmd("FileType", {
