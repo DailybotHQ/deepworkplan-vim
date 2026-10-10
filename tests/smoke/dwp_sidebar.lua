@@ -467,6 +467,24 @@ ok(vim.bo[vim.api.nvim_get_current_buf()].filetype == "dwp-plans", "the focus re
 close_reader()
 sidebar.close()
 
+-- 13f. closing the sidebar closes the reader with it (one workspace)
+sidebar.open({ FIXTURES })
+click_nth_plan(1)
+ok(reader_open() ~= nil, "a plan is open in the reader")
+sidebar.close()
+ok(reader_open() == nil, "closing the plans sidebar also closes the reader")
+
+-- 13g. the file the reader replaced comes back, in the same window
+vim.cmd("edit " .. FIXTURES .. "/../../../README.md")
+local filebuf = vim.api.nvim_get_current_buf()
+local nwins = #vim.api.nvim_list_wins()
+sidebar.open({ FIXTURES })
+click_nth_plan(1)
+click_nth_plan(2)
+sidebar.close()
+ok(vim.api.nvim_get_current_buf() == filebuf or vim.fn.bufwinid(filebuf) ~= -1, "closing the sidebar gives the reader's window back to the file it replaced")
+ok(#vim.api.nvim_list_wins() == nwins, "and the window count is what it was before (" .. nwins .. ")")
+
 -- 13d. a click in another window is ignored, the double-click is a no-op
 sidebar.open({ FIXTURES })
 local dbuf = sidebar_buf()

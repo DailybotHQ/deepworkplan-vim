@@ -14,6 +14,9 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 - **The plans sidebar and the file tree toggle for each other.** Opening one closes
   the other (`sidebars.exclusive` in `dwpvim.json`, on by default).
+- **The plan reader closes with the plans sidebar.** Switching to the file tree (or
+  closing the plans) now hides the plan being read too, and the window gets back the
+  file it was showing, instead of leaving an orphan reader beside the tree.
 - **Plan clicks route by the window under the pointer.** A mapped `<LeftMouse>` is
   resolved against the focused buffer, so with the reader focused a click on the
   sidebar was ignored; the double-click fell through to Vim's word selection.

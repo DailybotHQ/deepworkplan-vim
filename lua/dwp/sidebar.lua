@@ -490,6 +490,11 @@ function S.refresh()
 end
 
 function S.close()
+	-- The reader belongs to the sidebar: hiding the plans hides the plan being read.
+	local ok_reader, reader = pcall(require, "dwp.reader")
+	if ok_reader then
+		reader.close()
+	end
 	if st.win and vim.api.nvim_win_is_valid(st.win) then
 		if #vim.api.nvim_list_wins() == 1 then
 			-- Closing would take the editor down with it (E444): swap in a

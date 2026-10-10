@@ -413,6 +413,30 @@ function R.click(pos)
 	end
 end
 
+--- Close the reader window (the plans sidebar closes it with itself: the two are
+--- one workspace). Keeps the window when it is the last one (E444).
+function R.close()
+	if not (st.buf and vim.api.nvim_buf_is_valid(st.buf)) then
+		return
+	end
+	local win = vim.fn.bufwinid(st.buf)
+	if win ~= -1 then
+		if st.restore and vim.api.nvim_buf_is_valid(st.restore) then
+			-- Give the window back to the file it was showing.
+			vim.api.nvim_win_set_buf(win, st.restore)
+		elseif #vim.api.nvim_list_wins() == 1 then
+			vim.api.nvim_win_set_buf(win, vim.api.nvim_create_buf(true, false))
+		else
+			pcall(vim.api.nvim_win_close, win, true)
+		end
+	end
+	if st.buf and vim.api.nvim_buf_is_valid(st.buf) then
+		pcall(vim.api.nvim_buf_delete, st.buf, { force = true })
+	end
+	st.buf = nil
+	st.restore = nil
+end
+
 function R.open(record)
 	if not record or not record.path then
 		return
@@ -437,6 +461,12 @@ function R.open(record)
 	local win = target_window()
 	render(record, vim.api.nvim_win_get_width(win) - 2)
 	vim.api.nvim_set_current_win(win)
+	-- Remember what the window showed so closing the reader gives it back (a second
+	-- plan reuses the same window, so only a non-reader buffer is remembered).
+	local shown = vim.api.nvim_win_get_buf(win)
+	if shown ~= previous and vim.bo[shown].filetype ~= "dwp-plan" then
+		st.restore = shown
+	end
 	vim.api.nvim_win_set_buf(win, st.buf)
 	vim.wo[win].wrap = true
 	vim.wo[win].cursorline = false
