@@ -110,6 +110,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+      # tests/installer/container.sh also runs scripts/boot-check.sh on the
+      # installed config, so CI proves the real config boots with its plugins.
       - name: The image one-liner in Debian (non-root, no TTY, --skip-packages --strict)
         env:
           # Authenticates install.sh's call to the Neovim release API (rate limits).
