@@ -10,6 +10,16 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+### Changed
+
+- **The file tree opens on the left**, like the plans sidebar, and is 40 columns
+  wide (it still shrinks to its content). It used to open on the right at 60.
+- **Both sidebars are configurable from a file.** `dwpvim.json` in the repository
+  sets `tree.side`, `tree.width`, `plans.side` and `plans.width`; a
+  `.dwpvim.json` in a project overrides it for that project. Invalid values are
+  ignored and reported by the new `:DwpConfig`, which also shows where each value
+  came from. See `docs/CONFIGURATION.md`.
+
 ### Removed
 
 - **nvim-lint**: no linter was ever configured, so it did nothing (its

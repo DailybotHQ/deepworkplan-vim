@@ -12,6 +12,7 @@ A single-product repository: the Neovim config tree (`lua/`), its installer
 ```
 init.lua
   ├─ require('settings')      lua/settings.lua      vim.opt basics, perf flags
+  ├─ require('userconfig')    lua/userconfig.lua    dwpvim.json -> sidebar side/width (vim.g for lua/dwp)
   ├─ require('mapping')       lua/mapping/init.lua  keybindings (contract-tested)
   ├─ require('autocommand')   lua/autocommand.lua   autocmds
   ├─ require('plugins')       lua/plugins.lua       pckr.nvim bootstrap at its pin, then
@@ -31,6 +32,7 @@ updates flow through pckr, not through this repo's git.
 
 ```
 lua/                 the editor config (see lua/README.md)
+lua/userconfig.lua   dwpvim.json (editor dir) + .dwpvim.json (project): merge, validate, :DwpConfig
 lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
                      state (machine states + rich plain-language model),
                      sidebar (SPC P), reader (Enter on a plan),

@@ -75,7 +75,7 @@ unless it says otherwise. **If removed** says what you would lose.
 
 | Plugin | Pillar | What and why |
 |---|---|---|
-| `nvim-tree/nvim-tree.lua` | Navigate, Changes | The file tree (`SPC n`); shows git state as `M A D U R` in the sign column. Cost: ~5 ms. If removed: no explorer. |
+| `nvim-tree/nvim-tree.lua` | Navigate, Changes | The file tree (`SPC n`), on the left by default (side and width from `dwpvim.json`, see [CONFIGURATION.md](CONFIGURATION.md)); shows git state as `M A D U R` in the sign column. Cost: ~5 ms. If removed: no explorer. |
 | `nvim-tree/nvim-web-devicons` | Navigate | File icons for the tree, the finder and the status line. |
 | `nvim-telescope/telescope.nvim` | Navigate | Quick open, recent files, text search, bookmarks and the dashboard shortcuts. Cost: ~6 ms. If removed: the dashboard buttons and `SPC f …` stop working. |
 | `nvim-lua/plenary.nvim` | Foundation | Library telescope and diffview are built on. |

@@ -86,8 +86,9 @@ Grouped by the pillars of the product focus. Where a pillar is only partly
 delivered, the last list says so.
 
 ### Navigate
-- **File tree and fuzzy finding** — `SPC n` opens the tree; `SPC f f` finds a
-  file by name, `SPC f o` jumps to recent files, `SPC f w` searches text,
+- **File tree and fuzzy finding** — `SPC n` opens the tree on the left, like the
+  plans sidebar; both sidebars' side and width are set in `dwpvim.json`
+  ([CONFIGURATION.md](CONFIGURATION.md)); `SPC f f` finds a file by name, `SPC f o` jumps to recent files, `SPC f w` searches text,
   `SPC b m` lists bookmarks; the dashboard offers the same shortcuts and Enter
   runs them.
 - **VS Code gestures** — the familiar chords work where they cost one key:
