@@ -387,6 +387,14 @@ function S.open(roots)
 	vim.wo[st.win].relativenumber = false
 	vim.wo[st.win].signcolumn = "no"
 	vim.wo[st.win].fillchars = "eob: "
+	-- A quiet window: the editor's global `list` would paint every space as a
+	-- dot and every line end as an arrow, and a neighbouring sidebar must not
+	-- stretch this one (UX_AUDIT F1, F7).
+	vim.wo[st.win].list = false
+	vim.wo[st.win].winfixwidth = true
+	vim.wo[st.win].spell = false
+	vim.wo[st.win].colorcolumn = ""
+	vim.wo[st.win].foldcolumn = "0"
 
 	local records = plans.scan(st.roots)
 	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
@@ -548,6 +556,11 @@ function set_keys()
 	vim.keymap.set("n", "<Esc>", S.close, opts)
 	vim.keymap.set("n", "<LeftMouse>", on_click, opts)
 	vim.keymap.set("n", "<2-LeftMouse>", on_double_click, opts)
+	-- The buffer is read-only: editing keys do nothing, silently, instead of
+	-- printing E21 and a "Press ENTER" (UX_AUDIT F8).
+	for _, key in ipairs({ "i", "I", "a", "A", "o", "O", "c", "C", "s", "S", "x", "X", "d", "D", "p", "P", "R", "u", "U", "<C-r>", "J", "gi" }) do
+		vim.keymap.set("n", key, "<Nop>", opts)
+	end
 end
 
 return S

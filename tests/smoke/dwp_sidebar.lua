@@ -222,6 +222,28 @@ ok(vim.api.nvim_win_get_position(win)[2] == 0, "an unknown side falls back to th
 ok(vim.api.nvim_win_get_width(win) >= 34, "a non-numeric width falls back to the default layout")
 close_it()
 
+-- 10. A quiet window (UX_AUDIT F1, F7, F8): no list noise, a fixed width and
+--     silent edit keys on the read-only buffer.
+vim.o.list = true -- the editor's global setting the window must not inherit
+sidebar.open({ FIXTURES })
+local qwin = vim.fn.bufwinid(sidebar_buf())
+ok(vim.wo[qwin].list == false, "the sidebar window has list off even when the editor sets it globally")
+ok(vim.wo[qwin].winfixwidth == true, "the sidebar width is fixed (a neighbouring sidebar cannot stretch it)")
+ok(vim.wo[qwin].spell == false and vim.wo[qwin].colorcolumn == "" and vim.wo[qwin].foldcolumn == "0", "no spell, colorcolumn or fold column")
+local function bufmap(lhs)
+	for _, m in ipairs(vim.api.nvim_buf_get_keymap(sidebar_buf(), "n")) do
+		if m.lhs == lhs then
+			return m
+		end
+	end
+end
+for _, key in ipairs({ "i", "a", "o", "x", "d", "p", "u" }) do
+	local m = bufmap(key)
+	ok(m ~= nil and (m.rhs == "<Nop>" or m.rhs == ""), "edit key '" .. key .. "' is a silent no-op in the sidebar")
+end
+vim.o.list = false
+sidebar.close()
+
 if fails > 0 then
 	print(("SIDEBAR SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")
