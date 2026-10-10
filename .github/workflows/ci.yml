@@ -4,6 +4,8 @@ name: CI
 # public hygiene, lint (Lua parse + shell syntax), the dwp smoke suite,
 # the installer compatibility harness, and the Go mapping contracts.
 # Same commands as docs/TESTING_GUIDE.md; third-party actions pinned by SHA.
+# The `gate` job at the end is the single check branch protection requires: it
+# passes only when every other job succeeded (see docs/BRANCH_PROTECTION.md).
 
 on:
   pull_request:
@@ -113,3 +115,18 @@ jobs:
           # Authenticates install.sh's call to the Neovim release API (rate limits).
           GITHUB_TOKEN: ${{ github.token }}
         run: bash tests/installer/container.sh
+
+  gate:
+    name: CI gate
+    # Always runs, so a failed, cancelled or skipped job cannot pass silently:
+    # a skipped required check would otherwise count as success.
+    if: ${{ always() }}
+    needs: [hygiene, lint, smoke, installer, mappings, container]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every job must have succeeded
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null

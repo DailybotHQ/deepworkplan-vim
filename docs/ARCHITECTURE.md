@@ -145,7 +145,10 @@ run (assets as a workflow artifact) and cuts pre-releases by suffix.
 `.github/workflows/ci.yml`, on every pull request and push to `main`: public
 hygiene (+ its self-test), lint (`luac5.4 -p`, `bash -n`), the smoke suite
 (Neovim pinned by version and sha256), the installer harness, and the Go
-mapping contracts. Branch protection on `main` requires these checks.
+mapping contracts, and the container install (which also runs `scripts/boot-check.sh`
+on the installed config). A final `gate` job needs all of them and fails unless each
+succeeded; it is the one check branch protection requires
+([BRANCH_PROTECTION.md](BRANCH_PROTECTION.md)).
 
 ## DWP harness layer
 
