@@ -419,6 +419,9 @@ function R.open(record)
 	vim.api.nvim_win_set_buf(win, st.buf)
 	vim.wo[win].wrap = true
 	vim.wo[win].cursorline = false
+	-- A quiet window, like the sidebar: the editor's global `list` would paint
+	-- every space as a dot and every line end as an arrow.
+	vim.wo[win].list = false
 
 	local opts = { buffer = st.buf, silent = true, nowait = true }
 	vim.keymap.set("n", "<CR>", function()
@@ -427,12 +430,22 @@ function R.open(record)
 			open_file(row.file)
 		end
 	end, opts)
+	-- A mapped <LeftMouse> does not move the cursor: resolve the row from the
+	-- pointer position, not from where the cursor happened to be.
 	vim.keymap.set("n", "<LeftMouse>", function()
-		local row = current_row()
+		local pos = vim.fn.getmousepos()
+		if pos.winid ~= vim.fn.bufwinid(st.buf) or pos.line < 1 then
+			return
+		end
+		local row = st.rows[pos.line]
 		if row and row.kind == "jump" and row.file then
 			open_file(row.file)
 		end
 	end, opts)
+	-- Read-only: editing keys do nothing, silently, instead of printing E21.
+	for _, key in ipairs({ "i", "I", "a", "A", "o", "O", "c", "C", "s", "S", "x", "X", "d", "D", "p", "P", "R", "u", "U", "<C-r>", "J", "gi" }) do
+		vim.keymap.set("n", key, "<Nop>", opts)
+	end
 	vim.keymap.set("n", "q", function()
 		pcall(vim.cmd, "bdelete")
 	end, opts)
