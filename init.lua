@@ -8,6 +8,10 @@ end
 
 -- Nvim Basics
 require('settings')
+-- Sidebar side and width from dwpvim.json (before any setup file reads them)
+pcall(function()
+  require('userconfig').apply()
+end)
 -- Key map
 require('mapping')
 -- Auto commands
