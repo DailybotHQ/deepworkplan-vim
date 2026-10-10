@@ -23,6 +23,36 @@ directions of independence hold at all times:
   plan surfaces show an empty state ("No plans yet") and the statusline
   segment stays hidden.
 
+## Product focus
+
+> A very good **terminal editor** to **navigate files**, **see which files
+> have changes**, **see the diff** and **approve or discard changes easily** —
+> as **friendly** and **lightweight** as possible, **agent-first**, and
+> **integrated with Deep Work Plan** so the status of the plans is always in
+> view.
+
+Every decision — a plugin added or dropped, a mapping, a default — is judged
+against this sentence. If a feature does not help one of the six pillars, it
+needs a reason to exist.
+
+| Pillar | You can | Done when |
+|---|---|---|
+| **Navigate** | open the tree, find a file by name, search text, jump to recent files and bookmarks | any file in a project is two keystrokes away, from the dashboard too |
+| **See what changed** | tell at a glance which files changed (tree marks, margin signs, status, the diff panel's file list) | a changed file is never hidden from view |
+| **Review the diff** | open a side-by-side diff of every change, per file | reviewing an agent's work takes one chord and no commands |
+| **Approve or discard** | stage or discard a file or a hunk, then commit — with a confirmation wherever work would be lost | accepting or throwing away a change is one obvious action, never a git incantation |
+| **Agent-first** | rely on pinned mappings, a self-generated command index and a headless-testable config; read an agent's changes as easily as a human's | an agent in a terminal pane has the same surface a person has |
+| **Deep Work Plan in view** | see plan status in the sidebar, the reader, the statusline and the dashboard | the state of every plan is visible without leaving the editor (read-only, never required) |
+
+Two properties cut across all six. **Friendly**: discoverable (the dashboard,
+`SPC h h`), plain language, safe by default. **Lightweight**: a small, pinned
+plugin set, a startup budget and no feature that costs time at the dashboard
+for something the user has not asked for. Both are enforced by tests and CI,
+and every change reaches `main` through a reviewed pull request.
+
+Architecture mapping of each pillar to modules and tests:
+[ARCHITECTURE.md → Capability map](ARCHITECTURE.md#capability-map).
+
 ## Who it is for
 
 - **Deep Work Plan practitioners** who want their editor pre-tuned for the
@@ -88,6 +118,8 @@ directions of independence hold at all times:
   require the DeepWorkPlan skill to function as an editor, and the
   methodology never requires the editor.
 - Not a framework, distro, or plugin marketplace — one curated config.
+- Not an IDE: no debugger, no project scaffolding, no feature that does not
+  serve the six pillars of the product focus.
 - Not a wrapper around any single coding CLI: agent CLIs are opt-in build
   args, and no path requires a specific vendor (no Dailybot-only flows, no
   internal-only tooling).

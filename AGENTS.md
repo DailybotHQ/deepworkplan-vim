@@ -10,6 +10,15 @@ DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkpla
 
 Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.0.1 per the provenance line above; the addon registry is the tracked `.dwp/config.json`.
 
+## Product focus
+
+A very good **terminal editor** to navigate files, see which files changed, see
+the diff and approve or discard changes easily — friendly, lightweight,
+**agent-first**, and integrated with Deep Work Plan so plan status is always in
+view. Judge every change against it: if it does not serve one of the six
+pillars ([Product spec](docs/PRODUCT_SPEC.md#product-focus),
+[Capability map](docs/ARCHITECTURE.md#capability-map)), it needs a reason.
+
 ## Documentation index
 
 | Guide | Purpose |
