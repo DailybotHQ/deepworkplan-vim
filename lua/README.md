@@ -17,7 +17,7 @@ composition); concerns live in the sub-modules below. Full picture:
 | `dwp/` | plan browser: `.dwp/plans` discovery (`plans`), defensive state derivation — five machine states (`state.derive`) plus the rich plain-language layer (`state.derive_rich`: label, icon, progress, current task, blocked signal, friendly title) — the plans sidebar (`sidebar`, `SPC P` / `:DwpPlans`: sections, progress bars, expandable task checklists, mouse + keyboard), the plan reader (`reader`, Enter on a plan: one-page plain-language view), the clickable statusline segment (`statusline`: active plan + progress, event-fed cache, zero fs per redraw), and the dashboard overview builder (`greeter_plans`: top-3 rows for the greeter, Enter opens the reader; the dashboard builds its section on first draw, never at boot); smoke: `bash tests/smoke/run.sh` — lazy; **self-contained** (requires only `dwp.*`, enforced by `tests/smoke/dwp_self_contained.lua` — the v7.1 `deepworkplan.nvim` extraction boundary) |
 | `mapping/markdown.lua` | markdown viewer: `SPC m p` browser preview, `SPC m r` in-buffer render; `SPC x` markdown branch shares it |
 | `setUp/` | per-plugin set-up: greeter, finder, statusline, file manager, autosave, buffer, diff, highlight, indentation, markdown render |
-| `lsp/` | lspconfig/mason servers, formatters, linters, completion, capabilities |
+| `lsp/` | lspconfig/mason servers, formatters, linters, completion, capabilities; `npm_guard` makes Mason's `npm` the real npm when a pnpm stand-in sits first on PATH |
 | `scheme/` | theme apply/picker + `palettes/` (declarative color tables) |
 
 ## The mapping contract

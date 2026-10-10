@@ -10,6 +10,20 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Language servers no longer fail to install behind an `npm` that is not
+  npm.** Some environments put a script named `npm` first on PATH that
+  forwards to pnpm; Mason runs `npm init --scope=mason`, pnpm rejects the
+  flag, and 16 npm-based servers (astro, svelte, vuels, vimls, yamlls,
+  ts_ls, jsonls, eslint, …) failed on every start, ending in a "Press ENTER"
+  prompt. `lua/lsp/npm_guard.lua` detects such a stand-in and links the real
+  npm that ships beside `node` first on PATH (a symlink under
+  `stdpath("data")/dwp-bin`); when no real npm exists, the npm-based servers
+  are left out of `ensure_installed` and one warning explains why. The
+  no-op `npm = { package_manager = "pnpm" }` Mason setting, which Mason has
+  no such key for, is removed.
+
 ## [v0.5.1] - 2026-10-09
 
 ### Fixed

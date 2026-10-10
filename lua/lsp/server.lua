@@ -1,13 +1,11 @@
+-- Mason runs `npm`; make sure that is the real npm (see lsp/npm_guard.lua).
+local npm_state = require("lsp.npm_guard").ensure()
+
 require("mason").setup({
   PATH = "append",
 
   pip = {
     upgrade_pip = true,
-  },
-
-  -- Mason names this key "npm"; the manager we actually run is pnpm.
-  npm = {
-    package_manager = "pnpm",
   },
 
   ui = {
@@ -51,8 +49,31 @@ local servers = {
   "jedi_language_server",
 }
 
+-- Servers Mason installs with npm. With no usable npm they cannot install, so
+-- they are left out of ensure_installed (one notice, not one error per server
+-- on every start).
+local npm_servers = {
+  astro = true, sqlls = true, vimls = true, vuels = true, yamlls = true,
+  svelte = true, jsonls = true, eslint = true, emmet_ls = true, dockerls = true,
+  ts_ls = true, angularls = true, diagnosticls = true,
+  tailwindcss = true, grammarly = true, bashls = true,
+}
+
+local wanted = vim.list_extend(vim.deepcopy(servers), installed_only)
+if not npm_state.ok then
+  wanted = vim.tbl_filter(function(name)
+    return not npm_servers[name]
+  end, wanted)
+  vim.schedule(function()
+    vim.notify(
+      "DeepWorkPlan Vim: skipped " .. "the language servers that need npm: " .. npm_state.reason,
+      vim.log.levels.WARN
+    )
+  end)
+end
+
 require("mason-lspconfig").setup({
-  ensure_installed = vim.list_extend(vim.deepcopy(servers), installed_only),
+  ensure_installed = wanted,
   automatic_enable = {
     exclude = installed_only,
   },
