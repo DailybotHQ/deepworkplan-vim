@@ -3,11 +3,16 @@
 ## What this is
 
 The official **terminal editor** for [Deep Work Plan](https://deepworkplan.com):
-a batteries-included Neovim configuration that serves two users at once —
-**a person** working in a terminal, and **a coding agent** living in a terminal
-pane (including Herdr mesh panes on other machines). It is a git repository
-that *is* the product: clone it to `~/.config/nvim`, run `lua install.lua`, and
-Neovim becomes the DeepWorkPlan editor.
+a very good editor to **navigate files**, **see which files changed**, **read
+the diff** and **approve or discard changes easily** — as friendly and
+lightweight as possible, **agent-first**, and wired to Deep Work Plan so the
+status of the plans is always in view.
+
+It serves two users at once: **a person** working in a terminal — most often
+reviewing what a coding agent just did — and **a coding agent** living in a
+terminal pane (including Herdr mesh panes on other machines). It is a
+git repository that *is* the product: clone it to `~/.config/nvim`, run
+`lua install.lua`, and Neovim becomes the DeepWorkPlan editor.
 
 ## Positioning
 
@@ -55,61 +60,126 @@ Architecture mapping of each pillar to modules and tests:
 
 ## Who it is for
 
-- **Deep Work Plan practitioners** who want their editor pre-tuned for the
-  long, structured sessions the methodology prescribes (plans, docs, reviews).
+- **The person reviewing agent work** — the central user. An agent changes
+  files; the person needs to see *what* changed, read the diff, and accept or
+  throw away each change in a few obvious keystrokes, without leaving the
+  terminal or remembering git incantations.
 - **Coding agents** that need a stable, predictable editing environment:
-  deterministic mappings (a documented contract, not vibes), LSP + linting +
-  formatting wired, and a config that survives agent-driven churn.
+  deterministic mappings (a documented contract, not vibes), LSP and
+  formatting wired, and a config that survives agent-driven churn — and whose
+  own changes are as easy to review as a human's.
+- **Deep Work Plan practitioners** who want the state of their plans next to
+  the code (status, progress, the current task) during the long, structured
+  sessions the methodology prescribes.
 - **Contributors** developing the editor itself — the Docker + Herdr
   environment in this repo exists for them.
 
 ## Key capabilities
 
-1. **One-command install/uninstall** across Linux (pacman/apt/dnf), macOS
-   (Homebrew), and Windows (winget), with the user's previous config backed
-   up, never destroyed (`install.lua` / `delete.lua`).
-2. **A stable mapping contract** — the keybindings are pinned by Go contract
-   tests (`tests/`), shared across the mu-vim flavor family, so muscle memory
-   and agent expectations both survive updates.
-3. **A self-generated command index** — `SPC h h` renders every live
-   mapping from `nvim_get_keymap` with human descriptions, so it can never
-   drift: a mapping defined anywhere appears with zero registration.
-4. **DWP-aware navigation, in plain language** — `SPC P` opens a plans
-   sidebar over every `.dwp/plans/` root (working directory and config
-   directory), grouped most-attention-first (Working, Needs attention,
-   Ready, Not started, Done) with progress bars; Enter on a plan opens a
-   one-page reader (goal in one sentence, status, progress, the task
-   checklist with the current task marked, plain-language jumps into the
-   plan's own files); the statusline carries the live active plan as a
-   clickable segment; the dashboard lists the top three plans and opens
-   any of them in the reader. Phase-2 scope: read-only navigation — the
-   surfaces explain plans, they never write under `.dwp/`
-   (`lua/dwp/`, smoke-covered in `tests/smoke/`).
-5. **Tuned-for-agents editing stack** — LSP, completion, linting, formatting,
-   fuzzy finding, file management, and a theme system with curated palettes,
-   composed through pckr.nvim with lazy startup.
-6. **VS Code gestures** — the familiar chords work where they cost one key:
-   `<C-a>` selects all (normal mode; visual keeps the native increment), and
-   `SPC y` yanks to the system clipboard in normal and visual mode.
-7. **A first-class markdown viewer** — `SPC m p` previews the buffer in a
-   browser, `SPC m r` renders it in place (render-markdown.nvim, loaded only
-   for markdown buffers); both share the implementation behind `SPC x`.
-8. **Contributor dev container** — Docker environment with Neovim pinned,
-   Herdr mesh connectivity, opt-in coding CLIs, and persistence volumes for
-   CLI auth (`dev.sh`, `docker/local/`).
-9. **Automated releases** — merging to `main` publishes a versioned GitHub
-   Release driven by conventional-commit prefixes.
+Grouped by the pillars of the product focus. Where a pillar is only partly
+delivered, the last list says so.
+
+### Navigate
+- **File tree and fuzzy finding** — `SPC n` opens the tree; `SPC f f` finds a
+  file by name, `SPC f o` jumps to recent files, `SPC f w` searches text,
+  `SPC b m` lists bookmarks; the dashboard offers the same shortcuts and Enter
+  runs them.
+- **VS Code gestures** — the familiar chords work where they cost one key:
+  `<C-a>` selects all (normal mode; visual keeps the native increment), and
+  `SPC y` yanks to the system clipboard in normal and visual mode.
+
+### See what changed
+- The tree marks changed files in the sign column (`M A D U R`), margin signs
+  mark changed lines with hunk jumps (`]c` / `[c`), `SPC g s t` opens the git
+  status, and the diff panel lists every changed file.
+
+### Review the diff
+- `SPC g d` opens a side-by-side diff of every change (themed to the active
+  palette), with blame (`SPC g b l`) and the last commit (`SPC g s h`) one
+  chord away.
+
+### Approve or discard
+- In the diff panel a file is staged with `-` or `s` and discarded with `d`
+  or a right-click, after a "Discard / Keep" confirmation (`X` still restores
+  without one — see the roadmap); `SPC g a p` stages a file hunk by hunk;
+  `SPC g c` commits.
+
+### Agent-first
+- **A stable mapping contract** — the keybindings are pinned by Go contract
+  tests (`tests/`), shared across the mu-vim flavor family, so muscle memory
+  and agent expectations both survive updates.
+- **A self-generated command index** — `SPC h h` renders every live
+  mapping from `nvim_get_keymap` with human descriptions, so it can never
+  drift: a mapping defined anywhere appears with zero registration.
+- **Headless-testable by construction** — a hermetic smoke suite and a boot
+  check run the real config without a UI; the contributor container and Herdr
+  mesh (`dev.sh`) put an agent in the same editor a person uses.
+
+### Deep Work Plan in view
+- **DWP-aware navigation, in plain language** — `SPC P` opens a plans
+  sidebar over every `.dwp/plans/` root (working directory and config
+  directory), grouped most-attention-first (Working, Needs attention,
+  Ready, Not started, Done) with progress bars; Enter on a plan opens a
+  one-page reader (goal in one sentence, status, progress, the task
+  checklist with the current task marked, plain-language jumps into the
+  plan's own files); the statusline carries the live active plan as a
+  clickable segment; the dashboard lists the top three plans and opens
+  any of them in the reader. Read-only: the surfaces
+  explain plans, they never write under `.dwp/` (`lua/dwp/`, smoke-covered
+  in `tests/smoke/`).
+
+### Friendly and lightweight
+- **A dashboard that orients** — the shortcuts and the top plans on one
+  screen; the command index is one chord away.
+- **A small, pinned plugin set** — every plugin is pinned to a commit
+  (`pckr/lockfile.lua`); language servers install on first start; formatting
+  runs through biome, black, shfmt and stylua. There are no linters and no
+  plugin that serves none of the pillars.
+- **A first-class markdown viewer** — `SPC m p` previews the buffer in a
+  browser, `SPC m r` renders it in place (render-markdown.nvim, loaded only
+  for markdown buffers); both share the implementation behind `SPC x`.
+
+### Foundations
+- **One-command install/uninstall** across Linux (pacman/apt/dnf), macOS
+  (Homebrew), and Windows (winget), with the user's previous config backed
+  up, never destroyed (`install.lua` / `delete.lua`).
+- **Contributor dev container** — Docker environment with Neovim pinned,
+  Herdr mesh connectivity, opt-in coding CLIs, and persistence volumes for
+  CLI auth (`dev.sh`, `docker/local/`).
+- **Reviewed delivery** — every change reaches `main` through a pull request
+  that CI validates; merging publishes a versioned GitHub Release driven by
+  conventional-commit prefixes.
+
+### Partly delivered (the roadmap, by pillar)
+- **See / Review / Approve:** a one-chord "changed files" list, hunk-level
+  discard with the same confirmation as the file discard, the same
+  confirmation on every destructive key in the diff panel, file and branch
+  history chords, and friendlier verbs for the review chords.
+- **Agent-first:** a guided "review what this plan changed" jump from the plan
+  reader to the diff (read-only toward `.dwp/`).
+- **Lightweight:** the startup budget (byte-code cache, deferred LSP and
+  completion, command-driven loading of rarely used plugins).
 
 ## Success criteria
 
 - A fresh machine goes from `git clone` to a working editor with one command,
-   on all three platform families, idempotently.
+  on all three platform families, idempotently.
+- A person can go from "the agent says it is done" to *every changed file
+  seen, each diff read, each change accepted or discarded* without typing a
+  git command, and nothing is discarded without a confirmation.
 - The mapping contract suite stays green across flavors; keybindings never
-   change silently.
+  change silently.
+- The state of every plan in a repository is visible without leaving the
+  editor, and the editor never fails because there are no plans.
 - Agents can sit in this editor (or a mesh pane) and edit code with the same
-   LSP/lint/format surface a human gets.
+  LSP and formatting surface a human gets.
+- The editor stays light: a pinned plugin set, a measured startup, and no
+  feature that costs time at the dashboard for something not asked for.
+- Every change lands through a pull request whose CI gate — hygiene, lint,
+  the smoke suite, the installer harness, the mapping contracts, a container
+  install and the boot check — passes.
 - Nothing private ever ships: no secrets, no private hostnames, no baked SSH
-   keys.
+  keys.
 
 ## Non-goals
 
