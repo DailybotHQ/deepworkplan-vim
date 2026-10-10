@@ -279,6 +279,9 @@ local function plan_row(record, cap)
 		spans = spans,
 		kind = "plan",
 		plan = record,
+		-- Window column (1-based) of the expand marker: a click there toggles
+		-- the checklist instead of opening the plan.
+		marker_col = display_width(icon .. " " .. title .. pad .. "  ") + 1,
 	}
 end
 
@@ -373,7 +376,7 @@ local function build_rows(records, cap)
 	end
 	rows[#rows + 1] = { text = "", kind = "blank" }
 	rows[#rows + 1] = { text = "? help · r refresh · Enter open · Tab expand", hl = "DwpPlansDim", kind = "footer", rule_above = true }
-	rows[#rows + 1] = { text = "click a plan to expand · double-click opens it", hl = "DwpPlansDim", kind = "footer" }
+	rows[#rows + 1] = { text = "click a plan to open it · the arrow shows tasks", hl = "DwpPlansDim", kind = "footer" }
 	return rows
 end
 
@@ -593,19 +596,35 @@ local function activate()
 	end
 end
 
-local function on_click()
-	-- The click has already moved the cursor to this line.
-	local row = current_row()
-	if row and row.kind == "plan" then
-		S.toggle_expand(row.plan.name)
+-- The row under the pointer. A mapped <LeftMouse> does NOT move the cursor (the
+-- unmapped click would), so the position comes from getmousepos() and the cursor
+-- is moved here — acting on the cursor's old row was why clicks seemed dead.
+local function pointer_row()
+	local pos = vim.fn.getmousepos()
+	if not st.win or pos.winid ~= st.win or pos.line < 1 then
+		return nil
 	end
+	local line = math.min(pos.line, #st.rows)
+	local row = st.rows[line]
+	if not row then
+		return nil
+	end
+	pcall(vim.api.nvim_win_set_cursor, st.win, { line, 0 })
+	return row, pos.wincol
 end
 
-local function on_double_click()
-	local row = current_row()
-	if row and row.kind == "plan" then
-		open_plan_reader(row.plan)
+-- One click acts: a plan opens in the reader (the small marker toggles its
+-- checklist), a section header shows or hides the group, a task or file opens.
+local function on_click()
+	local row, wincol = pointer_row()
+	if not row then
+		return
 	end
+	if row.kind == "plan" and row.marker_col and wincol >= row.marker_col - 1 and wincol <= row.marker_col + 1 then
+		S.toggle_expand(row.plan.name)
+		return
+	end
+	activate()
 end
 
 local HELP_LINES = {
@@ -619,8 +638,8 @@ local HELP_LINES = {
 	"?        close this help",
 	"q / Esc  close the sidebar",
 	"",
-	"Mouse: click a plan to expand it,",
-	"double-click to open it.",
+	"Mouse: click a plan to open it;",
+	"click the small arrow to show its tasks.",
 	"",
 	"The sidebar never changes your plans —",
 	"it only reads and explains them.",
@@ -681,7 +700,8 @@ function set_keys()
 	vim.keymap.set("n", "q", S.close, opts)
 	vim.keymap.set("n", "<Esc>", S.close, opts)
 	vim.keymap.set("n", "<LeftMouse>", on_click, opts)
-	vim.keymap.set("n", "<2-LeftMouse>", on_double_click, opts)
+	-- The first click already acted; the second of a double-click does nothing.
+	vim.keymap.set("n", "<2-LeftMouse>", "<Nop>", opts)
 	-- The buffer is read-only: editing keys do nothing, silently, instead of
 	-- printing E21 and a "Press ENTER" (UX_AUDIT F8).
 	for _, key in ipairs({ "i", "I", "a", "A", "o", "O", "c", "C", "s", "S", "x", "X", "d", "D", "p", "P", "R", "u", "U", "<C-r>", "J", "gi" }) do

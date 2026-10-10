@@ -95,7 +95,7 @@ local function all_equal(t)
 	return true
 end
 
--- No-wrap proof: the LAST buffer line ("click a plan to expand…")
+-- No-wrap proof: the LAST buffer line ("click a plan to open it…")
 -- renders exactly at screen row n (n = buffer line count) — any earlier
 -- row wrapping onto a second screen line would push it lower.
 -- The sidebar draws two thin rules as virtual lines (under the header and above
@@ -117,7 +117,7 @@ end
 local function footer_on_expected_row(win, lines)
 	local n = buf_line_count(win) + virtual_rows(win)
 	local row = lines[n]
-	return row ~= nil and row:find("click a plan to expand", 1, true) ~= nil, n
+	return row ~= nil and row:find("click a plan to open it", 1, true) ~= nil, n
 end
 
 -- 1. Width matrix: the sidebar is responsive and its rows fit on one

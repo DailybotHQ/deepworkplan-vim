@@ -356,6 +356,107 @@ local narrow_w, wide_w = widest_title_row(48), widest_title_row(70)
 ok(wide_w > narrow_w, "a wider window shows more of a long title (" .. narrow_w .. " -> " .. wide_w .. " cells)")
 vim.o.columns = 80
 
+-- 13. Mouse: a click acts on the row under the POINTER (a mapped <LeftMouse>
+--     does not move the cursor, so the cursor's old row is the wrong one).
+local real_getmousepos = vim.fn.getmousepos
+local function click_on(pattern, wincol)
+	sidebar.open({ FIXTURES })
+	local cbuf = sidebar_buf()
+	local cwin = vim.fn.bufwinid(cbuf)
+	local target
+	for i, line in ipairs(vim.api.nvim_buf_get_lines(cbuf, 0, -1, false)) do
+		if line:find(pattern, 1, true) then
+			target = i
+		end
+	end
+	-- Park the cursor on line 1: the old behaviour would act on THIS row.
+	vim.api.nvim_win_set_cursor(cwin, { 1, 0 })
+	vim.fn.getmousepos = function()
+		return { winid = cwin, line = target or 1, wincol = wincol or 3, column = 1, screenrow = 1, screencol = 1, winrow = target or 1 }
+	end
+	local map
+	for _, m in ipairs(vim.api.nvim_buf_get_keymap(cbuf, "n")) do
+		if m.lhs == "<LeftMouse>" then
+			map = m
+		end
+	end
+	map.callback()
+	vim.fn.getmousepos = real_getmousepos
+	return cbuf, cwin, target
+end
+local function reader_open()
+	for _, w in ipairs(vim.api.nvim_list_wins()) do
+		if vim.bo[vim.api.nvim_win_get_buf(w)].filetype == "dwp-plan" then
+			return vim.api.nvim_win_get_buf(w)
+		end
+	end
+end
+local function close_reader()
+	local rb = reader_open()
+	if rb then
+		pcall(vim.cmd, "bdelete " .. rb)
+	end
+end
+
+-- 13a. a click on a plan (title area) opens the reader for THAT plan
+local cbuf, cwin, target = click_on("Fixture running plan", 6)
+local rb = reader_open()
+ok(rb ~= nil, "a click on a plan row opens the reader")
+ok(rb ~= nil and table.concat(vim.api.nvim_buf_get_lines(rb, 0, -1, false), "\n"):find("Fixture running plan", 1, true) ~= nil, "it opens the plan under the pointer, not the cursor's old row")
+close_reader()
+sidebar.close()
+
+-- 13b. a click on the expand marker toggles the checklist instead
+sidebar.open({ FIXTURES })
+local mrow
+for _, row in ipairs({}) do end
+local rows_before = #vim.api.nvim_buf_get_lines(sidebar_buf(), 0, -1, false)
+local line_of
+for i, line in ipairs(vim.api.nvim_buf_get_lines(sidebar_buf(), 0, -1, false)) do
+	if line:find("Fixture running plan", 1, true) then
+		line_of = i
+	end
+end
+local text_line = vim.api.nvim_buf_get_lines(sidebar_buf(), line_of - 1, line_of, false)[1]
+local marker_byte = text_line:find("▸", 1, true)
+local marker_wincol = vim.fn.strdisplaywidth(text_line:sub(1, marker_byte - 1)) + 1
+sidebar.close()
+click_on("Fixture running plan", marker_wincol)
+ok(reader_open() == nil, "a click on the marker does not open the reader")
+ok(#vim.api.nvim_buf_get_lines(sidebar_buf(), 0, -1, false) > rows_before, "it shows the plan's tasks (more rows)")
+sidebar.close()
+
+-- 13c. a click on a section header shows or hides the group
+click_on("Working · 1", 3)
+ok(table.concat(vim.api.nvim_buf_get_lines(sidebar_buf(), 0, -1, false), "\n"):find("Working ▸ 1 hidden", 1, true) ~= nil, "a click on a section header collapses the group")
+click_on("Working ▸ 1 hidden", 3)
+ok(table.concat(vim.api.nvim_buf_get_lines(sidebar_buf(), 0, -1, false), "\n"):find("Working · 1", 1, true) ~= nil, "and a second click brings it back")
+sidebar.close()
+
+-- 13d. a click in another window is ignored, the double-click is a no-op
+sidebar.open({ FIXTURES })
+local dbuf = sidebar_buf()
+vim.fn.getmousepos = function()
+	return { winid = 0, line = 3, wincol = 3 }
+end
+local ok_click = pcall(function()
+	for _, m in ipairs(vim.api.nvim_buf_get_keymap(dbuf, "n")) do
+		if m.lhs == "<LeftMouse>" then
+			m.callback()
+		end
+	end
+end)
+vim.fn.getmousepos = real_getmousepos
+ok(ok_click and reader_open() == nil, "a click that lands in another window does nothing (and does not error)")
+local dbl
+for _, m in ipairs(vim.api.nvim_buf_get_keymap(dbuf, "n")) do
+	if m.lhs == "<2-LeftMouse>" then
+		dbl = m
+	end
+end
+ok(dbl ~= nil and (dbl.rhs == "<Nop>" or dbl.rhs == ""), "the second click of a double-click is a no-op")
+sidebar.close()
+
 if fails > 0 then
 	print(("SIDEBAR SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")

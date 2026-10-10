@@ -20,7 +20,7 @@ Needs attention · 1
 Done ▸ 39 hidden
 ──────────────────────────────────────
 ? help · r refresh · Enter open · Tab expand
-click a plan to expand · double-click opens it
+click a plan to open it · the arrow shows tasks
 ```
 
 - **Header:** the title in an accent and a quiet summary of what is live.
