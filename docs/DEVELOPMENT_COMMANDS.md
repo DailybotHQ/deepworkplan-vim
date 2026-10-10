@@ -67,6 +67,7 @@ find lua utilities pckr -name '*.lua' -print0 | xargs -0 luac5.4 -p   # full Lua
 luac5.4 -p lua/mapping/git.lua                                  # scoped Lua parse
 bash scripts/check-public-hygiene.sh                            # public-hygiene rules (offline)
 bash tests/hygiene/run.sh                                       # hygiene check self-test
+bash scripts/boot-check.sh                                      # real config + plugins boot clean (needs the plugins installed)
 bash tests/run.sh                                               # contract suite — needs Podman/Docker
 cd tests && go test -count=1 -parallel 8 .                      # contract suite — needs Go on host
 ```
@@ -74,6 +75,20 @@ cd tests && go test -count=1 -parallel 8 .                      # contract suite
 Status of each gate on a bare dev host (bash + lua + git): the first six run;
 the last two need a container or Go. See [TESTING_GUIDE.md](TESTING_GUIDE.md)
 for the evidence and the fallback.
+
+## Boot check (host, plugins installed)
+
+```bash
+bash scripts/boot-check.sh
+```
+
+Starts the real configuration headless (a throwaway `XDG_CONFIG_HOME` links
+`nvim` to this checkout; plugins and Mason packages come from the data
+directory) and fails on any error message, on a core module that does not
+load (LSP chain, completion, greeter, telescope, nvim-tree, lualine) and on a
+retired plugin that still loads. The smoke suite is hermetic and cannot see a
+stale `require` of a plugin; this can. Exit 2 means it could not run (no nvim
+or no plugins installed). It installs nothing.
 
 ## dwp runtime smokes (host)
 
