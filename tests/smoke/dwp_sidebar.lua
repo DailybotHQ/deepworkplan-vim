@@ -181,6 +181,47 @@ ok(text:find(".dwp/plans", 1, true) ~= nil, "empty state: names where it searche
 ok(text:find("config folder", 1, true) ~= nil, "empty state: names the second root")
 sidebar.close()
 
+-- 9. Side and width from vim.g.dwp_plans_side / vim.g.dwp_plans_width (set from
+--    dwpvim.json by lua/userconfig.lua; the sidebar never requires that module).
+local function open_win()
+	sidebar.open({ FIXTURES })
+	return vim.fn.bufwinid(sidebar_buf())
+end
+local function close_it()
+	sidebar.close()
+	vim.g.dwp_plans_side, vim.g.dwp_plans_width = nil, nil
+end
+local win = open_win()
+ok(vim.api.nvim_win_get_position(win)[2] == 0, "default: the sidebar docks on the left")
+close_it()
+
+vim.g.dwp_plans_side, vim.g.dwp_plans_width = "right", 30
+win = open_win()
+ok(vim.api.nvim_win_get_position(win)[2] > 0, "side = right: the sidebar docks on the right edge")
+ok(vim.api.nvim_win_get_width(win) == 30, "width = 30 is honoured when the terminal has room")
+close_it()
+
+vim.g.dwp_plans_side, vim.g.dwp_plans_width = "left", 60
+win = open_win()
+ok(vim.api.nvim_win_get_width(win) <= 60, "a configured width is a ceiling")
+ok(vim.api.nvim_win_get_width(win) < 60, "the responsive rule still shrinks it on a narrow terminal (80 columns)")
+close_it()
+
+local saved_columns = vim.o.columns
+vim.o.columns = 200
+vim.g.dwp_plans_side, vim.g.dwp_plans_width = "left", 100
+win = open_win()
+ok(vim.api.nvim_win_get_width(win) == 100, "a wide terminal gets the full configured width (100)")
+ok(vim.api.nvim_win_get_position(win)[2] == 0, "and it stays on the left")
+close_it()
+vim.o.columns = saved_columns
+
+vim.g.dwp_plans_side, vim.g.dwp_plans_width = "sideways", "wide"
+win = open_win()
+ok(vim.api.nvim_win_get_position(win)[2] == 0, "an unknown side falls back to the left")
+ok(vim.api.nvim_win_get_width(win) >= 34, "a non-numeric width falls back to the default layout")
+close_it()
+
 if fails > 0 then
 	print(("SIDEBAR SMOKE: %d FAILED of %d assertions"):format(fails, count))
 	vim.cmd("cquit 1")

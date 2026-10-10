@@ -86,11 +86,24 @@ end
 -- terminal gave the sidebar 77% of the screen (UX_AUDIT F-03).
 local function layout_width()
 	local cols = vim.o.columns
-	local w = MAX_WIDTH
-	if cols < MAX_WIDTH * 2 - 14 then
-		w = math.max(MIN_WIDTH, math.floor(cols * 0.55))
+	-- A configured width (vim.g.dwp_plans_width, set from dwpvim.json) replaces
+	-- the 48-column ceiling; the responsive rule below still applies.
+	local ceiling = MAX_WIDTH
+	local want = vim.g.dwp_plans_width
+	if type(want) == "number" and want >= 20 then
+		ceiling = math.floor(want)
+	end
+	local w = ceiling
+	if cols < ceiling * 2 - 14 then
+		w = math.max(math.min(MIN_WIDTH, ceiling), math.floor(cols * 0.55))
+		w = math.min(w, ceiling)
 	end
 	return math.min(w, math.max(20, cols - 2))
+end
+
+-- Which edge the sidebar docks to: vim.g.dwp_plans_side, "left" unless "right".
+local function dock_command()
+	return vim.g.dwp_plans_side == "right" and "botright" or "topleft"
 end
 
 -- Title cap follows the actual window so a plan row always fits on one
@@ -365,7 +378,7 @@ function S.open(roots)
 	vim.bo[st.buf].filetype = "dwp-plans"
 	vim.bo[st.buf].swapfile = false
 
-	vim.cmd("topleft vertical " .. layout_width() .. "split")
+	vim.cmd(dock_command() .. " vertical " .. layout_width() .. "split")
 	st.win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(st.win, st.buf)
 	vim.wo[st.win].wrap = false
