@@ -50,11 +50,19 @@ vim.api.nvim_create_autocmd("ColorScheme", { callback = art.define_highlights })
 default.header = {
 	type = "group",
 	val = function()
-		-- Rows the dashboard needs below the hero: buttons, paddings and the
-		-- plans overview (built here so its size is known; it is cached).
+		-- Rows the dashboard needs outside the hero: top padding, the plans
+		-- overview (built here so its size is known; it is cached), the
+		-- buttons and the spacers between them.
 		local ok, plans = pcall(default.plans_section.val)
-		local below = 11 + ((ok and type(plans) == "table") and math.max(2, 2 * #plans) or 2)
-		local hero = art.compose(nil, nil, below)
+		local plan_rows = 0
+		if ok and type(plans) == "table" then
+			for _, el in ipairs(plans) do
+				plan_rows = plan_rows + (el.type == "padding" and el.val or 1)
+			end
+		end
+		local below = 1 + 1 + plan_rows + 1 + 6
+		-- The window, not the screen: the command line and status line take rows.
+		local hero = art.compose(nil, vim.api.nvim_win_get_height(0), below)
 		return { { type = "text", val = hero.lines, opts = { position = "center", hl = hero.hl } } }
 	end,
 }
@@ -103,6 +111,7 @@ default.plans_section = { type = "group", val = function()
 					val = data.header,
 					opts = { position = "center", hl = "AlphaHeader" },
 				}
+				el[#el + 1] = { type = "padding", val = 1 }
 				for _, row in ipairs(data.plan_lines) do
 					el[#el + 1] = {
 						type = "button",
@@ -121,12 +130,18 @@ default.plans_section = { type = "group", val = function()
 						},
 					}
 				end
+				-- Short windows drop the spacer and the second hint so the
+				-- artwork keeps its rows.
+				local tight = vim.api.nvim_win_get_height(0) < 50
+				if not tight then
+					el[#el + 1] = { type = "padding", val = 1 }
+				end
 				el[#el + 1] = {
 					type = "text",
 					val = data.hint,
 					opts = { position = "center", hl = "Comment" },
 				}
-				if data.hint_click then
+				if data.hint_click and not tight then
 					el[#el + 1] = {
 						type = "text",
 						val = data.hint_click,
@@ -139,11 +154,11 @@ default.plans_section = { type = "group", val = function()
 	end
 	default._plans_built = el
 	return el
-end, opts = { spacing = 1 } }
+end, opts = { spacing = 0 } }
 
 alpha.setup({
 	layout = {
-		{ type = "padding", val = 3 },
+		{ type = "padding", val = 1 },
 		default.header,
 		{ type = "padding", val = 1 },
 		default.plans_section,

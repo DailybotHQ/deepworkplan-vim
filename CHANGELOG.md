@@ -20,7 +20,8 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   and highlights warm, the rim of the scene dissolves instead of ending in
   a hard edge, and the beam pulses slowly while the dashboard is on screen
   (`vim.g.dwp_greeter_pulse = false` turns that off). The scene comes in
-  three heights, chosen by the window; narrower windows stack the wordmark
+  six heights, chosen by the rows the rest of the dashboard leaves free
+  (short windows tighten the plans overview first); narrower windows stack the wordmark
   over it or show the wordmark alone (`lua/setUp/greeter_art.lua`).
 
 ## [v0.5.1] - 2026-10-09
