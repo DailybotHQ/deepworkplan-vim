@@ -17,7 +17,8 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   forwards to pnpm; Mason runs `npm init --scope=mason`, pnpm rejects the
   flag, and 16 npm-based servers (astro, svelte, vuels, vimls, yamlls,
   ts_ls, jsonls, eslint, …) failed on every start, ending in a "Press ENTER"
-  prompt. `lua/lsp/npm_guard.lua` detects such a stand-in and links the real
+  prompt. `lua/lsp/npm_guard.lua`, run first in `lua/lsp/init.lua` (Mason
+  snapshots PATH when it first loads), detects such a stand-in and links the real
   npm that ships beside `node` first on PATH (a symlink under
   `stdpath("data")/dwp-bin`); when no real npm exists, the npm-based servers
   are left out of `ensure_installed` and one warning explains why. The

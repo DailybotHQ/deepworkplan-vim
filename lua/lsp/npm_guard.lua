@@ -45,8 +45,22 @@ end
 --- Returns { ok = true } when npm was already fine, { ok = true, fixed = dir }
 --- after putting a real-npm link first on PATH, or { ok = false, reason = ... }
 --- when npm is a stand-in and no real npm can be found.
+--- Mason snapshots the environment when its process module first loads, so this
+--- must run before anything requires mason-registry (lsp/init.lua runs it first).
+--- The default call is memoised: later callers get the same answer.
 ---@param data_dir string|nil where the link directory lives (default stdpath("data"))
 function M.ensure(data_dir)
+  if data_dir == nil and M._state then
+    return M._state
+  end
+  local state = M._ensure(data_dir)
+  if data_dir == nil then
+    M._state = state
+  end
+  return state
+end
+
+function M._ensure(data_dir)
   local npm = vim.fn.exepath("npm")
   if npm == "" then
     return { ok = false, reason = "npm was not found on PATH" }
