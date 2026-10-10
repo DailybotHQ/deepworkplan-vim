@@ -13,12 +13,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 ### Changed
 
 - **The dashboard is DWP Vim's own.** The "MU VIM" wordmark is replaced by
-  the DWP logo, converted to a braille engraving, with VIM in matching serif
-  letters on its baseline, a "powered by Dailybot" credit beneath, and one
+  the DWP logo, converted to a braille engraving, with a small serif VIM
+  tucked under its P, a "powered by Dailybot" credit beneath, and one
   engraved scene on the right: the Deep Work Plan lighthouse with a ship
-  sailing at its foot, in the site's cream and oxblood. The scene comes in
-  two heights, chosen by the window; narrower windows stack the wordmark
-  over it or show the wordmark alone (`lua/setUp/greeter_art.lua`).
+  sailing in the same sea, in the site's cream and oxblood. The scene comes
+  in three heights, chosen by the window; narrower windows stack the
+  wordmark over it or show the wordmark alone (`lua/setUp/greeter_art.lua`).
 
 ## [v0.5.1] - 2026-10-09
 

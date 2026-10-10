@@ -55,15 +55,17 @@ function M.compose(columns, lines_avail)
 	local function text_row(text, group)
 		left[#left + 1] = { text = text, spans = text ~= "" and { { group, 0, #text } } or {} }
 	end
-	local mark_bytes = #art.mark[1]
+	-- VIM sits in the empty corner under the P's bowl, to the right of its
+	-- stem, on the last rows of the mark.
+	local VIM_COL = 24
 	local vim_top = #art.mark - #art.vim
 	for r, l in ipairs(art.mark) do
-		local vim_row = art.vim[r - vim_top]
 		local text = l
-		local spans = { { "DwpArt5", 0, mark_bytes } }
+		local spans = { { "DwpArt5", 0, #l } }
+		local vim_row = art.vim[r - vim_top]
 		if vim_row then
-			text = l .. "   " .. vim_row
-			spans[#spans + 1] = { "DwpGreeterLogo", mark_bytes + 3, #text }
+			text = pad(l, VIM_COL) .. vim_row
+			spans[#spans + 1] = { "DwpGreeterLogo", #pad(l, VIM_COL), #text }
 		end
 		left[#left + 1] = { text = text, spans = spans }
 	end
