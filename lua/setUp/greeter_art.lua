@@ -3,12 +3,6 @@
 -- Pure data plus a small composer: no requires, no side effects at load.
 local M = {}
 
--- Wordmark: "DWP VIM" in half-block pixel letters, three rows tall.
-M.logo = {
-	"█▀▄ █   █ █▀█   █ █ ▀█▀ █▄ ▄█",
-	"█ █ █ █ █ █▀▀   █ █  █  █ ▀ █",
-	"█▄▀ ▀▄▀▄▀ █      ▀   █  ▀   ▀",
-}
 M.tagline = "DeepWorkPlan's editor"
 M.powered = "powered by Dailybot"
 
@@ -58,66 +52,71 @@ local function pad(s, w)
 	return d >= w and s or s .. string.rep(" ", w - d)
 end
 
--- Compose the hero: left block (wordmark, tagline, powered-by) vertically
+-- Compose the hero: a left block (wordmark, tagline, credit, ship) vertically
 -- centred beside the lighthouse. Returns { lines = {...}, hl = {...} } with
 -- alpha-style per-line highlight spans ({group, byte_start, byte_end}).
--- Narrow windows get the wordmark alone, stacked over the credit line.
+-- Narrow windows stack the left block alone; very narrow ones drop the ship.
 function M.compose(columns, lines_avail)
+	columns = columns or vim.o.columns
 	local variant = pick_variant(lines_avail or vim.o.lines)
 	local lighthouse = variant.lines
+
+	-- Left block rows: { text = ..., spans = { {group, from, to}, ... } }.
 	local left = {}
-	local left_class = {}
-	for _, l in ipairs(M.logo) do
-		left[#left + 1] = l
-		left_class[#left_class + 1] = "DwpGreeterLogo"
+	local function text_row(text, group)
+		left[#left + 1] = { text = text, spans = text ~= "" and { { group, 0, #text } } or {} }
 	end
-	left[#left + 1] = ""
-	left_class[#left_class + 1] = false
-	left[#left + 1] = M.tagline
-	left_class[#left_class + 1] = "DwpGreeterDim"
-	left[#left + 1] = M.powered
-	left_class[#left_class + 1] = "DwpGreeterAccent"
+	for _, l in ipairs(art.logo) do
+		text_row(l, "DwpGreeterLogo")
+	end
+	text_row("", "Normal")
+	text_row(M.tagline, "DwpGreeterDim")
+	text_row(M.powered, "DwpGreeterAccent")
+	text_row("", "Normal")
+	for r, l in ipairs(art.ship.lines) do
+		left[#left + 1] = { text = l, spans = spans_for_row(art.ship, r, 0) }
+	end
 
 	local lw = 0
-	for _, l in ipairs(left) do
-		lw = math.max(lw, vim.fn.strdisplaywidth(l))
+	for _, row in ipairs(left) do
+		lw = math.max(lw, vim.fn.strdisplaywidth(row.text))
 	end
 	local rw = 0
 	for _, l in ipairs(lighthouse) do
 		rw = math.max(rw, vim.fn.strdisplaywidth(l))
 	end
 	local gap = 6
-	local side_by_side = (columns or vim.o.columns) >= lw + gap + rw + 4
+	local side_by_side = columns >= lw + gap + rw + 4
 
 	local lines, hl = {}, {}
+	-- alpha tells per-line highlight tables apart by the first line
+	-- carrying a span, so no row may be left without one.
+	local function push(text, spans)
+		if #spans == 0 then
+			spans = { { "Normal", 0, 0 } }
+		end
+		lines[#lines + 1] = text
+		hl[#hl + 1] = spans
+	end
+
 	if side_by_side then
 		local rows = math.max(#left, #lighthouse)
-		local top = math.floor((rows - #left) / 2) + 1
+		local top = math.floor((rows - #left) / 2)
 		for r = 1, rows do
-			local li = r - top + 1
-			local ltxt = (li >= 1 and li <= #left) and left[li] or ""
-			local lgrp = (li >= 1 and li <= #left) and left_class[li] or false
-			local ptxt = pad(ltxt, lw) .. string.rep(" ", gap)
-			local rtxt = lighthouse[r] or ""
-			local spans = {}
-			if lgrp and ltxt ~= "" then
-				spans[#spans + 1] = { lgrp, 0, #ltxt }
+			local row = left[r - top] or { text = "", spans = {} }
+			local ptxt = pad(row.text, lw) .. string.rep(" ", gap)
+			local spans = vim.deepcopy(row.spans)
+			if lighthouse[r] then
+				for _, sp in ipairs(spans_for_row(variant, r, #ptxt)) do
+					spans[#spans + 1] = sp
+				end
 			end
-			for _, s in ipairs(rtxt ~= "" and spans_for_row(variant, r, #ptxt) or {}) do
-				spans[#spans + 1] = s
-			end
-			-- alpha tells per-line highlight tables apart by the first line
-			-- carrying a span, so no row may be left without one.
-			if #spans == 0 then
-				spans[1] = { "Normal", 0, 0 }
-			end
-			lines[#lines + 1] = ptxt .. rtxt
-			hl[#hl + 1] = spans
+			push(ptxt .. (lighthouse[r] or ""), spans)
 		end
 	else
-		for i, l in ipairs(left) do
-			lines[#lines + 1] = l
-			hl[#hl + 1] = { { left_class[i] or "Normal", 0, #l } }
+		local keep = columns >= lw and #left or #art.logo + 3
+		for i = 1, keep do
+			push(left[i].text, left[i].spans)
 		end
 	end
 	return { lines = lines, hl = hl }
