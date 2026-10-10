@@ -50,6 +50,22 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   `.dwpvim.json` in a project overrides it for that project. Invalid values are
   ignored and reported by the new `:DwpConfig`, which also shows where each value
   came from. See `docs/CONFIGURATION.md`.
+- **The dashboard is DWP Vim's own.** The "MU VIM" wordmark is replaced by
+  the DWP logo, converted to a braille engraving, with a tiny VIM tucked
+  under its P, a "powered by Dailybot" credit beneath, and one engraved
+  scene on the right: the Deep Work Plan lighthouse, a ship sailing in its
+  sea. The lighthouse is the brightest element, shadows are cool
+  and highlights warm, the rim of the scene dissolves instead of ending in
+  a hard edge, and the beam pulses slowly while the dashboard is on screen
+  (`vim.g.dwp_greeter_pulse = false` turns that off). The scene comes in
+  six heights, chosen by the rows the rest of the dashboard leaves free
+  (short windows tighten the plans overview first); narrower windows stack the wordmark
+  over it or show the wordmark alone (`lua/setUp/greeter_art.lua`). The wordmark
+  sits in the scene's empty sky so the hero stays compact and centred, and wide
+  windows put the shortcuts and "Your plans" side by side
+  (`lua/setUp/greeter_bottom.lua`; Enter activates the row under the cursor,
+  `e` opens the plans sidebar), stacking them again when the window is narrow.
+
 
 ### Removed
 
