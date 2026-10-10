@@ -12,39 +12,44 @@ M.logo = {
 M.tagline = "DeepWorkPlan's editor"
 M.powered = "powered by Dailybot"
 
--- Lighthouse. Character classes drive the colour (see classify):
---   ░▒▓  the red beam      █▀▄▌▐▟▙▛▜  stone      ~≈  sea
-M.lighthouse = {
-	"                           ▄",
-	"                          ▟█▙",
-	"  ░░░░░░░░░░░░░▒▒▒▒▒▒▓▓▓▓▐▓█▓▌",
-	"░░░░░░░░░░░░░░░▒▒▒▒▒▒▓▓▓▓▐███▌",
-	"   ░░░░░░░░░░░░▒▒▒▒▒▓▓▓▓▓▐▓█▓▌",
-	"                         ▀▀█▀▀",
-	"                          ▐█▌",
-	"                         ▐█ █▌",
-	"                        ▟█████▙  ▄▄",
-	"                       ▟███████▙ ▟██▙",
-	"                      ▟█████████▙▀▀▀▀",
-	"            ▄▄ ▄▄▄  ▟██████████████▙▄",
-	"   |\\   ▟████▟██████████████████▙",
-	"~~~~▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀",
-	"~~ ≈≈ ~~~~ ≈≈ ~~~~~ ≈≈ ~~~~~~ ≈≈ ~~~~ ≈",
-}
+-- Lighthouse: braille engraving with a colour class per cell (data in
+-- greeter_lighthouse.lua; classes 0-5 stone, 6-8 beam).
+local art = require("setUp.greeter_lighthouse")
 
-local BEAM = { ["░"] = true, ["▒"] = true, ["▓"] = true }
-local SEA = { ["~"] = true, ["≈"] = true }
+-- Rows the dashboard needs below the hero (plans overview + buttons).
+local BELOW_HERO = 24
 
--- Highlight class of one character.
-local function classify(ch)
-	if BEAM[ch] then
-		return "DwpGreeterBeam"
-	elseif SEA[ch] then
-		return "DwpGreeterSea"
-	elseif ch == " " then
-		return nil
+-- The tallest variant that fits `lines` window rows, else the smallest.
+local function pick_variant(lines)
+	local chosen = art.variants[#art.variants]
+	for _, v in ipairs(art.variants) do
+		if #v.lines + BELOW_HERO <= lines then
+			return v
+		end
 	end
-	return "DwpGreeterStone"
+	return chosen
+end
+
+-- Highlight spans of row `r` of a lighthouse variant, byte offsets shifted by `offset`.
+local function spans_for_row(variant, r, offset)
+	local spans, cols = {}, variant.cols[r]
+	local run, start = nil, nil
+	local byte = offset
+	for i = 1, #cols do
+		local ch = cols:sub(i, i)
+		local c = ch ~= " " and ch or nil
+		if c ~= run then
+			if run then
+				spans[#spans + 1] = { "DwpArt" .. run, start, byte }
+			end
+			run, start = c, byte
+		end
+		byte = byte + 3 -- one braille cell is 3 bytes
+	end
+	if run then
+		spans[#spans + 1] = { "DwpArt" .. run, start, byte }
+	end
+	return spans
 end
 
 -- Pad `s` with spaces to display width `w`.
@@ -57,7 +62,9 @@ end
 -- centred beside the lighthouse. Returns { lines = {...}, hl = {...} } with
 -- alpha-style per-line highlight spans ({group, byte_start, byte_end}).
 -- Narrow windows get the wordmark alone, stacked over the credit line.
-function M.compose(columns)
+function M.compose(columns, lines_avail)
+	local variant = pick_variant(lines_avail or vim.o.lines)
+	local lighthouse = variant.lines
 	local left = {}
 	local left_class = {}
 	for _, l in ipairs(M.logo) do
@@ -76,49 +83,33 @@ function M.compose(columns)
 		lw = math.max(lw, vim.fn.strdisplaywidth(l))
 	end
 	local rw = 0
-	for _, l in ipairs(M.lighthouse) do
+	for _, l in ipairs(lighthouse) do
 		rw = math.max(rw, vim.fn.strdisplaywidth(l))
 	end
 	local gap = 6
 	local side_by_side = (columns or vim.o.columns) >= lw + gap + rw + 4
 
 	local lines, hl = {}, {}
-	local function spans_for_art(text, offset)
-		local spans, run_group, run_start = {}, nil, nil
-		local byte = offset
-		local n = vim.fn.strchars(text)
-		for i = 0, n - 1 do
-			local ch = vim.fn.strcharpart(text, i, 1)
-			local g = classify(ch)
-			if g ~= run_group then
-				if run_group then
-					spans[#spans + 1] = { run_group, run_start, byte }
-				end
-				run_group, run_start = g, byte
-			end
-			byte = byte + #ch
-		end
-		if run_group then
-			spans[#spans + 1] = { run_group, run_start, byte }
-		end
-		return spans
-	end
-
 	if side_by_side then
-		local rows = math.max(#left, #M.lighthouse)
+		local rows = math.max(#left, #lighthouse)
 		local top = math.floor((rows - #left) / 2) + 1
 		for r = 1, rows do
 			local li = r - top + 1
 			local ltxt = (li >= 1 and li <= #left) and left[li] or ""
 			local lgrp = (li >= 1 and li <= #left) and left_class[li] or false
 			local ptxt = pad(ltxt, lw) .. string.rep(" ", gap)
-			local rtxt = M.lighthouse[r] or ""
+			local rtxt = lighthouse[r] or ""
 			local spans = {}
 			if lgrp and ltxt ~= "" then
 				spans[#spans + 1] = { lgrp, 0, #ltxt }
 			end
-			for _, s in ipairs(spans_for_art(rtxt, #ptxt)) do
+			for _, s in ipairs(rtxt ~= "" and spans_for_row(variant, r, #ptxt) or {}) do
 				spans[#spans + 1] = s
+			end
+			-- alpha tells per-line highlight tables apart by the first line
+			-- carrying a span, so no row may be left without one.
+			if #spans == 0 then
+				spans[1] = { "Normal", 0, 0 }
 			end
 			lines[#lines + 1] = ptxt .. rtxt
 			hl[#hl + 1] = spans
@@ -126,7 +117,7 @@ function M.compose(columns)
 	else
 		for i, l in ipairs(left) do
 			lines[#lines + 1] = l
-			hl[#hl + 1] = left_class[i] and { { left_class[i], 0, #l } } or {}
+			hl[#hl + 1] = { { left_class[i] or "Normal", 0, #l } }
 		end
 	end
 	return { lines = lines, hl = hl }
@@ -141,9 +132,9 @@ function M.define_highlights()
 	hi("DwpGreeterLogo", { fg = "#ece4d3", bold = true })
 	hi("DwpGreeterDim", { fg = "#a39c8c", italic = true })
 	hi("DwpGreeterAccent", { fg = "#d0564f" })
-	hi("DwpGreeterBeam", { fg = "#d0564f" })
-	hi("DwpGreeterStone", { fg = "#c9c1b0" })
-	hi("DwpGreeterSea", { fg = "#5f7480" })
+	for i, hex in ipairs(art.palette) do
+		hi("DwpArt" .. (i - 1), { fg = hex })
+	end
 end
 
 return M

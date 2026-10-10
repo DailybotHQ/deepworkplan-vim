@@ -66,7 +66,7 @@ default.buttons = {
 		button("Space b m", "  Bookmarks  ", ":Telescope marks<CR>"),
 	},
 	opts = {
-		spacing = 1,
+		spacing = 0,
 	},
 }
 
