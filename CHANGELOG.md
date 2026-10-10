@@ -10,6 +10,15 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+### Changed
+
+- **The dashboard is DWP Vim's own.** The "MU VIM" wordmark is replaced by
+  the DWP VIM wordmark with a "powered by Dailybot" credit on the left and
+  the Deep Work Plan lighthouse on the right, in the site's cream and
+  oxblood. The hero is composed when the dashboard draws and falls back to
+  the wordmark alone in windows narrower than the full layout
+  (`lua/setUp/greeter_art.lua`).
+
 ## [v0.5.1] - 2026-10-09
 
 ### Fixed

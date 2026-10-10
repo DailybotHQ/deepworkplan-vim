@@ -40,41 +40,19 @@ end
 
 local default = {}
 
-default.ascii = {
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡆⡆⠀⠀⠀⠀⠀⢀⠜⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠁⢰⠀⠀⠀⠀⢀⠊⢠⠀⠀⢠⠀⠀⠀⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠀⠀⡆⠀⠀⠠⠃⠀⡘⠀⠀⡘⠀⠀⠀⠀⡘⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⢰⠀⡰⠁⠀⠀⠇⠀⠀⡇⠀⠀⠀⢀⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⠀⠀⠀⠀⠞⠀⠀⠀⠰⠀⠀⢰⠑⠤⠤⠔⠱⠀⣿⡆⠀⠀⠀⣾⡗⠀⠀⠰⣿⠆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡌⠀⠀⠀⠀⠀⠀⠸⣿⡄⠀⣸⣿⠁⠀⣴⣶⣶⡄⠀⠀⢰⣦⣶⣤⣴⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣷⢠⣿⠇⠀⠀⠀⠀⣿⡇⠀⠀⢸⣿⠀⣿⡏⠈⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⡟⠀⠀⠀⠀⠀⣿⡇⠀⠀⢸⣿⠀⣿⡇⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠿⠁⠀⠀⠀⠀⠀⠿⠿⠿⠀⠸⠟⠀⠻⠇⠀⠿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
-}
+local art = require("setUp.greeter_art")
+art.define_highlights()
+-- Colour schemes clear custom groups on :colorscheme; redefine after.
+vim.api.nvim_create_autocmd("ColorScheme", { callback = art.define_highlights })
 
-default.logo = {
-	"⠀⢠⣤",
-	"⠀⠈⠉⠀⢀⣀⣤⣤⣄⣀    ⠀⠀⣿⣿⠀⠀⣿⣿⣿⠀⠀⣿⠀⠀⣿⠀⠀⠀⣿⠀⣿⠀⣿⣿⠀⠀⠀⣿⣿⠀⣿⣿⣿",
-	"⠀⠀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣦⡀ ⠀⠀⣿⠀⣿⠀⣿⠀⣿⠀⠀⣿⠀⠀⣿⠀⠀⠀⣿⠀⣿⠀⣿⠀⣿⠀⣿⠀⣿⠀⠀⣿⠀",
-	"⠀⣰⣿⣿⣿⡿⠋⠻⣿⠟⠙⢿⣷⡀⠀⠀⣿⠀⣿⠀⣿⣿⣿⠀⠀⣿⠀⠀⣿⠀⠀⠀⠀⣿⣿⠀⣿⣿⠀⠀⣿⠀⣿⠀⠀⣿⠀",
-	"⠀⣿⣿⣿⣿⣧⡀⣠⣿⣄⢀⣼⣿⡇⠀⠀⣿⠀⣿⠀⣿⠀⣿⠀⠀⣿⠀⠀⣿⠀⠀⠀⠀⠀⣿⠀⣿⠀⣿⠀⣿⠀⣿⠀⠀⣿⠀",
-	"⠀⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⣿⣿⠀⠀⣿⠀⣿⠀⠀⣿⠀⠀⣿⣿⣿⠀⠀⣿⣿⠀⣿⣿⠀⠀⠀⣿⣿⠀⠀⣿⠀",
-	"⠀⠀⠻⣿⣿⣿⣿⣿⣿⣿⣿⡿⠃",
-	"⠀⠀⠀⠈⠙⠛⠿⠿⠟⠛⠉",
-}
-
+-- The hero is composed when the dashboard draws (it depends on the
+-- window width), so a narrow terminal gets the wordmark stacked alone.
 default.header = {
-	type = "text",
-	val = default.ascii,
-	opts = {
-		position = "center",
-		hl = "AlphaHeader",
-	},
+	type = "group",
+	val = function()
+		local hero = art.compose()
+		return { { type = "text", val = hero.lines, opts = { position = "center", hl = hero.hl } } }
+	end,
 }
 
 default.buttons = {
@@ -89,15 +67,6 @@ default.buttons = {
 	},
 	opts = {
 		spacing = 1,
-	},
-}
-
-default.brand = {
-	type = "text",
-	val = default.logo,
-	opts = {
-		position = "center",
-		hl = "AlphaHeader",
 	},
 }
 
@@ -170,11 +139,9 @@ end, opts = { spacing = 1 } }
 
 alpha.setup({
 	layout = {
-		{ type = "padding", val = 2 },
+		{ type = "padding", val = 1 },
 		default.header,
 		{ type = "padding", val = 1 },
-		default.brand,
-		{ type = "padding", val = 2 },
 		default.plans_section,
 		{ type = "padding", val = 1 },
 		default.buttons,
