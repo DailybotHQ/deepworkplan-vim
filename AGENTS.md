@@ -2,7 +2,7 @@
 
 Public Neovim configuration. Language: English. Conventional commits. GPL-3.0.
 
-DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03 and 2026-10-09; skill 7.5.0, vendored 2026-10-11)
+DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03 and 2026-10-09; skill 7.5.1, vendored 2026-10-11)
 
 ## Product
 
