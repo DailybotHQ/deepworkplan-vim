@@ -1,222 +1,190 @@
 # DeepWorkPlan Vim
 
-**DeepWorkPlan's editor** — a Neovim configuration with a VS Code feel, fast to start, built for humans and for the coding agents that live in a terminal.
+**The terminal editor for DeepWorkPlan: a Neovim configuration for people and
+coding agents reviewing files, changes and plans in a terminal.**
 
 [![CI](https://github.com/DailybotHQ/deepworkplan-vim/actions/workflows/ci.yml/badge.svg)](https://github.com/DailybotHQ/deepworkplan-vim/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/DailybotHQ/deepworkplan-vim)](https://github.com/DailybotHQ/deepworkplan-vim/releases)
 [![License: GPL-3.0](https://img.shields.io/github/license/DailybotHQ/deepworkplan-vim)](./LICENSE)
 
-## What it is
+When agents work across repositories and terminal panes, you need to inspect
+what changed and see which plans and lanes need attention. DeepWorkPlan Vim
+combines file navigation, Git diffs, a searchable command index and read-only
+plan views in one editor. It works on its own; DeepWorkPlan and Herdr are optional.
 
-The terminal editor for [Deep Work Plan](https://deepworkplan.com): one
-curated Neovim configuration (not a framework or a distro) for people and
-agents working in a terminal, including Herdr panes. It is derived from
-[AndresMpa/mu-vim](https://github.com/AndresMpa/mu-vim) (see
-[CREDITS.md](./CREDITS.md)); new work lands here under the DeepWorkPlan name.
+## Install and quickstart
 
-> **Optional, never required.** DeepWorkPlan v7 offers this editor as its optional `vim` addon during onboarding, pinned by tag. The methodology works with any editor (or none), and this editor works on its own — nothing here installs or requires the DeepWorkPlan skill.
-
-Six features, with keyboard entry points:
-
-| Feature | Key | What it does |
-|---|---|---|
-| Command index | `SPC h h` | Every mapping in this config, generated live from the actual keymaps — always accurate, grouped, searchable. This is the product tour. |
-| VS Code gestures | `<C-a>` · `SPC y` | Select all in one key (`<C-a>`); yank to the system clipboard (`SPC y`, works in visual mode too). |
-| Plan browser | `SPC P` · click | Browse every Deep Work Plan under the current repo or config in a sidebar grouped by status (Working, Needs attention, Ready, Not started, Done) with progress bars and percent; Enter opens a plain-language reader for one plan; the statusline shows the live active plan (click it for the sidebar) and the dashboard lists the top three. Read-only. |
-| Markdown viewer | `SPC m p` · `SPC m r` | Preview in the browser (`p`) or render in the buffer (`r`) — the same implementation `SPC x` uses to run files. |
-| Orchestra lanes | `SPC O` · sidebar `L` | Read-only lane and child-plan tables with optional live peer state; `r` refreshes. |
-| One-line installer | — | Preflight, clone, system setup, plugins — headless, consent-first. |
-
-`SPC` is the leader (`Space` by default). `:DwpCommands`, `:DwpPlans` and
-`:DwpLanes` are the terminal-independent entry points for the panels. Also
-included: `lua install.lua` / `lua delete.lua`, and an optional
-contributor container with the Herdr mesh.
-
-For integrators: [`addon/surface.json`](addon/surface.json) is the
-machine-readable surface the DeepWorkPlan `vim` addon reads — interface
-version, detection, the tag-pinned install path with the installer's
-sha256, the read-only plan reader, and the features this tag ships
-([`addon/README.md`](addon/README.md) explains it).
-
-## Install
-
-Release **v0.7.0** — macOS, Linux or WSL; requires
-[Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
-Download the installer, verify it, then run it from a terminal:
-
-```bash
-curl -fsSL -o install.sh https://deepworkplan.com/vim/install.sh
-curl -fsSL -o install.sh.sha256 https://deepworkplan.com/vim/install.sh.sha256
-shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
-bash install.sh
-```
-
-The same two files are assets of the
-[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.7.0)
-(with `SHA256SUMS` for every asset) — comparing the website's copy with the
-release's `SHA256SUMS` checks it against a second origin; release tags are
-immutable:
+The current release is **v0.7.0**, for macOS, Linux or WSL, with
+[Neovim 0.12+](https://github.com/neovim/neovim/wiki/Installing-Neovim).
+Download the tag-pinned installer and release checksums, verify the installer,
+then run it from a terminal:
 
 ```bash
 curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh
-curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh.sha256
-shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
-bash install.sh
+curl -fsSL -o SHA256SUMS https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/SHA256SUMS
+awk '$2 == "install.sh" { print }' SHA256SUMS | shasum -a 256 -c -
+bash install.sh --version 0.7.0
+nvim
 ```
 
-That is the whole install: preflight (installs git, curl and Lua if they
-are missing), clone into `~/.config/nvim`, the system setup
-(`lua install.lua`), and a headless plugin install — no quit-and-reopen
-dance. The installer installs **the release it belongs to** (v0.7.0);
-`DWP_VIM_REF=main bash install.sh` follows the moving `main` branch instead.
-An existing Neovim config is **never overwritten**: you are asked before it
-is moved to `~/.config/previous-deepworkplan-vim`, and a run without a
-terminal stops and leaves it untouched (missing git, curl or Lua may already
-have been installed by the preflight). Rerunning a newer installer updates
-an existing install from the DeepWorkPlan Vim repository; an install that
-tracks another repository (such as the older `mu-vim` fork) or has local
-edits is never changed in place — you are offered the same backup and a
-fresh install, or told how to keep it.
+The verification prints `install.sh: OK`. On Linux, `sha256sum -c -` can replace
+`shasum -a 256 -c -`. Stop if verification fails. The
+[release assets](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.7.0)
+also include `install.sh.sha256`, `surface.json` and the source archive.
+The website's [installer mirror](https://deepworkplan.com/vim/install.sh) is usable
+when its checksum matches the pinned release.
 
-Choose a version like the Dailybot CLI installer does — a flag (also after
-`bash -s --` when the script arrives on stdin) or its environment twin:
+The installer preflights git, curl and Lua, clones the configuration to
+`~/.config/nvim`, runs system setup and installs the pinned plugins headlessly.
+It asks before moving an existing foreign configuration to
+`~/.config/previous-deepworkplan-vim`; without a terminal it stops unless backup
+is explicitly authorized with `--yes`. Local edits are preserved through that
+backup path rather than overwritten. Rerunning updates an existing installation.
+
+For an image or CI environment that already provides git, curl, Lua, a C compiler,
+Node.js and pnpm, run the verified installer as a non-root user:
 
 ```bash
-bash install.sh --version 0.7.0          # or v0.7.0;  env: DWP_VIM_VERSION=0.7.0
-bash install.sh --version latest         # newest stable release
-bash install.sh --version '>=0.5.1'      # newest stable release at or above the floor
-bash install.sh --help                   # every option and its env twin
+bash install.sh --version 0.7.0 --nvim 0.12.5 --skip-packages --strict
 ```
 
-Precedence: a flag beats every environment value; then `DWP_VIM_VERSION`,
-then `DWP_VIM_REF`, then the installer's own release. A version and a ref
-given at the same level (two flags, or two env values) that disagree are an
-error, and a version that does not exist lists the newest releases. Switch
-values are `1/true/yes/on` or `0/false/no/off` (any case).
+This installs checksum-verified Neovim into `~/.local/opt`, links it under
+`~/.local/bin` and fails on incomplete or unpinned plugin installations. Put
+`~/.local/bin` on PATH. `bash install.sh --help` lists version selection, offline
+sources and all other options; [development commands](docs/DEVELOPMENT_COMMANDS.md)
+cover the contributor container and mesh.
 
-**Docker images and CI** — the container mode replaces the clone +
-`install.lua` + headless sync + plugin-check block with one step. It runs as
-a non-root user without a terminal, installs Neovim from the official
-release tarball (sha256-verified, into `~/.local/opt/nvim-vX.Y.Z`, linked as
-`~/.local/bin/nvim`), installs no system package (the image
-already has git, curl, Lua, a C compiler, Node.js and pnpm), and fails the
-build when the plugins did not install:
-
-```dockerfile
-USER dev
-RUN curl -fsSL -o /tmp/install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh \
- && curl -fsSL -o /tmp/install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh.sha256 \
- && (cd /tmp && sha256sum -c install.sh.sha256) \
- && bash /tmp/install.sh --version 0.7.0 --nvim 0.12.5 --skip-packages --strict
-ENV PATH="/home/dev/.local/bin:${PATH}"
-```
-
-**Pinned plugins.** Every plugin, and pckr itself, installs at the commit
-the release pins in [`pckr/lockfile.lua`](pckr/lockfile.lua) (pckr's own
-lockfile), so two installs or two image builds of one release run the same
-plugin code. `--strict` fails when any plugin's checked-out commit differs
-from its lock entry, a pinned plugin is missing, or an installed plugin has
-no lock entry; without `--strict` that is a warning, and rerunning the
-installer moves the plugins back to their pins. Plugin updates ship in a
-release: maintainers refresh the lock with `bash scripts/update-plugin-lock.sh`
-([CONTRIBUTING](CONTRIBUTING.md#plugin-lock)). Mason language servers and
-treesitter parsers are downloaded at run time and are not pinned by the lock.
-
-`--yes` lets an unattended run move an existing foreign config aside;
-without it such a run never touches one. Set `GITHUB_TOKEN` in CI to
-authenticate the Neovim release lookup (GitHub rate-limits anonymous calls).
-
-Offline and manual:
+On Windows, install Neovim with `winget install -e --id Neovim.Neovim`, then use
+Git Bash with git and Lua on PATH:
 
 ```bash
-DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh   # local/offline source or mirror — set it for every update too
-git clone --branch v0.7.0 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
-cd ~/.config/nvim && lua install.lua
-```
-
-Integrations read the same steps, URL and sha256 from
-[`addon/surface.json`](addon/surface.json) (`install.script`, `install.steps`).
-
-Windows: use winget plus Git Bash, or run the steps above inside WSL,
-where they work as-is:
-
-```bash
-winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
 git clone --branch v0.7.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 cd "$LOCALAPPDATA/nvim" && lua install.lua
+nvim
 ```
 
-Run the last two lines in Git Bash (which provides `git`); `lua` must be on
-PATH. A one-line Windows installer is on the roadmap.
+For a manual Unix install, clone the same tag into `~/.config/nvim` and run
+`lua install.lua` there. To uninstall, run `lua ~/.config/nvim/delete.lua`
+(Windows: `lua "$LOCALAPPDATA/nvim/delete.lua"` in Git Bash). It lists the paths
+and asks before removal; Neovim itself stays installed.
 
-**Remove** — it lists every path it will touch and asks before removing
-anything; Neovim itself stays installed:
+## Core usage
 
-```bash
-lua ~/.config/nvim/delete.lua              # Git Bash on Windows: lua "$LOCALAPPDATA/nvim/delete.lua"
+`SPC` means the leader key, Space by default. Start with `SPC h h`:
+its searchable command index is generated from the live mappings.
+
+| Action | Keys or command | What you see |
+| --- | --- | --- |
+| Find files | `SPC f f` / `SPC n` | A file finder or the file tree. |
+| Review changes | `SPC g d` | A side-by-side Git diff; repeat to close it. |
+| Browse plans | `SPC P` / `:DwpPlans` | Plans grouped by status with progress; Enter opens the plan reader and Tab expands tasks and files. |
+| Inspect the orchestra | `SPC O` / `:DwpLanes`, or `L` on a plan in the browser | Recorded lanes and child plans with optional live peer state. |
+| Preview Markdown | `SPC m p` / `SPC m r` | A browser preview or rendered Markdown in the buffer. |
+| Discover commands | `SPC h h` / `:DwpCommands` | Every live mapping, grouped and searchable. |
+
+The plan browser reads `.dwp/plans` in the current repository and the editor's
+configuration directory. The reader explains the goal, task checklist and plan
+files; the statusline and start screen also expose plan progress. These surfaces
+never write your plans. Clipboard shortcuts include `Ctrl-a` to select all and
+`SPC y` to copy in normal or visual mode.
+
+### Orchestra lanes in v0.7.0
+
+The lanes view reads `ORCHESTRATOR_MANIFEST.md` and README lane/child-plan tables,
+with manifest fields taking precedence. It shows repository, peer address,
+account, branch, child plan, recorded status and dependencies when present.
+For example, a recorded lane with no helper installed appears as:
+
+```text
+Orchestra — Example plan
+
+Live status unavailable: herdr-peers is not installed.
+
+vim · unavailable
+  Repository: deepworkplan-vim
+  Peer: local:w1:p2
+  Branch: feat/example
+
+r refresh · q / Esc close · read-only
 ```
 
-## Quickstart
+With `herdr-peers` on PATH, the editor asynchronously runs the read-only
+`herdr-peers lanes --json` command and accepts `herdr-peers/lanes-v1`, protocol 1.
+Matching peer addresses gain a timestamped snapshot: `working`, `idle`,
+`blocked`, `done`, `unknown`, `no_agent` or `unreachable`, plus agent/profile,
+attention screen and open ask count. `r` refreshes disk and live status;
+`q` / `Esc` closes the view. Missing helpers, timeouts and unsupported JSON keep
+recorded lanes visible with explicit unavailable status. This is a snapshot,
+not continuous monitoring. [View contract and keys](docs/PLANS_SIDEBAR.md#orchestra-lanes).
 
-1. Download, verify and run the installer above.
-2. Launch `nvim`.
-3. Press `Space h h` — the command index is the tour: every row names its
-   key and what it does.
-4. In a repository with Deep Work Plans, press `Space P` for the plan
-   browser.
+## How it fits with DeepWorkPlan
 
-## Documentation
+The optional [vim addon](https://deepworkplan.com/kit/vim) installs or detects this
+editor using its tag-pinned, machine-readable [addon surface](addon/surface.json).
+The [DeepWorkPlan pack](https://github.com/DailybotHQ/deepworkplan-skill) manages
+repository onboarding and durable plans; the editor lets a person or agent read
+those plans and review the resulting changes.
 
-| Topic | Where |
-|---|---|
-| What the editor is and is not | [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md) |
-| Boot chain, modules, container, release flow | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Every command (install, container, gates, release) | [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md) |
-| Tests and gates | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) |
-| Every plugin and tool, and why it is there | [docs/PLUGINS.md](docs/PLUGINS.md) |
-| Sidebar side and width (`dwpvim.json`) | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) |
-| The plans sidebar — design and keys | [docs/PLANS_SIDEBAR.md](docs/PLANS_SIDEBAR.md) |
-| Key cheat sheet | [CheatSheet.md](CheatSheet.md) |
-| Addon surface for integrators | [addon/README.md](addon/README.md) |
-| Contributor container (Docker + Herdr mesh) | [docker/README.md](docker/README.md), [docker/local/README.md](docker/local/README.md) |
-| What each release ships | [CHANGELOG.md](CHANGELOG.md) |
-| Agent entry point | [AGENTS.md](AGENTS.md) |
+[herdr-peers](https://deepworkplan.com/kit/herdr) supplies optional lane snapshots;
+[coding-agents-kit](https://deepworkplan.com/kit/agentkit) manages the coding agents
+and their profiles; [devcontainer-kit](https://deepworkplan.com/kit/devcontainer)
+provides a container environment for the tools. The lanes view displays recorded
+accounts and optional runtime profiles; it does not launch agents, pick accounts,
+send messages or change child repositories. Adoption starts at
+[the quickstart](https://deepworkplan.com/quickstart).
 
-Contributor environment in four lines (the image installs the editor with the
-DeepWorkPlan Vim installer — Neovim 0.12.5, plugins verified — plus Herdr;
-coding CLIs opt-in):
+## Part of the DeepWorkPlan ecosystem
 
-```bash
-cp docker/local/dwpvim/.env.example docker/local/dwpvim/.env
-bash dev.sh build && bash dev.sh up
-bash dev.sh shell
-bash dev.sh agents    # list Herdr agents across machines
-```
+[DeepWorkPlan](https://deepworkplan.com) turns any repository into an AI-first,
+agent-pilotable codebase. These projects ship together; every addon is optional.
 
-## Security
+| Project | Role | What it does |
+| --- | --- | --- |
+| [deepworkplan-skill](https://github.com/DailybotHQ/deepworkplan-skill) | Pack | The methodology, specification and kit as an installable agent skill; onboards a repository and installs or upgrades every addon. |
+| [coding-agents-kit](https://github.com/DailybotHQ/coding-agents-kit) | Addon | `ak`: installs coding-agent CLIs, manages accounts and profiles, shows usage and picks the account with the most headroom. |
+| [devcontainer-kit](https://github.com/DailybotHQ/devcontainer-kit) | Addon | `dck`: renders an agent-ready development container with the host's accounts, Herdr and the agent mesh. |
+| [herdr-peers](https://github.com/DailybotHQ/herdr-peers) | Addon | Ask/reply messaging and lane status between agents across panes, machines and containers. |
+| [deepworkplan-vim](https://github.com/DailybotHQ/deepworkplan-vim) (this repository) | Addon | A Neovim distribution with a plan reader, sidebar and lanes view. |
+| [ai-diff-reviewer](https://github.com/DailybotHQ/ai-diff-reviewer) | Addon | The local and CI pull-request reviewer behind the `Ready` label. |
+| [agent-skill](https://github.com/DailybotHQ/agent-skill) | Addon | The Dailybot agent skill: standup-style progress reports from agents. |
+| [deepworkplan.com](https://github.com/DailybotHQ/deepworkplan-website) | Site and hub | The documentation site, `/init.md` and `/quickstart`, and the hub that coordinates these releases. |
 
-Please report vulnerabilities privately — see [SECURITY.md](SECURITY.md).
-Never open a public issue for a security problem. The installer, the
-contributor container's SSH surface and the release workflow are the
-sensitive surfaces; [docs/SECURITY.md](docs/SECURITY.md) documents how they
-are kept safe, and every pull request runs a public-hygiene check that
-blocks private context and secret-shaped content.
+## Security and trust
 
-## Contributing
+Verify release assets before execution. The installer can install system
+prerequisites and run plugin setup; read it before granting those actions.
+Plugins and pckr are pinned by commit in [the lockfile](pckr/lockfile.lua);
+Mason language servers and Treesitter parsers are fetched at runtime and are not
+covered by that lock. Keep credentials outside committed configuration and plans.
+Plan and lane views are read-only, and live lookup uses a fixed command with a
+three-second timeout. The contributor container publishes SSH on loopback and
+mounts host SSH files read-only. Report vulnerabilities privately through
+[SECURITY.md](SECURITY.md); the [security guide](docs/SECURITY.md) covers the details.
 
-Contributions are welcome — read [CONTRIBUTING.md](CONTRIBUTING.md) (setup,
-the gate command, Conventional Commits, the PR and release flow) and the
-[Code of Conduct](CODE_OF_CONDUCT.md). Merging to `main` publishes a release
-only when the PR describes one; [CHANGELOG.md](CHANGELOG.md) records what
-each tag ships, and every release carries `SHA256SUMS`.
+## Documentation and contributing
+
+| Topic | Guide |
+| --- | --- |
+| Product scope and editor capabilities | [Product specification](docs/PRODUCT_SPEC.md) |
+| Boot chain, modules and releases | [Architecture](docs/ARCHITECTURE.md) |
+| Installation, container, mesh and validation commands | [Development commands](docs/DEVELOPMENT_COMMANDS.md) |
+| Plans and orchestra view | [Plans sidebar](docs/PLANS_SIDEBAR.md) |
+| Plugins and language tools | [Plugin guide](docs/PLUGINS.md) |
+| Sidebar settings and user overrides | [Configuration](docs/CONFIGURATION.md) |
+| Key reference | [Cheat sheet](CheatSheet.md) |
+| Addon integration contract | [Addon guide](addon/README.md) |
+| Contributor container | [Container guide](docker/README.md), [local image](docker/local/README.md) |
+| Tests and required gates | [Testing guide](docs/TESTING_GUIDE.md) |
+| Agent instructions | [AGENTS.md](AGENTS.md) |
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, gates and the pull-request
+process, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
+[CHANGELOG.md](CHANGELOG.md) records each release. Merges publish a new release
+only when the tree declares a new version; this README update keeps v0.7.0.
 
 ## License
 
-[GPL-3.0](./LICENSE). Derived from
-[AndresMpa/mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto —
-see [CREDITS.md](./CREDITS.md). Keep the license and the credit in every
-copy and derivative.
-
----
-
-Part of the [DeepWorkPlan](https://deepworkplan.com) ecosystem — works on its own.
+[GPL-3.0](LICENSE). Derived from
+[AndresMpa/mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto;
+[CREDITS.md](CREDITS.md) preserves the lineage. Keep the license and credit in
+copies and derivatives.
