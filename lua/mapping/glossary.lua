@@ -35,6 +35,7 @@ end
 local GROUP_RULES = {
 	{ prefix = "SPC hh", title = "Start here" },
 	{ prefix = "SPC P", title = "Deep Work Plans" },
+	{ prefix = "SPC O", title = "Deep Work Plans" },
 	{ prefix = "Ctrl-a", title = "Select and copy" },
 	{ prefix = "SPC y", title = "Select and copy" },
 	{ prefix = "SPC g", title = "Git" },

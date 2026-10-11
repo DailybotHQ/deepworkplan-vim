@@ -64,3 +64,7 @@ or a feature key or command that is not defined in `lua/`.
 When `install.sh` changes, update `install.script.sha256` in the same
 commit; when a release is cut, bump `version`, `install.ref` and every
 tag in `install` together.
+
+`features.orchestra_lanes` (v0.7.0) and `capabilities.orchestra_lanes` describe
+`SPC O` / `:DwpLanes`, read-only manifest/README tables and the optional fixed
+`herdr-peers lanes --json` snapshot command. The helper is never a requirement.

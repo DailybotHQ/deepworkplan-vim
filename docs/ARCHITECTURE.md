@@ -160,3 +160,13 @@ dailybot), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
 (DWP v7 CONFIG §1); scratch in gitignored `tmp/`.
+
+### Orchestra lanes
+
+`lua/dwp/lanes.lua` adds a lazy, self-contained read-only surface beside the plan
+browser: Markdown lane/child registry parsing, manifest-first field merge,
+optional versioned peer snapshot, scratch split and refresh. It invokes only
+`herdr-peers lanes --json` through `vim.system` with a bounded timeout; exact
+peer identity joins live state to recorded membership. A generation counter and
+buffer validity guard discard obsolete callbacks. It does not traverse or write
+child repositories. [View contract](PLANS_SIDEBAR.md#orchestra-lanes).

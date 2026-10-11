@@ -21,6 +21,14 @@ vim.api.nvim_create_user_command("DwpPlans", function()
 	require("dwp.sidebar").toggle()
 end, { desc = "Plan browser (sidebar)" })
 
+-- Orchestra entry points are lazy and appear in the live command index.
+map("n", "<Leader>O", function()
+	require("dwp.lanes").pick()
+end, { desc = "Orchestra lanes (read-only)" })
+vim.api.nvim_create_user_command("DwpLanes", function()
+	require("dwp.lanes").pick()
+end, { desc = "Orchestra lanes (read-only)" })
+
 -- Telescope
 map("n", "<Leader>t", ":Telescope<CR>", { desc = "Open Telescope (every finder)" })
 map("n", "<Leader>tf", ":Telescope fd<CR>", { desc = "Find files" })

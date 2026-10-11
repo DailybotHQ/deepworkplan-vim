@@ -16,7 +16,7 @@ agents working in a terminal, including Herdr panes. It is derived from
 
 > **Optional, never required.** DeepWorkPlan v7 offers this editor as its optional `vim` addon during onboarding, pinned by tag. The methodology works with any editor (or none), and this editor works on its own — nothing here installs or requires the DeepWorkPlan skill.
 
-Five features, each one keystroke away:
+Six features, with keyboard entry points:
 
 | Feature | Key | What it does |
 |---|---|---|
@@ -24,10 +24,11 @@ Five features, each one keystroke away:
 | VS Code gestures | `<C-a>` · `SPC y` | Select all in one key (`<C-a>`); yank to the system clipboard (`SPC y`, works in visual mode too). |
 | Plan browser | `SPC P` · click | Browse every Deep Work Plan under the current repo or config in a sidebar grouped by status (Working, Needs attention, Ready, Not started, Done) with progress bars and percent; Enter opens a plain-language reader for one plan; the statusline shows the live active plan (click it for the sidebar) and the dashboard lists the top three. Read-only. |
 | Markdown viewer | `SPC m p` · `SPC m r` | Preview in the browser (`p`) or render in the buffer (`r`) — the same implementation `SPC x` uses to run files. |
+| Orchestra lanes | `SPC O` · sidebar `L` | Read-only lane and child-plan tables with optional live peer state; `r` refreshes. |
 | One-line installer | — | Preflight, clone, system setup, plugins — headless, consent-first. |
 
-`SPC` is the leader (`Space` by default). `:DwpCommands` and `:DwpPlans`
-are the terminal-independent entry points for the two panels. Also
+`SPC` is the leader (`Space` by default). `:DwpCommands`, `:DwpPlans` and
+`:DwpLanes` are the terminal-independent entry points for the panels. Also
 included: `lua install.lua` / `lua delete.lua`, and an optional
 contributor container with the Herdr mesh.
 
@@ -39,7 +40,7 @@ sha256, the read-only plan reader, and the features this tag ships
 
 ## Install
 
-Release **v0.6.0** — macOS, Linux or WSL; requires
+Release **v0.7.0** — macOS, Linux or WSL; requires
 [Neovim](https://github.com/neovim/neovim/wiki/Installing-Neovim) 0.12+.
 Download the installer, verify it, then run it from a terminal:
 
@@ -51,14 +52,14 @@ bash install.sh
 ```
 
 The same two files are assets of the
-[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.6.0)
+[GitHub release](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v0.7.0)
 (with `SHA256SUMS` for every asset) — comparing the website's copy with the
 release's `SHA256SUMS` checks it against a second origin; release tags are
 immutable:
 
 ```bash
-curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh
-curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh.sha256
+curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh
+curl -fsSL -o install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh.sha256
 shasum -a 256 -c install.sh.sha256      # Linux: sha256sum -c install.sh.sha256
 bash install.sh
 ```
@@ -66,7 +67,7 @@ bash install.sh
 That is the whole install: preflight (installs git, curl and Lua if they
 are missing), clone into `~/.config/nvim`, the system setup
 (`lua install.lua`), and a headless plugin install — no quit-and-reopen
-dance. The installer installs **the release it belongs to** (v0.6.0);
+dance. The installer installs **the release it belongs to** (v0.7.0);
 `DWP_VIM_REF=main bash install.sh` follows the moving `main` branch instead.
 An existing Neovim config is **never overwritten**: you are asked before it
 is moved to `~/.config/previous-deepworkplan-vim`, and a run without a
@@ -81,7 +82,7 @@ Choose a version like the Dailybot CLI installer does — a flag (also after
 `bash -s --` when the script arrives on stdin) or its environment twin:
 
 ```bash
-bash install.sh --version 0.6.0          # or v0.6.0;  env: DWP_VIM_VERSION=0.6.0
+bash install.sh --version 0.7.0          # or v0.7.0;  env: DWP_VIM_VERSION=0.7.0
 bash install.sh --version latest         # newest stable release
 bash install.sh --version '>=0.5.1'      # newest stable release at or above the floor
 bash install.sh --help                   # every option and its env twin
@@ -103,10 +104,10 @@ build when the plugins did not install:
 
 ```dockerfile
 USER dev
-RUN curl -fsSL -o /tmp/install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh \
- && curl -fsSL -o /tmp/install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh.sha256 \
+RUN curl -fsSL -o /tmp/install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh \
+ && curl -fsSL -o /tmp/install.sh.sha256 https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh.sha256 \
  && (cd /tmp && sha256sum -c install.sh.sha256) \
- && bash /tmp/install.sh --version 0.6.0 --nvim 0.12.5 --skip-packages --strict
+ && bash /tmp/install.sh --version 0.7.0 --nvim 0.12.5 --skip-packages --strict
 ENV PATH="/home/dev/.local/bin:${PATH}"
 ```
 
@@ -129,7 +130,7 @@ Offline and manual:
 
 ```bash
 DWP_VIM_SOURCE=/path/to/deepworkplan-vim bash install.sh   # local/offline source or mirror — set it for every update too
-git clone --branch v0.6.0 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
+git clone --branch v0.7.0 https://github.com/DailybotHQ/deepworkplan-vim.git ~/.config/nvim   # manual
 cd ~/.config/nvim && lua install.lua
 ```
 
@@ -141,7 +142,7 @@ where they work as-is:
 
 ```bash
 winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-git clone --branch v0.6.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+git clone --branch v0.7.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 cd "$LOCALAPPDATA/nvim" && lua install.lua
 ```
 

@@ -1,7 +1,7 @@
 {
   "name": "deepworkplan-vim",
   "interface": 1,
-  "version": "v0.6.0",
+  "version": "v0.7.0",
   "repository": "https://github.com/DailybotHQ/deepworkplan-vim",
   "license": "GPL-3.0",
   "requires": {
@@ -37,36 +37,36 @@
     "read_only": true
   },
   "install": {
-    "ref": "v0.6.0",
+    "ref": "v0.7.0",
     "ref_env": "DWP_VIM_REF",
     "skip_packages_env": "DWP_VIM_SKIP_PACKAGES",
     "version_env": "DWP_VIM_VERSION",
     "container": {
-      "command": "bash install.sh --version 0.6.0 --nvim 0.12.5 --skip-packages --strict",
+      "command": "bash install.sh --version 0.7.0 --nvim 0.12.5 --skip-packages --strict",
       "note": "images and CI: non-root, no terminal; --nvim installs the official Neovim tarball (sha256-verified); --strict fails on a failed or incomplete plugin install, or a plugin (or pckr) whose HEAD is not its commit in pckr/lockfile.lua; the image provides git, curl, Lua, a C compiler, Node.js and pnpm",
       "min_neovim": "0.12"
     },
     "skip_packages_note": "set to 1 when the image already carries git, curl, Lua and the editor dependencies: install.sh and install.lua install no system package, and a missing tool stops the run",
     "script": {
-      "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.6.0/install.sh",
-      "release_asset_url": "https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.6.0/install.sh",
+      "url": "https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/v0.7.0/install.sh",
+      "release_asset_url": "https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v0.7.0/install.sh",
       "mirror_url": "https://deepworkplan.com/vim/install.sh",
-      "mirror_note": "the website's copy; from v0.4.1 it is byte-identical to the release's install.sh — use it only when its sha256 equals script.sha256, otherwise use url",
+      "mirror_note": "the website's copy; from v0.4.1 it is byte-identical to the release's install.sh \u2014 use it only when its sha256 equals script.sha256, otherwise use url",
       "sha256_file": "install.sh.sha256 (next to install.sh on the website and on the release)",
-      "sha256": "6df08ca2db792e61e4317416b00ca17833805aa3678829a820dcc63bee65346b"
+      "sha256": "cc774f69ecc97af8880e66d8523adf52b2f0b6e539dfbf761e8677ee441f5e3f"
     },
     "steps": [
       "download script.url (or mirror_url, or release_asset_url) to a local file named install.sh",
       "verify its sha256 equals script.sha256; stop on mismatch",
-      "run it: bash install.sh (it installs its own release, v0.6.0; DWP_VIM_REF overrides it)"
+      "run it: bash install.sh (it installs its own release, v0.7.0; DWP_VIM_REF overrides it)"
     ],
     "manual": [
-      "git clone --branch v0.6.0 https://github.com/DailybotHQ/deepworkplan-vim.git <config_dir>",
+      "git clone --branch v0.7.0 https://github.com/DailybotHQ/deepworkplan-vim.git <config_dir>",
       "cd <config_dir> && lua install.lua"
     ],
     "windows": [
       "winget install -e --id Neovim.Neovim",
-      "git clone --branch v0.6.0 https://github.com/DailybotHQ/deepworkplan-vim.git \"$LOCALAPPDATA/nvim\"",
+      "git clone --branch v0.7.0 https://github.com/DailybotHQ/deepworkplan-vim.git \"$LOCALAPPDATA/nvim\"",
       "cd \"$LOCALAPPDATA/nvim\" && lua install.lua"
     ],
     "consent": {
@@ -103,33 +103,62 @@
         "statusline",
         "dashboard"
       ]
+    },
+    "orchestra_lanes": {
+      "read_only": true,
+      "files": [
+        "ORCHESTRATOR_MANIFEST.md",
+        "README.md"
+      ],
+      "writes": [],
+      "live_command": [
+        "herdr-peers",
+        "lanes",
+        "--json"
+      ],
+      "live_schema": "herdr-peers/lanes-v1",
+      "required": false
     }
   },
   "features": [
     {
       "id": "command_index",
-      "keys": ["<Leader>hh"],
-      "commands": ["DwpCommands"],
+      "keys": [
+        "<Leader>hh"
+      ],
+      "commands": [
+        "DwpCommands"
+      ],
       "since": "v0.4.0",
       "summary": "Every mapping in the config, generated live from the actual keymaps, grouped and searchable."
     },
     {
       "id": "vscode_gestures",
-      "keys": ["<C-a>", "<Leader>y"],
+      "keys": [
+        "<C-a>",
+        "<Leader>y"
+      ],
       "commands": [],
       "since": "v0.4.0",
       "summary": "Select all in normal mode; yank to the system clipboard in normal and visual mode."
     },
     {
       "id": "plan_browser",
-      "keys": ["<Leader>P"],
-      "commands": ["DwpPlans"],
+      "keys": [
+        "<Leader>P"
+      ],
+      "commands": [
+        "DwpPlans"
+      ],
       "since": "v0.4.0",
       "summary": "Sidebar of every Deep Work Plan grouped by status with progress; Enter opens a plain-language reader; a clickable statusline segment and a dashboard overview show the active plans."
     },
     {
       "id": "markdown_viewer",
-      "keys": ["<Leader>mp", "<Leader>mr"],
+      "keys": [
+        "<Leader>mp",
+        "<Leader>mr"
+      ],
       "commands": [],
       "since": "v0.4.0",
       "summary": "Preview markdown in the browser or render it in the buffer."
@@ -140,6 +169,17 @@
       "commands": [],
       "since": "v0.4.0",
       "summary": "install.sh: preflight, clone, system setup and headless plugin install; consent-first for an existing config."
+    },
+    {
+      "id": "orchestra_lanes",
+      "keys": [
+        "<Leader>O"
+      ],
+      "commands": [
+        "DwpLanes"
+      ],
+      "since": "v0.7.0",
+      "summary": "Read-only orchestrator lanes from manifest and README tables, opened from the plan browser or command index; optional herdr-peers lanes-v1 live snapshot with graceful offline fallback."
     }
   ]
 }

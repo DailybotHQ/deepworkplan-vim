@@ -10,6 +10,23 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v0.7.0] - 2026-10-11
+
+### Added
+
+- **Orchestra lanes, read-only.** `L` on a plan in the browser opens its lanes;
+  `SPC O` / `:DwpLanes` selects an orchestrator plan from the command index.
+  The view merges `ORCHESTRATOR_MANIFEST.md` and README lane/child-plan tables,
+  showing repositories, peers, accounts, branches, child plans and dependencies.
+- **Optional live lane status.** `herdr-peers lanes --json` supplies a versioned
+  snapshot of working, idle, blocked, done, unknown, no-agent and unreachable
+  peers, attention screens and open ask counts. `r` refreshes; absent helpers,
+  unsupported JSON, failures and timeouts leave recorded lanes visible with an
+  explicit unavailable status. No helper is required and no plan is written.
+- Fixture smoke for table merging, peer identity, schema handling, asynchronous
+  refresh races, late callbacks and read-only buffers; machine-readable addon
+  feature entry for the orchestra view.
+
 ## [v0.6.0] - 2026-10-10
 
 ### Changed

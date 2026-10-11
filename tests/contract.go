@@ -59,6 +59,7 @@ var currentOnly = []item{
 	{"<c-a>", "select all"},
 	{"<leader>y", "clipboard yank"},
 	{"<leader>P", "plan browser"},
+	{"<leader>O", "orchestra lanes"},
 	{"<leader>mp", "markdown preview"},
 	{"<leader>mr", "markdown render"},
 	{"<leader>gap", "git add patch"},
