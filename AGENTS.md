@@ -2,13 +2,13 @@
 
 Public Neovim configuration. Language: English. Conventional commits. GPL-3.0.
 
-DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03 and 2026-10-09; skill 7.5.1, vendored 2026-10-11)
+DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09 and 2026-10-11; skill 7.6.0, vendored 2026-10-11)
 
 ## Product
 
 DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: download `https://deepworkplan.com/vim/install.sh` (or the release asset), verify it against `install.sh.sha256` / `SHA256SUMS`, then `bash install.sh` — it installs its own release tag (README → Install); or manually: clone the tag to `~/.config/nvim` and `lua install.lua`. Never spell a download piped into a shell in this repo (`scripts/check-public-hygiene.sh` rejects it). This repo **is** the config: in the contributor container `/workspace` is linked to `~/.config/nvim` at start (the release config the image bakes through the installer is only its standalone fallback); never clone a second copy of the repo inside the container — `/workspace` is the only working tree.
 
-Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.0.1 per the provenance line above; the addon registry and the benchmark flags (`benchmark.enabled`, `benchmark.learnings`: a plan then closes with `analysis_results/learnings.json` and `DWP_REPORT.md`) live in the tracked `.dwp/config.json`.
+Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.6.0 per the provenance line above; the addon registry and the benchmark flags (`benchmark.enabled`, `benchmark.learnings`: a plan then closes with `analysis_results/learnings.json` and `DWP_REPORT.md`) live in the tracked `.dwp/config.json`.
 
 ## Product focus
 
@@ -27,6 +27,7 @@ pillars ([Product spec](docs/PRODUCT_SPEC.md#product-focus),
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Boot chain, module map, container, tests, release |
 | [docs/STANDARDS.md](docs/STANDARDS.md) | Language, commits, Lua/shell conventions, hard rules |
 | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Gates, scoped patterns, mapping rule, fallback |
+| [docs/DESIGN.md](docs/DESIGN.md) | Existing terminal UI design and semantic highlight patterns; read before editing UI |
 | [docs/PLUGINS.md](docs/PLUGINS.md) | Every plugin, server and tool installed, and the reason for each |
 | [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md) | Every command verbatim, with preconditions |
 | [docs/SECURITY.md](docs/SECURITY.md) | Secrets, SSH surface, installer safety, mesh trust |
@@ -113,14 +114,14 @@ Gates are selected from the touched surface, with the full set above as the fall
 ## Installed DWP addons
 
 - **AI Diff Reviewer (local, required baseline)** — vendored skill at
-  `.agents/skills/ai-diff-reviewer/` (v3.2.3) + repo-tailored
+  `.agents/skills/ai-diff-reviewer/` (v3.3.9) + repo-tailored
   [`.review/extension.md`](./.review/extension.md). **Flow A (local-only)** is
   active: every plan's Final Review security pass runs the local review over
-  the accumulated change set, driven by the available coding agent (in this
-  environment: the `grok` CLI). The CI surface (Flow B) was declined for now —
+  the accumulated change set, driven by the coding agent running the plan.
+  The CI surface (Flow B) was declined for now —
   it can be added later via the skill's `setup` sub-skill.
 - **Dailybot (optional, team reporting)** — vendored skill at
-  `.agents/skills/dailybot/` (v3.23.2). Four lifecycle events fire as
+  `.agents/skills/dailybot/` (v3.23.12). Four lifecycle events fire as
   best-effort reports when a plan starts (kickoff), a significant task ships,
   a run blocks, and on completion (the only milestone): kickoff, significant
   task, blocked, completion. Reporting **never blocks work** — if Dailybot is
@@ -131,6 +132,15 @@ Gates are selected from the touched surface, with the full set above as the fall
   (`.agents/settings.json`: `session-start` / `activity` / `stop`; local-only,
   always exit 0) — answer a hook reminder with a report or
   `dailybot hook dismiss`, never silently, never blocking.
+
+- **Dependency upgrade (accepted)** — `/lib-upgrade` delegates to the pack's
+  flow; installing the command updates no dependency. Plugins keep the existing
+  pinned refresh process and its consent rules.
+- **Design system (accepted, cli-output)** — [docs/DESIGN.md](docs/DESIGN.md)
+  records the existing Neovim TUI source, highlight roles and layout guards.
+- **Machine offers unaccepted for this round** — the host AgentKit, Herdr helper,
+  Vim install and dck migration are not enabled by this harness upgrade. The
+  custom contributor container remains maintained; no host editor is replaced.
 
 ## Working principles
 

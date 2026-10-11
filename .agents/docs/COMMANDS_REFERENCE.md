@@ -30,3 +30,9 @@ The sub-skills behind every command are directly invocable too
 (`/deepworkplan-create`, `#deepworkplan-create`, …) — the `dwp-*` files are
 the short aliases. Commands are thin by design: the flow content lives in the
 skill, never duplicated in the command.
+
+## Dependency maintenance
+
+| Command | Routes to | Use for |
+| --- | --- | --- |
+| [`/lib-upgrade`](../commands/lib-upgrade.md) | `addons/dependency-upgrade` | Explicit, gated dependency updates; Neovim plugins retain the pinned refresh process. The delegator is inert. |
