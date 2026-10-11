@@ -50,7 +50,8 @@ bash install.sh --version 0.7.0 --nvim 0.12.5 --skip-packages --strict
 
 This installs checksum-verified Neovim into `~/.local/opt`, links it under
 `~/.local/bin` and fails on incomplete or unpinned plugin installations. Put
-`~/.local/bin` on PATH. `bash install.sh --help` lists version selection, offline
+`~/.local/bin` on PATH (`/home/dev/.local/bin` for the contributor image’s `dev`
+user). `bash install.sh --help` lists version selection, offline
 sources and all other options; [development commands](docs/DEVELOPMENT_COMMANDS.md)
 cover the contributor container and mesh.
 
