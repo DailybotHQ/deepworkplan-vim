@@ -29,6 +29,7 @@ run_smoke() {
 run_smoke model tests/smoke/dwp_model.lua
 run_smoke sidebar tests/smoke/dwp_sidebar.lua
 run_smoke reader tests/smoke/dwp_reader.lua
+run_smoke lanes tests/smoke/dwp_lanes.lua
 run_smoke statusline tests/smoke/dwp_statusline.lua
 run_smoke greeter tests/smoke/dwp_greeter.lua
 run_smoke render tests/smoke/dwp_render.lua

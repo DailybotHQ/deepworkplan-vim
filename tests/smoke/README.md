@@ -62,3 +62,8 @@ nvim --headless -u tests/smoke/minimal_init.lua \
 
 The exit code is not trustworthy alone (see the crash note above) — read
 the output for the `assertions OK` sentinel.
+
+`dwp_lanes.lua` proves the read-only orchestra view: manifest/README table merge,
+lanes-v1 matching by peer, optional helper fallback, timeouts, stale refreshes,
+closing during a request and no plan writes. Uses fixtures and a fake async
+command; no Herdr, network or agent is required.

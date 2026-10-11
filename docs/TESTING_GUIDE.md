@@ -138,3 +138,7 @@ no Go), run the **full Quick Commands set** from
 - A startup smoke (`nvim --headless "+LazyHealth" +qa` style) inside the dev
   container would close the plugin-loading blind spot — proposed only (the
   dwp surfaces already have runtime coverage via `tests/smoke/`).
+
+Orchestra changes (`lua/dwp/lanes.lua`, sidebar `L`, `SPC O` / `:DwpLanes`)
+run `tests/smoke/dwp_lanes.lua` through the full smoke suite; the mapping contract
+includes `SPC O`. The fixture mocks the helper boundary, so no Herdr is needed.

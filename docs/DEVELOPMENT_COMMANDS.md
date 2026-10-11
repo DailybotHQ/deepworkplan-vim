@@ -186,3 +186,13 @@ bash scripts/release-assets.sh v0.4.0 /tmp/assets  # rebuild a release's assets 
 
 Verify a downloaded release: `sha256sum -c SHA256SUMS` (macOS:
 `shasum -a 256 -c SHA256SUMS`) in the directory holding the assets.
+
+## Orchestra view
+
+- `SPC O` / `:DwpLanes`: select an orchestrator plan and open its read-only lanes.
+- `L` in the plans sidebar: lanes for the selected plan.
+- `r` in the lanes view: refresh disk and optional live status; `q` / `Esc`: close.
+- Optional helper on PATH: `herdr-peers lanes --json` (lanes-v1, protocol 1).
+
+See [PLANS_SIDEBAR.md](PLANS_SIDEBAR.md#orchestra-lanes) for the table and snapshot
+contract. No agent CLI, Herdr or helper is required to read recorded lanes.

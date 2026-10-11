@@ -683,6 +683,7 @@ local HELP_LINES = {
 	"Enter    open the plan under the cursor",
 	"         (on a section name: show or hide that group)",
 	"Tab      show or hide a plan's tasks and files",
+	"L        open the selected plan's orchestra lanes",
 	"j / k    jump to the next / previous plan",
 	"         (arrow keys and Ctrl-n / Ctrl-p too; 3j repeats;",
 	"         gg / G go to the first / last)",
@@ -791,6 +792,10 @@ function set_keys()
 		if row and row.kind == "plan" then
 			S.toggle_expand(row.plan.name)
 		end
+	end, opts)
+	vim.keymap.set("n", "L", function()
+		local row = current_row()
+		if row and row.plan then require("dwp.lanes").open(row.plan) end
 	end, opts)
 	vim.keymap.set("n", "r", S.refresh, opts)
 	vim.keymap.set("n", "?", S.help, opts)

@@ -47,3 +47,8 @@ both are user commands with `desc`, defined next to their mappings.
 - Palettes are data, not logic.
 - Validate edits: `luac5.4 -p <file>` (or the full-tree variant in
   [AGENTS.md](../AGENTS.md)).
+
+The `dwp/lanes.lua` orchestra surface is lazy and self-contained: `SPC O` /
+`:DwpLanes` selects a plan; sidebar `L` opens the selected plan's lanes. It reads
+manifest/README tables and optionally overlays `herdr-peers/lanes-v1` snapshots.
+See [Orchestra lanes](../docs/PLANS_SIDEBAR.md#orchestra-lanes).

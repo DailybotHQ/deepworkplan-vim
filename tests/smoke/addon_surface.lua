@@ -194,10 +194,18 @@ for _, feature in ipairs(s.features or {}) do
 	end
 end
 ok(
-	vim.deep_equal(ids, { "command_index", "vscode_gestures", "plan_browser", "markdown_viewer", "one_line_installer" }),
-	"features are exactly F1-F5, in order"
+	vim.deep_equal(ids, { "command_index", "vscode_gestures", "plan_browser", "markdown_viewer", "one_line_installer", "orchestra_lanes" }),
+	"features include the five original claims and orchestra lanes, in order"
 )
 ok(read("install.sh") ~= nil, "one_line_installer: install.sh exists")
+
+local orchestra = (s.capabilities or {}).orchestra_lanes or {}
+ok(orchestra.read_only == true and #orchestra.writes == 0, "orchestra view writes nothing")
+ok(orchestra.live_schema == "herdr-peers/lanes-v1", "orchestra declares versioned live schema")
+ok(vim.deep_equal(orchestra.live_command, { "herdr-peers", "lanes", "--json" }), "live command is fixed")
+ok(orchestra.required == false, "live helper is optional")
+ok(read("lua/dwp/lanes.lua") ~= nil and read("tests/smoke/dwp_lanes.lua") ~= nil,
+  "orchestra module and smoke exist")
 
 if fails > 0 then
 	print(("ADDON SURFACE SMOKE: %d FAILED of %d assertions"):format(fails, count))

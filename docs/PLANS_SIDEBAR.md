@@ -77,3 +77,33 @@ file lines opens that file.
 the collapse, the title width), `tests/smoke/dwp_render.lua` (no row wraps at any
 width), `tests/smoke/dwp_consistency.lua` (one vocabulary across surfaces) and
 `scripts/boot-check.sh` (the toggle with the real plugins).
+
+## Orchestra lanes
+
+Press `L` on a plan or one of its tasks to open a separate read-only lanes split.
+`SPC O` / `:DwpLanes` selects an orchestrator plan; `SPC hh` lists the mapping
+under Deep Work Plans. These entry points load `dwp.lanes` only when invoked.
+
+The view reads Markdown tables with a `Lane` or `Child Plan` / `Child DWP`
+column from `ORCHESTRATOR_MANIFEST.md` and `README.md`. Manifest fields take
+precedence; matching lane, repository or child-plan identifiers merge the README
+fields. Columns include repository, pane/peer, account/profile, branch, status,
+child plan and dependencies. Ordinary documentation tables are ignored. This
+view never follows child paths, writes plans, sends messages or controls agents.
+
+When `herdr-peers` is on PATH, the view asynchronously runs the fixed read-only
+command `herdr-peers lanes --json` with a three-second timeout. It accepts the
+`herdr-peers/lanes-v1`, protocol 1 envelope and joins runtime entries by exact
+`peer` address. It shows live state (`working`, `idle`, `blocked`, `done`,
+`unknown`, `no_agent`, `unreachable`), agent/profile, attention screen and open
+ask count. Unknown JSON fields are ignored. Peers outside the plan are omitted;
+recorded status is shown separately from live status.
+
+`r` reloads disk and live data; `q` / `Esc` closes the split. The timestamp marks
+a snapshot, not continuous monitoring. Missing helpers (including older helpers
+without `lanes`), failures, timeouts or unsupported JSON display an explicit
+unavailable message while retaining recorded lanes. Unmatched peers show
+`unavailable`; zero live peers is a valid snapshot. Command stderr is never
+rendered. Late callbacks cannot overwrite a newer refresh or a closed buffer.
+
+Guard: `tests/smoke/dwp_lanes.lua`, included in `bash tests/smoke/run.sh`.
