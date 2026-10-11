@@ -155,11 +155,32 @@ succeeded; it is the one check branch protection requires
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 7.5.1, ai-diff-reviewer,
-dailybot), the thin `dwp-*` command delegators, agent personas, and the
+`.agents/` carries the vendored skills (deepworkplan 7.6.0, ai-diff-reviewer 3.3.9,
+dailybot 3.23.12), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
 (DWP v7 CONFIG §1); scratch in gitignored `tmp/`.
+
+### Vendored provenance
+
+The 2026-10-11 dogfood upgrade uses the pack's tree-URL install and all-addons
+planner. `skills-lock.json` records each release ref and the installer's computed
+content hash. Installed skill trees must match the tagged sources byte for byte;
+local adaptations are inspected before replacement.
+
+| Skill | Tag | Verified commit |
+| --- | --- | --- |
+| deepworkplan | v7.6.0 | `4ac203178fedb5384ef7401197da92d276c70f27` |
+| ai-diff-reviewer | v3.3.9 | `122b084029f1efae0674e98183f34075d8c02417` |
+| dailybot | v3.23.12 | `cf671f85b48e43a3d8751796f16b42ff4af440d9` |
+
+The pack's release `SHA256SUMS` digest is
+`99f0dbf3bcc1e795fa6e15b520d6250f0a47d5efcb44614fa5d1926fb2320784`;
+the reviewer's is
+`aaf490cfe01ba858df49732798d6861a7c742b967f39fedb4f1a9c999aafc0c9`.
+Dailybot ships no checksum manifest; its tag commit and installed bytes are
+verified instead. `.review/extension.md` and the existing Dailybot hooks stay
+repository-owned. No authentication material belongs in the vendored trees.
 
 ### Orchestra lanes
 

@@ -15,3 +15,5 @@ rules.
 | [PERFORMANCE.md](PERFORMANCE.md) | Editor startup and the few budgets that matter |
 | [AI_AGENT_ONBOARDING.md](AI_AGENT_ONBOARDING.md) | First-session checklist for an agent |
 | [AI_AGENT_COLLAB.md](AI_AGENT_COLLAB.md) | Handoffs, reporting, review, mesh etiquette |
+
+[Terminal UI design](DESIGN.md) records the accepted cli-output design-system addon.

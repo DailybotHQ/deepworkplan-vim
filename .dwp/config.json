@@ -1,18 +1,22 @@
 {
-  "benchmark": {
-    "enabled": true,
-    "learnings": true
-  },
   "addons": {
     "ai-diff-reviewer": {
       "enabled": true,
-      "note": "back-filled on upgrade: already installed (detected v3.2.3)",
-      "version": "v3.2.3"
+      "version": "v3.3.9"
     },
     "dailybot": {
       "enabled": true,
-      "note": "vendored in .agents/skills/dailybot and declared in AGENTS.md (Installed DWP addons); best-effort reporting, never required",
-      "version": "v3.23.2"
+      "version": "v3.23.12"
+    },
+    "dependency-upgrade": {
+      "enabled": true
+    },
+    "design-system": {
+      "enabled": true
     }
+  },
+  "benchmark": {
+    "enabled": true,
+    "learnings": true
   }
 }
