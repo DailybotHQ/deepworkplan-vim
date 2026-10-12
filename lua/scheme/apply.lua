@@ -270,7 +270,9 @@ local function paint(p)
 	hi("Search", bg, yellow)
 	hi("IncSearch", bg, orange)
 	hi("CurSearch", bg, orange)
-	hi("Visual", nil, bg_alt)
+	-- A selection must read at a glance: the accent blue blended into the
+	-- background (bg_alt is the cursor-line tone and made it invisible).
+	hi("Visual", nil, blend_hex(blue, bg, 0.38))
 	hi("NonText", dim)
 	hi("EndOfBuffer", bg, bg)
 	hi("Whitespace", dim)

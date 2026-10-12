@@ -10,6 +10,14 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Selections are visible**: the visual-selection colour matched the
+  cursor-line tone and disappeared on the background, so `Ctrl-a` (select
+  all) and mouse drags looked like they did nothing.
+- **Copy reaches the system clipboard without a clipboard tool** (containers,
+  SSH) through OSC 52.
+
 ## [v0.7.0] - 2026-10-11
 
 ### Added
