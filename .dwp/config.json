@@ -2,11 +2,11 @@
   "addons": {
     "ai-diff-reviewer": {
       "enabled": true,
-      "version": "v3.3.9"
+      "version": "v3.3.11"
     },
     "dailybot": {
       "enabled": true,
-      "version": "v3.23.12"
+      "version": "v3.23.14"
     },
     "dependency-upgrade": {
       "enabled": true

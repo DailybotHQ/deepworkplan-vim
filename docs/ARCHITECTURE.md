@@ -155,29 +155,30 @@ succeeded; it is the one check branch protection requires
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 7.6.1, ai-diff-reviewer 3.3.9,
-dailybot 3.23.12), the thin `dwp-*` command delegators, agent personas, and the
+`.agents/` carries the vendored skills (deepworkplan 7.6.3, ai-diff-reviewer 3.3.11,
+dailybot 3.23.14), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
 (DWP v7 CONFIG §1); scratch in gitignored `tmp/`.
 
 ### Vendored provenance
 
-The 2026-10-11 dogfood upgrade uses the pack's tree-URL install and all-addons
+The 2026-10-12 dogfood upgrade uses the pack's tree-URL install and all-addons
 planner. `skills-lock.json` records each release ref and the installer's computed
 content hash. Installed skill trees must match the tagged sources byte for byte;
 local adaptations are inspected before replacement.
 
 | Skill | Tag | Verified commit |
 | --- | --- | --- |
-| deepworkplan | v7.6.1 | `cc0f073d57b68369a5fbf7b6dde2c5ca412a8e05` |
-| ai-diff-reviewer | v3.3.9 | `122b084029f1efae0674e98183f34075d8c02417` |
-| dailybot | v3.23.12 | `cf671f85b48e43a3d8751796f16b42ff4af440d9` |
+| deepworkplan | v7.6.3 | `782e1e74144d294a120bef221fedf1aa92d4b2d0` |
+| ai-diff-reviewer | v3.3.11 | `8a31149141d42fc3790d044df4b0a4f04f54ddc4` |
+| dailybot | v3.23.14 | `7e9146ade1ed681ad14fb87879923f68efb1aa03` |
 
 The pack's release `SHA256SUMS` digest is
-`c112bb72c450e8dc64fbcf6f55a1a4262b2d8d445c8ee01d16a4b47a8258c425`;
-the reviewer's is
-`aaf490cfe01ba858df49732798d6861a7c742b967f39fedb4f1a9c999aafc0c9`.
+`ddb486549780a47688c20aa763a55fc090bbf76bf11a4767f1827f3c2266e332`;
+the reviewer's (its release archives) is
+`d384c1fffc710e46b5a06d85c5366dfdfd612bebd67526c8647838714b089cf6`,
+and its installed tree is checked against the tag.
 Dailybot ships no checksum manifest; its tag commit and installed bytes are
 verified instead. `.review/extension.md` and the existing Dailybot hooks stay
 repository-owned. No authentication material belongs in the vendored trees.
