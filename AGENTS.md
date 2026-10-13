@@ -44,7 +44,7 @@ config) · `utilities/installation` (installer) · `install.lua`/`delete.lua` ·
 `dev.sh` + `docker/local` (contributor container + Herdr) · `tests/` (Go
 mapping contracts, smokes, installer harness) · `addon/` (machine-readable
 addon surface) · `scripts/` (public-hygiene check, release notes/assets, plugin-lock refresh) · `pckr/lockfile.lua` (plugin commit pins) ·
-`.github/` (CI, auto-release, issue/PR templates, Dependabot) · `snippets/` `dicts/` (data) · `assets/` (README logo, light/dark) · `.agents/` (harness) ·
+`.github/` (CI, auto-release, issue/PR templates, Dependabot) · `snippets/` `dicts/` (data) · `assets/` (README logo light/dark, `screenshots/`) · `.agents/` (harness) ·
 `.dwp/` (plan output, gitignored; `config.json` = tracked addon registry) · `tmp/` (scratch, gitignored).
 
 ## Deep Work Plans — invocation
