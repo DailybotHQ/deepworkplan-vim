@@ -62,12 +62,8 @@ local function run_cmd(cmd)
 	end
 end
 
--- Reader and sidebar load on first use only: the dashboard build stays
--- free of their requires.
-local function toggle_sidebar()
-	require("dwp.sidebar").toggle()
-end
-
+-- The reader loads on first use only: the dashboard build stays free of
+-- its require.
 local function open_plan(record)
 	require("dwp.reader").open(record)
 end
@@ -97,7 +93,7 @@ local function two_columns()
 			return { label = sc.label, key = sc.key, run = run_cmd(sc.cmd) }
 		end, SHORTCUTS),
 		plan_data(),
-		{ sidebar = toggle_sidebar, open_plan = open_plan }
+		{ open_plan = open_plan }
 	)
 	if vim.api.nvim_win_get_width(0) >= block.width + 6 then
 		return block
@@ -160,7 +156,6 @@ default.plans_section = {
 						opts = { position = "center", hl = "Comment" },
 					}
 				end
-				el[#el + 1] = button("e", "  Open plans sidebar  ", ":lua require('dwp.sidebar').toggle()<CR>")
 			end
 		end
 		return el
@@ -227,8 +222,8 @@ alpha.setup({
 })
 
 -- Activation for the two-column block (alpha buttons cannot sit side by
--- side): <CR> runs the row's action for the column under the cursor; `e`
--- opens the plans sidebar; anything else falls through to alpha.
+-- side): <CR> runs the row's action for the column under the cursor;
+-- anything else falls through to alpha.
 local function activate()
 	local block = default._block
 	local buf = vim.api.nvim_get_current_buf()
@@ -256,7 +251,6 @@ local function wire_block(buf)
 		return
 	end
 	vim.keymap.set("n", "<CR>", activate, { buffer = buf, nowait = true, silent = true })
-	vim.keymap.set("n", "e", toggle_sidebar, { buffer = buf, nowait = true, silent = true })
 	-- Start on the first shortcut so Enter does something useful at once.
 	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 	local first = block.lines[3]

@@ -57,8 +57,9 @@ local function left_rows(shortcuts)
 end
 
 -- Right column rows: header, spacer, the plan rows (or the wrapped empty
--- state), a spacer, the hint and the sidebar button.
-local function right_rows(data, sidebar, open_plan, width)
+-- state), a spacer and the hint. The plans sidebar is the left column's
+-- "Plans  Space P" shortcut, so there is no second button for it here.
+local function right_rows(data, open_plan, width)
 	local rows = { { text = "Your plans", group = "AlphaHeader" }, { text = "" } }
 	if data and #data.plan_lines > 0 then
 		for _, row in ipairs(data.plan_lines) do
@@ -78,13 +79,6 @@ local function right_rows(data, sidebar, open_plan, width)
 		end
 		rows[#rows + 1] = { text = "" }
 	end
-	local label = "Open plans sidebar"
-	local fill = math.max(1, width - dw(label) - 1)
-	rows[#rows + 1] = {
-		text = label .. string.rep(" ", fill) .. "e",
-		group = "AlphaButtons",
-		run = sidebar,
-	}
 	return rows
 end
 
@@ -103,7 +97,7 @@ end
 function M.compose(shortcuts, data, actions)
 	local rw = M.right_width(data)
 	local left = left_rows(shortcuts)
-	local right = right_rows(data, actions.sidebar, actions.open_plan, rw)
+	local right = right_rows(data, actions.open_plan, rw)
 	local n = math.max(#left, #right)
 	local lines, hl, rows, split = {}, {}, {}, {}
 	for i = 1, n do
