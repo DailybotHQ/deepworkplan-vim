@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/main/assets/logo-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/main/assets/logo-light.png">
-    <img alt="DeepWorkPlan Vim" src="https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/main/assets/logo-light.png" width="440">
+    <img alt="DeepWorkPlan Vim" src="https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/main/assets/logo-light.png" width="340">
   </picture>
 </p>
 
@@ -19,6 +19,31 @@ When agents work across repositories and terminal panes, you need to inspect
 what changed and see which plans and lanes need attention. DeepWorkPlan Vim
 combines file navigation, Git diffs, a searchable command index and read-only
 plan views in one editor. It works on its own; DeepWorkPlan and Herdr are optional.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img alt="The start screen: shortcuts and the progress of your plans" src="assets/screenshots/start-screen.png">
+      <p align="center"><b>Start screen</b>: shortcuts and your plans' progress</p>
+    </td>
+    <td width="50%" valign="top">
+      <img alt="The file tree beside the start screen" src="assets/screenshots/file-tree.png">
+      <p align="center"><b>File tree</b> (<code>SPC n</code>) beside the start screen</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img alt="Markdown rendered in the buffer, with tabs and the file tree" src="assets/screenshots/markdown.png">
+      <p align="center"><b>Rendered Markdown</b> (<code>SPC m r</code>) with tabs</p>
+    </td>
+    <td width="50%" valign="top">
+      <img alt="The list of changed files beside a side-by-side Git diff" src="assets/screenshots/review-changes.png">
+      <p align="center"><b>Review changes</b> (<code>SPC g d</code>): changed files and a side-by-side diff</p>
+    </td>
+  </tr>
+</table>
 
 ## Install and quickstart
 

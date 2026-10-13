@@ -14,6 +14,8 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 - **A logo**: the README opens with the DeepWorkPlan Vim logo, in light and
   dark variants that follow the reader's GitHub theme (`assets/`).
+- **Screenshots in the README**: the start screen, the file tree, rendered
+  Markdown and the side-by-side review of changes (`assets/screenshots/`).
 
 ### Fixed
 
