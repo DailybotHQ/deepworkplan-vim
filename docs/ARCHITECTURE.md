@@ -155,29 +155,29 @@ succeeded; it is the one check branch protection requires
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 7.6.3, ai-diff-reviewer 3.3.11,
-dailybot 3.23.14), the thin `dwp-*` command delegators, agent personas, and the
+`.agents/` carries the vendored skills (deepworkplan 7.8.0, ai-diff-reviewer 3.3.14,
+dailybot 3.23.17), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
 (DWP v7 CONFIG §1); scratch in gitignored `tmp/`.
 
 ### Vendored provenance
 
-The 2026-10-12 dogfood upgrade uses the pack's tree-URL install and all-addons
+The 2026-10-13 dogfood upgrade uses the pack's tree-URL install and all-addons
 planner. `skills-lock.json` records each release ref and the installer's computed
 content hash. Installed skill trees must match the tagged sources byte for byte;
 local adaptations are inspected before replacement.
 
 | Skill | Tag | Verified commit |
 | --- | --- | --- |
-| deepworkplan | v7.6.3 | `782e1e74144d294a120bef221fedf1aa92d4b2d0` |
-| ai-diff-reviewer | v3.3.11 | `8a31149141d42fc3790d044df4b0a4f04f54ddc4` |
-| dailybot | v3.23.14 | `7e9146ade1ed681ad14fb87879923f68efb1aa03` |
+| deepworkplan | v7.8.0 | `17d71ec0579bb8b00039107587f8b52069e2fa6b` |
+| ai-diff-reviewer | v3.3.14 | `7cfa8f89280b31e4c0b3b2764050760b8d3c7fd3` |
+| dailybot | v3.23.17 | `0ccf31329d638915e5c282c91d4f3ab6547140b4` |
 
 The pack's release `SHA256SUMS` digest is
-`ddb486549780a47688c20aa763a55fc090bbf76bf11a4767f1827f3c2266e332`;
+`a43fc0f2996b2edd5e68850f62742486e1d7475314351ba3e25771fd198453e5`;
 the reviewer's (its release archives) is
-`d384c1fffc710e46b5a06d85c5366dfdfd612bebd67526c8647838714b089cf6`,
+`57e185bacc80eb3b423f929a7d91c6cd3c503095f1773c14dded07b702feb9c4`,
 and its installed tree is checked against the tag.
 Dailybot ships no checksum manifest; its tag commit and installed bytes are
 verified instead. `.review/extension.md` and the existing Dailybot hooks stay

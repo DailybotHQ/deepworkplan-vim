@@ -7,9 +7,9 @@ entries: if it is listed here, the file exists; if it exists, it is listed.
 
 | Skill | Version | Source | Purpose |
 |---|---|---|---|
-| [`deepworkplan`](../skills/deepworkplan/SKILL.md) | 7.6.3 | `DailybotHQ/deepworkplan-skill` (vendored, tag-pinned) | The DWP engine: create/execute/refine/resume/status/verify/upgrade/onboard/author sub-skills. Standard 7.0.0 — Lite and Full plans |
-| [`ai-diff-reviewer`](../skills/ai-diff-reviewer/SKILL.md) | 3.3.11 | `DailybotHQ/ai-diff-reviewer` (vendored, tag-pinned) | Local + CI diff review (six sub-skills: review, generate-extension, setup, open-pr, apply-review, address-review). Local review is the required Final Review pass; config at [`.review/extension.md`](../../.review/extension.md) |
-| [`dailybot`](../skills/dailybot/SKILL.md) | 3.23.14 | `DailybotHQ/agent-skill` (vendored, tag-pinned) | 17-capability Dailybot pack; wired into DWP only for lifecycle **reporting** (never blocks). |
+| [`deepworkplan`](../skills/deepworkplan/SKILL.md) | 7.8.0 | `DailybotHQ/deepworkplan-skill` (vendored, tag-pinned) | The DWP engine: create/execute/refine/resume/status/verify/upgrade/onboard/author sub-skills. Standard 7.0.0 — Lite and Full plans |
+| [`ai-diff-reviewer`](../skills/ai-diff-reviewer/SKILL.md) | 3.3.14 | `DailybotHQ/ai-diff-reviewer` (vendored, tag-pinned) | Local + CI diff review (six sub-skills: review, generate-extension, setup, open-pr, apply-review, address-review). Local review is the required Final Review pass; config at [`.review/extension.md`](../../.review/extension.md) |
+| [`dailybot`](../skills/dailybot/SKILL.md) | 3.23.17 | `DailybotHQ/agent-skill` (vendored, tag-pinned) | 17-capability Dailybot pack; wired into DWP only for lifecycle **reporting** (never blocks). |
 | [`fix-frontmatter`](../skills/fix-frontmatter/SKILL.md) | 1.0.0 | `DailybotHQ/deepworkplan-skill` (vendored utility) | Validates/fixes `SKILL.md` frontmatter against the contract |
 | [`shellcheck-fix`](../skills/shellcheck-fix/SKILL.md) | 1.0.0 | `DailybotHQ/deepworkplan-skill` (vendored utility) | shellcheck over the shipped shell scripts (applies to `dev.sh`, `docker/`, `tests/run.sh`) |
 | [`write-bats-test`](../skills/write-bats-test/SKILL.md) | 1.0.0 | `DailybotHQ/deepworkplan-skill` (vendored utility) | bats-core test authoring, following the upstream skill repo's `tests/` convention (this repo's own suite is Go — the skill applies if a bats layer is ever added) |
@@ -53,4 +53,4 @@ The [dependency-upgrade flow](../skills/deepworkplan/addons/dependency-upgrade/S
 is exposed by the inert [`/lib-upgrade`](../commands/lib-upgrade.md) command.
 The [design-system flow](../skills/deepworkplan/addons/design-system/SKILL.md)
 is recorded in [docs/DESIGN.md](../../docs/DESIGN.md), profile `cli-output`.
-Neither is a separate vendored skill; both use the pinned 7.6.3 pack.
+Neither is a separate vendored skill; both use the pinned 7.8.0 pack.
