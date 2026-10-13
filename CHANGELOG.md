@@ -19,6 +19,10 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ### Fixed
 
+- **The start screen's plans block no longer ends in a stray `e`**: its
+  "Open plans sidebar" row repeated the `Space P` shortcut under a bare
+  one-letter key. The row and its `e` key are gone; `Space P` (the "Plans"
+  shortcut and the hint above it) opens the sidebar.
 - **Selections are visible**: the visual-selection colour matched the
   cursor-line tone and disappeared on the background, so `Ctrl-a` (select
   all) and mouse drags looked like they did nothing.
