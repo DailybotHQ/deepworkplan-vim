@@ -34,6 +34,25 @@ set.visualbell = true
 set.cursorline = false
 set.clipboard = "unnamedplus"
 
+-- Without a system clipboard tool (containers, SSH, bare hosts) "+ has no
+-- provider and a yank never leaves the editor. Fall back to OSC 52: the
+-- terminal receives the text and puts it on the system clipboard. Paste
+-- reads the unnamed register (the terminal's own cmd+v pastes text typed
+-- from outside, bracketed).
+if vim.fn.executable("pbcopy") + vim.fn.executable("wl-copy") + vim.fn.executable("xclip") + vim.fn.executable("xsel") + vim.fn.executable("win32yank.exe") == 0 then
+	local osc52 = require("vim.ui.clipboard.osc52")
+	local function register()
+		return function()
+			return { vim.fn.split(vim.fn.getreg('"'), "\n"), vim.fn.getregtype('"') }
+		end
+	end
+	vim.g.clipboard = {
+		name = "OSC 52",
+		copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+		paste = { ["+"] = register(), ["*"] = register() },
+	}
+end
+
 -- Autos
 set.autoindent = true
 set.updatetime = 300
