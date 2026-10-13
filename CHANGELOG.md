@@ -10,6 +10,11 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+### Added
+
+- **A logo**: the README opens with the DeepWorkPlan Vim logo, in light and
+  dark variants that follow the reader's GitHub theme (`assets/`).
+
 ### Fixed
 
 - **Selections are visible**: the visual-selection colour matched the

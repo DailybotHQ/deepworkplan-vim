@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/main/assets/logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/main/assets/logo-light.png">
+    <img alt="DeepWorkPlan Vim" src="https://raw.githubusercontent.com/DailybotHQ/deepworkplan-vim/main/assets/logo-light.png" width="440">
+  </picture>
+</p>
+
 # DeepWorkPlan Vim
 
 **The terminal editor for DeepWorkPlan: a Neovim configuration for people and
