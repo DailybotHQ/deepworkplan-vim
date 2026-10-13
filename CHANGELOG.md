@@ -10,6 +10,35 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v1.0.0] - 2026-10-12
+
+The first stable release. From this tag on, the public interface follows
+semantic versioning: a breaking change to any of the following ships only in a
+new major version.
+
+- **The installer:** `install.sh` and its flags (`--version`, `--ref`, `--dir`,
+  `--nvim`, `--skip-packages`, `--strict`, `--yes`, `--help`) and the matching
+  `DWP_VIM_*` environment variables.
+- **The addon surface:** `addon/surface.json`, schema `interface: 1`.
+- **The editor commands:** `:DwpPlans`, `:DwpLanes`, `:DwpCommands` and
+  `:DwpConfig`.
+- **The configuration file:** the `dwpvim.json` keys
+  ([docs/CONFIGURATION.md](docs/CONFIGURATION.md)).
+- **The keybindings** pinned by the mapping contract (`tests/contract.go`).
+
+Since v0.7.0 this release makes selections visible again, copies through OSC 52
+where no clipboard tool exists, removes a stray shortcut row from the start
+screen, and gives the README a logo, screenshots and a refreshed quickstart and
+ecosystem guide. No other functional change: the editor's behaviour otherwise
+matches v0.7.0.
+
+### Changed
+
+- **Version 1.0.0.** The version, the installer's release pin, the addon
+  surface's install references and the README's install commands move from
+  v0.7.0 to v1.0.0.
+- **README:** a refreshed quickstart and DeepWorkPlan ecosystem guide.
+
 ### Added
 
 - **A logo**: the README opens with the DeepWorkPlan Vim logo, in light and
@@ -446,7 +475,9 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.0.0...HEAD
+[v1.0.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.7.0...v1.0.0
+[v0.7.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.4.2...v0.5.0
