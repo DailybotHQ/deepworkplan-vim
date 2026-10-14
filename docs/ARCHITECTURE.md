@@ -155,7 +155,7 @@ succeeded; it is the one check branch protection requires
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 7.8.0, ai-diff-reviewer 3.3.14,
+`.agents/` carries the vendored skills (deepworkplan 7.8.1, ai-diff-reviewer 3.3.14,
 dailybot 3.23.17), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
@@ -170,12 +170,12 @@ local adaptations are inspected before replacement.
 
 | Skill | Tag | Verified commit |
 | --- | --- | --- |
-| deepworkplan | v7.8.0 | `17d71ec0579bb8b00039107587f8b52069e2fa6b` |
+| deepworkplan | v7.8.1 | `197464071759ba236665eb5c45476f2518fe35e1` |
 | ai-diff-reviewer | v3.3.14 | `7cfa8f89280b31e4c0b3b2764050760b8d3c7fd3` |
 | dailybot | v3.23.17 | `0ccf31329d638915e5c282c91d4f3ab6547140b4` |
 
 The pack's release `SHA256SUMS` digest is
-`a43fc0f2996b2edd5e68850f62742486e1d7475314351ba3e25771fd198453e5`;
+`5b288fad7cd0cee810092d30f8a502e73e0b04b69510510faa649e1270671779`;
 the reviewer's (its release archives) is
 `57e185bacc80eb3b423f929a7d91c6cd3c503095f1773c14dded07b702feb9c4`,
 and its installed tree is checked against the tag.
