@@ -10,6 +10,16 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v1.0.1] - 2026-10-25
+
+A maintenance release; the public interface is unchanged.
+
+- **Harness:** the vendored DeepWorkPlan pack moves to 7.9.0 (herdr addon
+  pinned to herdr-peers v1.1.0 with native debates) and the AI Diff Reviewer
+  skill to v3.3.16, both byte-identical to their tags.
+- **CI:** `actions/upload-artifact` 7.0.2; the Go mapping tests build on
+  `golang:1.27-alpine`.
+
 ## [v1.0.0] - 2026-10-12
 
 The first stable release. From this tag on, the public interface follows

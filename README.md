@@ -47,22 +47,22 @@ plan views in one editor. It works on its own; DeepWorkPlan and Herdr are option
 
 ## Install and quickstart
 
-The current release is **v1.0.0**, for macOS, Linux or WSL, with
+The current release is **v1.0.1**, for macOS, Linux or WSL, with
 [Neovim 0.12+](https://github.com/neovim/neovim/wiki/Installing-Neovim).
 Download the tag-pinned installer and release checksums, verify the installer,
 then run it from a terminal:
 
 ```bash
-curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v1.0.0/install.sh
-curl -fsSL -o SHA256SUMS https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v1.0.0/SHA256SUMS
+curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v1.0.1/install.sh
+curl -fsSL -o SHA256SUMS https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v1.0.1/SHA256SUMS
 awk '$2 == "install.sh" { print }' SHA256SUMS | shasum -a 256 -c -
-bash install.sh --version 1.0.0
+bash install.sh --version 1.0.1
 nvim
 ```
 
 The verification prints `install.sh: OK`. On Linux, `sha256sum -c -` can replace
 `shasum -a 256 -c -`. Stop if verification fails. The
-[release assets](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v1.0.0)
+[release assets](https://github.com/DailybotHQ/deepworkplan-vim/releases/tag/v1.0.1)
 also include `install.sh.sha256`, `surface.json` and the source archive.
 The website's [installer mirror](https://deepworkplan.com/vim/install.sh) is usable
 when its checksum matches the pinned release.
@@ -78,7 +78,7 @@ For an image or CI environment that already provides git, curl, Lua, a C compile
 Node.js and pnpm, run the verified installer as a non-root user:
 
 ```bash
-bash install.sh --version 1.0.0 --nvim 0.12.5 --skip-packages --strict
+bash install.sh --version 1.0.1 --nvim 0.12.5 --skip-packages --strict
 ```
 
 This installs checksum-verified Neovim into `~/.local/opt`, links it under
@@ -92,7 +92,7 @@ On Windows, install Neovim with `winget install -e --id Neovim.Neovim`, then use
 Git Bash with git and Lua on PATH:
 
 ```bash
-git clone --branch v1.0.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+git clone --branch v1.0.1 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 cd "$LOCALAPPDATA/nvim" && lua install.lua
 nvim
 ```
