@@ -42,7 +42,7 @@
     "skip_packages_env": "DWP_VIM_SKIP_PACKAGES",
     "version_env": "DWP_VIM_VERSION",
     "container": {
-      "command": "bash install.sh --version 1.0.0 --nvim 0.12.5 --skip-packages --strict",
+      "command": "bash install.sh --version 1.0.1 --nvim 0.12.5 --skip-packages --strict",
       "note": "images and CI: non-root, no terminal; --nvim installs the official Neovim tarball (sha256-verified); --strict fails on a failed or incomplete plugin install, or a plugin (or pckr) whose HEAD is not its commit in pckr/lockfile.lua; the image provides git, curl, Lua, a C compiler, Node.js and pnpm",
       "min_neovim": "0.12"
     },
@@ -53,7 +53,7 @@
       "mirror_url": "https://deepworkplan.com/vim/install.sh",
       "mirror_note": "the website's copy; from v0.4.1 it is byte-identical to the release's install.sh \u2014 use it only when its sha256 equals script.sha256, otherwise use url",
       "sha256_file": "install.sh.sha256 (next to install.sh on the website and on the release)",
-      "sha256": "d1aaa2072bd1e67824d93ffc26a804a43a579885c3672909a90cb3e529ffe9e8"
+      "sha256": "24a550239108a71434e993675389c27c64d88c4c07af8efc9be98d23897fb716"
     },
     "steps": [
       "download script.url (or mirror_url, or release_asset_url) to a local file named install.sh",

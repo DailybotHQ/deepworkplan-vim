@@ -56,7 +56,7 @@ then run it from a terminal:
 curl -fsSL -o install.sh https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v1.0.1/install.sh
 curl -fsSL -o SHA256SUMS https://github.com/DailybotHQ/deepworkplan-vim/releases/download/v1.0.1/SHA256SUMS
 awk '$2 == "install.sh" { print }' SHA256SUMS | shasum -a 256 -c -
-bash install.sh --version 1.0.0
+bash install.sh --version 1.0.1
 nvim
 ```
 
@@ -78,7 +78,7 @@ For an image or CI environment that already provides git, curl, Lua, a C compile
 Node.js and pnpm, run the verified installer as a non-root user:
 
 ```bash
-bash install.sh --version 1.0.0 --nvim 0.12.5 --skip-packages --strict
+bash install.sh --version 1.0.1 --nvim 0.12.5 --skip-packages --strict
 ```
 
 This installs checksum-verified Neovim into `~/.local/opt`, links it under

@@ -18,7 +18,7 @@
 # line of SHA256SUMS on the GitHub release (release tags are immutable).
 #
 # Images and CI (non-root, no terminal) — one step after the download:
-#   bash install.sh --version 1.0.0 --nvim 0.12.5 --skip-packages --strict
+#   bash install.sh --version 1.0.1 --nvim 0.12.5 --skip-packages --strict
 #
 # What it does, in order:
 #   1. Preflight — detects OS and package manager; installs git, curl, and
@@ -111,7 +111,7 @@ Switch values: 1/true/yes/on or 0/false/no/off (any case); anything else
 is an error.
 
 Images and CI (download, verify, then run):
-  bash install.sh --version 1.0.0 --nvim 0.12.5 --skip-packages --strict
+  bash install.sh --version 1.0.1 --nvim 0.12.5 --skip-packages --strict
 USAGE
 }
 
