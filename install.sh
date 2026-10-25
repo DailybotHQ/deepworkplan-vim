@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# DeepWorkPlan Vim — self-contained installer for release v1.0.0.
+# DeepWorkPlan Vim — self-contained installer for release v1.0.1.
 #
 # Published at  : https://deepworkplan.com/vim/install.sh
 #                 and as the install.sh asset (with SHA256SUMS) of each
@@ -60,7 +60,7 @@
 # Windows: use winget plus Git Bash, or run the steps above inside WSL,
 # where they work as-is:
 #   winget install -e --id Neovim.Neovim --accept-package-agreements --accept-source-agreements
-#   git clone --branch v1.0.0 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
+#   git clone --branch v1.0.1 https://github.com/DailybotHQ/deepworkplan-vim.git "$LOCALAPPDATA/nvim"
 #   cd "$LOCALAPPDATA/nvim" && lua install.lua
 #
 set -euo pipefail
@@ -74,7 +74,7 @@ main() {
 REPO_URL="https://github.com/DailybotHQ/deepworkplan-vim.git"
 # The release this script belongs to: with no version or ref requested it
 # installs exactly that tag.
-RELEASE_REF="v1.0.0"
+RELEASE_REF="v1.0.1"
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
