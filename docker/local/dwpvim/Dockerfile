@@ -1,5 +1,5 @@
 # Base pinned by dated tag AND digest (the digest wins; the tag documents it).
-FROM debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+FROM debian:trixie-20261104-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 LABEL org.opencontainers.image.title="deepworkplan-vim"
 LABEL org.opencontainers.image.description="Contributor image for DeepWorkPlan Vim — Neovim config for humans and agents."
 LABEL org.opencontainers.image.licenses="GPL-3.0"
