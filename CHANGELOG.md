@@ -10,6 +10,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Harness:** the vendored DeepWorkPlan pack moves to 7.10.1 and the vendored
+  herdr-peers skill lands at v1.2.1 (protocol 1 unchanged; 1.2.x adds
+  `autopilot`, a daemon only a human starts), each tree verified file by file
+  against its release `SHA256SUMS`. The herdr addon registry entry pins
+  `v1.2.1`. No editor surface changes.
+
 ## [v1.0.1] - 2026-10-25
 
 A maintenance release; the public interface is unchanged.
