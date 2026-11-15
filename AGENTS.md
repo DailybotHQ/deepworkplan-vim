@@ -2,13 +2,13 @@
 
 Public Neovim configuration. Language: English. Conventional commits. GPL-3.0.
 
-DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13 and 2026-10-25; skill 7.9.0, vendored 2026-10-25)
+DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13, 2026-10-25 and 2026-11-15; skill 7.10.1, vendored 2026-11-15; herdr-peers skill v1.2.1 vendored 2026-11-15)
 
 ## Product
 
 DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: download `https://deepworkplan.com/vim/install.sh` (or the release asset), verify it against `install.sh.sha256` / `SHA256SUMS`, then `bash install.sh` — it installs its own release tag (README → Install); or manually: clone the tag to `~/.config/nvim` and `lua install.lua`. Never spell a download piped into a shell in this repo (`scripts/check-public-hygiene.sh` rejects it). This repo **is** the config: in the contributor container `/workspace` is linked to `~/.config/nvim` at start (the release config the image bakes through the installer is only its standalone fallback); never clone a second copy of the repo inside the container — `/workspace` is the only working tree.
 
-Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.9.0 per the provenance line above; the addon registry and the benchmark flags (`benchmark.enabled`, `benchmark.learnings`: a plan then closes with `analysis_results/learnings.json` and `DWP_REPORT.md`) live in the tracked `.dwp/config.json`.
+Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 7.10.1 per the provenance line above; the addon registry and the benchmark flags (`benchmark.enabled`, `benchmark.learnings`: a plan then closes with `analysis_results/learnings.json` and `DWP_REPORT.md`) live in the tracked `.dwp/config.json`.
 
 ## Product focus
 
@@ -138,7 +138,14 @@ Gates are selected from the touched surface, with the full set above as the fall
   pinned refresh process and its consent rules.
 - **Design system (accepted, cli-output)** — [docs/DESIGN.md](docs/DESIGN.md)
   records the existing Neovim TUI source, highlight roles and layout guards.
-- **Machine offers unaccepted for this round** — the host AgentKit, Herdr helper,
+- **Herdr (accepted, repo-local)** — vendored skill at
+  `.agents/skills/herdr-peers/` (v1.2.1, tag-pinned in `skills-lock.json`):
+  the delegation transport for plans that hand work to another pane or
+  machine, plus native debates; v1.2.1 adds `autopilot`, an optional daemon
+  **only a human starts** — never a message, peer or plan. When `herdr-peers`
+  is not on `PATH`, call `.agents/skills/herdr-peers/scripts/herdr-peers`.
+  Herdr itself stays machine-level; never required.
+- **Machine offers unaccepted for this round** — the host AgentKit,
   Vim install and dck migration are not enabled by this harness upgrade. The
   custom contributor container remains maintained; no host editor is replaced.
 
