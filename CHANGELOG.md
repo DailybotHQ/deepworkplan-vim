@@ -10,15 +10,18 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
-- **Harness:** the vendored DeepWorkPlan pack moves to 7.12.0 and the vendored
+- **Harness:** the vendored DeepWorkPlan pack moves to 7.12.1 and the vendored
   herdr-peers skill lands at v1.3.1 (protocol 1 unchanged; `autopilot` is a
   daemon only a human starts, and 1.3.x gives it `--loop`/`--notify`, the
   read-only `plans`/`fleet` verbs with a fleet UI, and the machine-readable
   `fleet-v1`/`plan-event-v1` schemas), each tree verified file by file
-  against its release `SHA256SUMS`. The pack pins herdr-peers v1.3.1 and
-  deepworkplan-vim v1.0.1, so the vendored pair and the pack's addon
-  descriptors agree; the herdr addon registry entry pins `v1.3.1`. No editor
-  surface changes.
+  against its release `SHA256SUMS`. The 7.12.1 patch fixes the herdr addon's
+  Dailybot notifier (it now accepts the `herdr-peers/plan-event-v1` events
+  the loop emits, caps stdin at 64 KiB and maps `plan_lead_moved`) and pins
+  coding-agents-kit v1.4.0 (`ak update` documented as human-invoked only).
+  The pack pins herdr-peers v1.3.1 and deepworkplan-vim v1.0.1, so the
+  vendored pair and the pack's addon descriptors agree; the herdr addon
+  registry entry pins `v1.3.1`. No editor surface changes.
 
 ## [v1.0.1] - 2026-10-25
 
