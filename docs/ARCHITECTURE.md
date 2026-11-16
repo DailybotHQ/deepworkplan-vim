@@ -36,6 +36,7 @@ lua/setUp/sidebars.lua  one sidebar at a time: closes the file tree when the pla
 lua/userconfig.lua   dwpvim.json (editor dir) + .dwpvim.json (project): merge, validate, :DwpConfig
 lua/dwp/             plan surfaces (see lua/README.md): plans (discovery),
                      state (machine states + rich plain-language model),
+                     queue (read-only dwp-queue-v1 plan-queue reader),
                      sidebar (SPC P), reader (Enter on a plan),
                      statusline (clickable active-plan segment),
                      greeter_plans (dashboard top-3 overview)

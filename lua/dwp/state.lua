@@ -160,16 +160,21 @@ end
 -- The blocked signal. The ledger writes `blocker`; `blocked` is accepted
 -- as a defensive alias (both spellings appear in the wild). Any shape is
 -- tolerated — only a human-readable reason is extracted, never assumed.
+-- Pack 8.0 adds structured fields on the table shape: `resolver`
+-- ("lead" | "human"; absent means human) and `class` (C1–C7), surfaced
+-- on the record as blocker_resolver / blocker_class.
+-- Both come back as nil unless the record carries them, so a 7.x plan
+-- renders exactly as before and an 8.0 record earns its badge.
 local function blocked_signal(snapshot)
 	if type(snapshot) ~= "table" then
-		return false, nil
+		return false, nil, nil, nil
 	end
 	local raw = snapshot.blocker or snapshot.blocked
 	-- JSON null decodes to vim.NIL, not Lua nil — both mean "no blocker".
 	if raw == nil or raw == vim.NIL or raw == false or raw == "" then
-		return false, nil
+		return false, nil, nil, nil
 	end
-	local reason
+	local reason, resolver, class
 	if type(raw) == "string" then
 		reason = raw
 	elseif type(raw) == "table" then
@@ -179,8 +184,117 @@ local function blocked_signal(snapshot)
 				break
 			end
 		end
+		if raw.resolver == "lead" or raw.resolver == "human" then
+			resolver = raw.resolver
+		end
+		-- The class is the blocker record's `class` (C1–C7), the field
+		-- pack 8.0.0's plan-snapshot/v8 writes and herdr-peers 2.1.0's
+		-- fleet report reads; anything outside C1–C7 is ignored.
+		if type(raw.class) == "string" and raw.class:match("^C[1-7]$") then
+			class = raw.class
+		end
+		-- plan-snapshot/v8 allows resolver "lead" only with C3, C4 or C7
+		-- (a lead never clears authority, consent, damage or terms); any
+		-- other class with "lead" is read as the human's.
+		if resolver == "lead" and class and not ({ C3 = true, C4 = true, C7 = true })[class] then
+			resolver = "human"
+		end
 	end
-	return true, reason
+	return true, reason, resolver, class
+end
+
+-- The autonomy posture (plan-contract/v8, spec/LOOP_ENGINEERING.md §2):
+-- the optional, closed `autonomy` block of the plan's live CONTRACT
+-- (the highest contracts/ revision, else the manifest's pointer), never
+-- state.json.
+-- Only a v8 contract has a posture; a v7 or older contract (or none)
+-- yields nil, so those plans render exactly as before. Inside a v8
+-- contract the consumer MUST apply each absent key's recorded default —
+-- an absent block means all five defaults: stall_budget 3, promptable =
+-- the lead only, notify = no target, brain = false, queue = none. A key
+-- of the wrong shape falls back to its default; a non-table block says
+-- nothing. Queue position is NOT read here: it lives in the pack's queue
+-- (dwp.queue), not the contract.
+M.CONTRACT_V8 = "https://deepworkplan.com/schema/plan-contract/v8.json"
+
+local function string_list(value)
+	if type(value) ~= "table" or #value == 0 then
+		return nil
+	end
+	local out = {}
+	for _, item in ipairs(value) do
+		if type(item) ~= "string" or item == "" then
+			return nil
+		end
+		out[#out + 1] = item
+	end
+	return out
+end
+
+-- The live contract (V6_LIFECYCLE §5): the highest revision under
+-- contracts/ (contract.rN.json; staged .pending files are invisible),
+-- else the manifest's pointer (provenance, the contract as first
+-- written). nil when neither exists.
+local function live_contract(plan_path)
+	local best, best_n = nil, 0
+	local dir = (vim.uv or vim.loop).fs_scandir(plan_path .. "/contracts")
+	if dir then
+		while true do
+			local name, kind = (vim.uv or vim.loop).fs_scandir_next(dir)
+			if not name then
+				break
+			end
+			local n = tonumber(name:match("^contract%.r(%d+)%.json$"))
+			if n and (kind == nil or kind == "file") and n > best_n then
+				best, best_n = name, n
+			end
+		end
+	end
+	if best then
+		return read_json(plan_path .. "/contracts/" .. best)
+	end
+	local manifest = read_json(plan_path .. "/manifest.json")
+	if type(manifest) ~= "table" or type(manifest.contract) ~= "table" then
+		return nil
+	end
+	local rel = manifest.contract.path
+	if type(rel) ~= "string" or rel == "" or rel:find("..", 1, true) then
+		return nil
+	end
+	return read_json(plan_path .. "/" .. rel)
+end
+
+--- The plan's autonomy posture, or nil (see above). Computed on demand
+--- by the reader only — never during a plans scan, so the sidebar,
+--- statusline and greeter pay no contract reads for it.
+function M.posture(plan_path)
+	if type(plan_path) ~= "string" then
+		return nil
+	end
+	local contract = live_contract(plan_path)
+	if type(contract) ~= "table" or contract.schema ~= M.CONTRACT_V8 then
+		return nil
+	end
+	local raw = contract.autonomy
+	if raw == nil then
+		raw = {}
+	elseif type(raw) ~= "table" then
+		return nil
+	end
+	local out = { stall_budget = 3, promptable = nil, notify = nil, brain = false, queue = "none" }
+	local budget = raw.stall_budget
+	if type(budget) == "number" and budget % 1 == 0 and budget >= 1 and budget <= 10 then
+		out.stall_budget = budget
+	end
+	out.promptable = string_list(raw.promptable)
+	out.notify = string_list(raw.notify)
+	if raw.brain == true then
+		out.brain = true
+	end
+	if raw.queue == "prompt-lead" or raw.queue == "launch" or raw.queue == "none" then
+		out.queue = raw.queue
+	end
+	return out
 end
 
 -- The task happening right now: the started-but-not-completed task with
@@ -225,6 +339,21 @@ local function current_task(machine, snapshot, plan_path)
 	return last
 end
 
+-- The structured-blocker badge text (pack 8.0), or nil when the record
+-- carries neither field — a 7.x plan renders without a badge. Absent
+-- resolver means human (PLAN_024); the words carry the meaning, colour
+-- only follows.
+function M.blocker_badge(resolver, class)
+	if not resolver and not class then
+		return nil
+	end
+	local prefix = class and class .. " · " or ""
+	if resolver == "lead" then
+		return prefix .. "resolvable by: lead"
+	end
+	return prefix .. "needs: human"
+end
+
 -- Rich derivation for one plan path. Every field is safe to render
 -- directly: nil-free on the display path (counts may be nil only when
 -- the README has no checkboxes at all, rendered as 0/0 by callers).
@@ -233,7 +362,7 @@ function M.derive_rich(plan_path)
 	local vocab = VOCAB[machine] or VOCAB.unknown
 	local done, total = M.task_counts(plan_path .. "/README.md")
 	local snapshot = read_json(plan_path .. "/state.json")
-	local blocked, reason = blocked_signal(snapshot)
+	local blocked, reason, resolver, class = blocked_signal(snapshot)
 	local entry = {
 		machine = machine,
 		label = vocab.label,
@@ -244,6 +373,8 @@ function M.derive_rich(plan_path)
 		percent = (total and total > 0) and math.floor((done / total) * 100 + 0.5) or 0,
 		blocked = blocked,
 		blocker_reason = reason,
+		blocker_resolver = resolver,
+		blocker_class = class,
 		current_task = current_task(machine, snapshot, plan_path),
 		title = M.resolve_title(plan_path),
 	}

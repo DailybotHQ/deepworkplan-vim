@@ -45,8 +45,17 @@ relationships on theme changes; never copy a palette hex into a DWP component.
 - **Plans sidebar (`dwp.sidebar`):** a persistent split with status sections,
   progress bars and expandable tasks/files. Keyboard navigation skips decoration;
   mouse routing follows the window under the pointer. `?` explains the actions.
+  Pack-8.0 info lines ride under a plan row (never inside the frozen row):
+  the structured-blocker badge — words first, `Comment` for lead-resolvable,
+  `WarningMsg` when the human is needed — and the plan's queue place from
+  `.dwp/queue.json` (`dwp-queue-v1`, read-only). Both render only when their
+  data exists; a 7.x repository renders byte-identically to before.
 - **Plan reader (`dwp.reader`):** a plain-language goal, task checklist and file
   jump list. Wrap prose to the available width; preserve full blocker reasons.
+  The autonomy posture — the `plan-contract/v8` `autonomy` block with its
+  defaults applied (stall budget, brain, promptable panes, notify targets,
+  queue start), one fact per line, plus the queue place — sits in its own
+  block beside the goal, present only for a v8 contract or a queued plan.
 - **Lanes (`dwp.lanes`):** a separate read-only split containing recorded fields
   and optional live snapshots. Display the timestamp and refresh action; do not
   label it continuous monitoring. Failed lookups retain recorded membership.
