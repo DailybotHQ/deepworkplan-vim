@@ -10,6 +10,8 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v1.1.0] - 2026-11-16
+
 - **Added (pack-8.0 surfaces, read-only and additive):** the plan browser and
   reader render the pack's plan queue (`dwp/queue.lua` reading
   `.dwp/queue.json`, schema `dwp-queue-v1`: per-plan place and state),
@@ -529,7 +531,9 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.1.0...HEAD
+[v1.1.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.0.1...v1.1.0
+[v1.0.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.7.0...v1.0.0
 [v0.7.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.5.1...v0.6.0
