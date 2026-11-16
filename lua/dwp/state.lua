@@ -161,7 +161,8 @@ end
 -- as a defensive alias (both spellings appear in the wild). Any shape is
 -- tolerated — only a human-readable reason is extracted, never assumed.
 -- Pack 8.0 adds structured fields on the table shape: `resolver`
--- ("lead" | "human"; absent means human) and `blocker_class` (C1–C7).
+-- ("lead" | "human"; absent means human) and `class` (C1–C7), surfaced
+-- on the record as blocker_resolver / blocker_class.
 -- Both come back as nil unless the record carries them, so a 7.x plan
 -- renders exactly as before and an 8.0 record earns its badge.
 local function blocked_signal(snapshot)
@@ -186,8 +187,11 @@ local function blocked_signal(snapshot)
 		if raw.resolver == "lead" or raw.resolver == "human" then
 			resolver = raw.resolver
 		end
-		if type(raw.blocker_class) == "string" and raw.blocker_class ~= "" then
-			class = raw.blocker_class
+		-- The class is the blocker record's `class` (C1–C7), the field
+		-- pack 8.0.0's plan-snapshot/v8 writes and herdr-peers 2.1.0's
+		-- fleet report reads; anything outside C1–C7 is ignored.
+		if type(raw.class) == "string" and raw.class:match("^C[1-7]$") then
+			class = raw.class
 		end
 	end
 	return true, reason, resolver, class

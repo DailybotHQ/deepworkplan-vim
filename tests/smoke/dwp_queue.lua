@@ -119,7 +119,7 @@ plan_dir("PLAN_990_first", vim.json.encode({
 }))
 plan_dir("PLAN_991_second", vim.json.encode({
 	tasks = { { id = "t1", title = "waiting task", status = "in_progress", started_seq = 1 } },
-	blocker = { reason = "waiting on the design review", blocker_class = "C2", resolver = "lead" },
+	blocker = { reason = "waiting on the design review", class = "C2", resolver = "lead" },
 }), true)
 -- The posture lives in the plan's v8 contract (plan-contract/v8 autonomy
 -- block), reached through the manifest pointer — never in state.json.
@@ -205,6 +205,20 @@ for _, r in ipairs(plans.scan({ plans_root })) do
 end
 rec = records["PLAN_991_second"]
 ok(rec.blocker_resolver == nil and rec.blocker_class == nil, "a blocker without structure derives no badge fields")
+-- A class outside C1–C7 is not a class (herdr-peers 2.1.0 reads the same set).
+write(plans_root .. "/PLAN_991_second/state.json", vim.json.encode({
+	tasks = { { id = "t1", title = "waiting task", status = "in_progress", started_seq = 1 } },
+	blocker = { reason = "odd class", class = "C9" },
+}))
+for _, r in ipairs(plans.scan({ plans_root })) do
+	if r.name == "PLAN_991_second" then
+		ok(r.blocker_class == nil, "a class outside C1-C7 is ignored")
+	end
+end
+write(plans_root .. "/PLAN_991_second/state.json", vim.json.encode({
+	tasks = { { id = "t1", title = "waiting task", status = "in_progress", started_seq = 1 } },
+	blocker = { reason = "waiting on the design review" },
+}))
 -- A v8 contract with no autonomy block: every recorded default applies.
 contract("PLAN_991_second", { schema = "https://deepworkplan.com/schema/plan-contract/v8.json" })
 records = {}
