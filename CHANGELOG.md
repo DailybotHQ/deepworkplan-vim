@@ -10,6 +10,14 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Added (pack-8.0 surfaces, read-only and additive):** the plan browser and
+  reader render the pack's plan queue (`dwp/queue.lua` reading
+  `.dwp/queue.json`, schema `dwp-queue-v1`: per-plan place and state),
+  structured-blocker badges (blocker class C1–C7 + `resolver: lead|human`,
+  absent resolver meaning human), and the autonomy posture (stall budget,
+  brain-may-act, promptable scope) beside the goal. Everything renders only
+  when the data exists — a 7.x repository renders byte-identically to
+  before — and the editor never writes plan state. New `queue` smoke section.
 - **Harness:** the vendored DeepWorkPlan pack moves to 7.12.1 and the vendored
   herdr-peers skill lands at v1.3.1 (protocol 1 unchanged; `autopilot` is a
   daemon only a human starts, and 1.3.x gives it `--loop`/`--notify`, the
