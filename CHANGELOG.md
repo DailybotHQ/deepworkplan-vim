@@ -10,6 +10,11 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Harness:** the vendored herdr-peers skill moves to v2.0.0 (protocol 2:
+  lead appointment, the opt-in fail-closed autopilot brain, the plan-queue
+  consumer for the pack's `.dwp/queue.json`; the editor keeps consuming its
+  `lanes-v1` snapshots read-only), all 37 skill files verified against the
+  release `SHA256SUMS`. The herdr addon registry entry pins `v2.0.0`.
 - **Harness:** the vendored DeepWorkPlan pack moves to 7.12.1 and the vendored
   herdr-peers skill lands at v1.3.1 (protocol 1 unchanged; `autopilot` is a
   daemon only a human starts, and 1.3.x gives it `--loop`/`--notify`, the

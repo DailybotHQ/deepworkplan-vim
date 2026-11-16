@@ -2,7 +2,7 @@
 
 Public Neovim configuration. Language: English. Conventional commits. GPL-3.0.
 
-DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13, 2026-10-25 and 2026-11-15; skill 7.12.1, vendored 2026-11-15; herdr-peers skill v1.3.1 vendored 2026-11-15)
+DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13, 2026-10-25, 2026-11-15 and 2026-11-16; skill 7.12.1, vendored 2026-11-15; herdr-peers skill v2.0.0 vendored 2026-11-16)
 
 ## Product
 
@@ -139,15 +139,16 @@ Gates are selected from the touched surface, with the full set above as the fall
 - **Design system (accepted, cli-output)** — [docs/DESIGN.md](docs/DESIGN.md)
   records the existing Neovim TUI source, highlight roles and layout guards.
 - **Herdr (accepted, repo-local)** — vendored skill at
-  `.agents/skills/herdr-peers/` (v1.3.1, tag-pinned in `skills-lock.json`):
-  the delegation transport for plans that hand work to another pane or
-  machine, plus native debates; `autopilot` is an optional daemon **only a
-  human starts** — never a message, peer or plan — and 1.3.x gives it
-  `--loop` (keeps every open plan running to its end) and `--notify`, plus
-  read-only `plans`/`fleet` verbs with a fleet UI and machine-readable
-  `fleet-v1`/`plan-event-v1` schemas. When `herdr-peers` is not
-  on `PATH`, call `.agents/skills/herdr-peers/scripts/herdr-peers`. Herdr
-  itself stays machine-level; never required.
+  `.agents/skills/herdr-peers/` (v2.0.0, protocol 2, tag-pinned in
+  `skills-lock.json`): the delegation transport for plans that hand work to
+  another pane or machine, plus native debates; `autopilot` is an optional
+  daemon **only a human starts** — never a message, peer or plan — and 2.0.0
+  adds lead appointment (`--appoint`), the opt-in, fail-closed autopilot
+  brain (`--brain`, needs ak ≥ 1.3.0) and the plan-queue consumer for the
+  pack's `.dwp/queue.json`; the editor consumes its `lanes-v1` snapshots and
+  queue schema read-only (protocol 1 surfaces unchanged). When `herdr-peers`
+  is not on `PATH`, call `.agents/skills/herdr-peers/scripts/herdr-peers`.
+  Herdr itself stays machine-level; never required.
 - **Machine offers unaccepted for this round** — the host AgentKit,
   Vim install and dck migration are not enabled by this harness upgrade. The
   custom contributor container remains maintained; no host editor is replaced.
