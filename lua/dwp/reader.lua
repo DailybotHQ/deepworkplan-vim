@@ -8,6 +8,8 @@
 -- error. Read-only toward `.dwp/`: it opens buffers, writes nothing.
 
 local plans = require("dwp.plans")
+local state = require("dwp.state")
+local queue_mod = require("dwp.queue")
 
 local R = {}
 
@@ -269,6 +271,56 @@ local function jump_rows(record)
 	return rows
 end
 
+-- The plan's queue view, read from the queue file beside the plan's
+-- own .dwp directory (<repo>/.dwp/queue.json). nil when the plan is
+-- not under a plans/ directory or the repository has no queue — both
+-- render exactly as before (pack 8.0 surface, read-only).
+local function queue_view(record)
+	local dwp_dir = record.path:match("^(.*)/plans/[^/]+$")
+	if not dwp_dir then
+		return nil
+	end
+	local queue = queue_mod.read(dwp_dir .. "/queue.json")
+	if not queue then
+		return nil
+	end
+	return queue_mod.for_plan(queue, record.name)
+end
+
+-- The autonomy-posture lines (pack 8.0): the facts the ledger carries
+-- (stall budget, brain-may-act, promptable scope) plus the plan's
+-- place in the pack's queue. Only present facts render; nil when
+-- there is nothing to say, so a 7.x plan keeps its header exactly.
+local function posture_lines(record, width)
+	local view = queue_view(record)
+	local facts = {}
+	if record.posture then
+		if record.posture.stall_budget ~= nil then
+			facts[#facts + 1] = "stall budget: " .. tostring(record.posture.stall_budget)
+		end
+		if record.posture.brain_may_act ~= nil then
+			facts[#facts + 1] = "brain may act: " .. (record.posture.brain_may_act and "yes" or "no")
+		end
+		if record.posture.promptable_scope ~= nil then
+			facts[#facts + 1] = "promptable: " .. record.posture.promptable_scope
+		end
+	end
+	local rows = {}
+	if #facts > 0 then
+		for _, line in ipairs(wrap_text("  " .. table.concat(facts, " · "), width, "  ")) do
+			rows[#rows + 1] = { text = line, hl = "Comment", kind = "info" }
+		end
+	end
+	local qline = queue_mod.line(view)
+	if qline then
+		rows[#rows + 1] = { text = "  " .. qline, hl = "Comment", kind = "info" }
+	end
+	if #rows == 0 then
+		return nil
+	end
+	return rows
+end
+
 local function build_rows(record, width)
 	width = math.max(20, math.min(90, width or 90))
 	local rows = {
@@ -293,6 +345,17 @@ local function build_rows(record, width)
 	for _, line in ipairs(wrap_text(goal_sentence(record), width, "  ")) do
 		rows[#rows + 1] = { text = line, kind = "goal" }
 	end
+	-- The autonomy posture sits beside the goal (PLAN_024): nothing that
+	-- exists is removed or moved, the block only appears when 8.0 data
+	-- is present.
+	local posture = posture_lines(record, width)
+	if posture then
+		rows[#rows + 1] = { text = "", kind = "blank" }
+		rows[#rows + 1] = { text = "Autonomy posture", hl = "Underlined", kind = "label" }
+		for _, row in ipairs(posture) do
+			rows[#rows + 1] = row
+		end
+	end
 	rows[#rows + 1] = { text = "", kind = "blank" }
 	rows[#rows + 1] = { text = "Tasks", hl = "Underlined", kind = "label" }
 	local tasks = task_rows(record)
@@ -310,6 +373,16 @@ local function build_rows(record, width)
 		do
 			rows[#rows + 1] = { text = line, hl = first and "WarningMsg" or nil, kind = "info" }
 			first = false
+		end
+		-- The 8.0 structured badge, when the record carries it: who can
+		-- clear this — the lead, or the human.
+		local badge = state.blocker_badge(record.blocker_resolver, record.blocker_class)
+		if badge then
+			rows[#rows + 1] = {
+				text = "  " .. badge,
+				hl = record.blocker_resolver == "lead" and "Comment" or "WarningMsg",
+				kind = "info",
+			}
 		end
 	end
 	rows[#rows + 1] = { text = "", kind = "blank" }

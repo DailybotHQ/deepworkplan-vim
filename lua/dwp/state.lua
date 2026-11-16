@@ -160,16 +160,20 @@ end
 -- The blocked signal. The ledger writes `blocker`; `blocked` is accepted
 -- as a defensive alias (both spellings appear in the wild). Any shape is
 -- tolerated — only a human-readable reason is extracted, never assumed.
+-- Pack 8.0 adds structured fields on the table shape: `resolver`
+-- ("lead" | "human"; absent means human) and `blocker_class` (C1–C7).
+-- Both come back as nil unless the record carries them, so a 7.x plan
+-- renders exactly as before and an 8.0 record earns its badge.
 local function blocked_signal(snapshot)
 	if type(snapshot) ~= "table" then
-		return false, nil
+		return false, nil, nil, nil
 	end
 	local raw = snapshot.blocker or snapshot.blocked
 	-- JSON null decodes to vim.NIL, not Lua nil — both mean "no blocker".
 	if raw == nil or raw == vim.NIL or raw == false or raw == "" then
-		return false, nil
+		return false, nil, nil, nil
 	end
-	local reason
+	local reason, resolver, class
 	if type(raw) == "string" then
 		reason = raw
 	elseif type(raw) == "table" then
@@ -179,8 +183,49 @@ local function blocked_signal(snapshot)
 				break
 			end
 		end
+		if raw.resolver == "lead" or raw.resolver == "human" then
+			resolver = raw.resolver
+		end
+		if type(raw.blocker_class) == "string" and raw.blocker_class ~= "" then
+			class = raw.blocker_class
+		end
 	end
-	return true, reason
+	return true, reason, resolver, class
+end
+
+-- The autonomy posture (pack 8.0): stall budget, brain-may-act,
+-- promptable scope — the ledger may carry them at snapshot.posture or
+-- snapshot.autonomy; both spellings are probed, only present keys are
+-- reported, and anything else is ignored. Queue position is NOT read
+-- here: it lives in the pack's queue (dwp.queue), not the plan's
+-- snapshot. nil when the snapshot carries no posture at all, so a 7.x
+-- plan renders exactly as before. The authoritative field paths land
+-- with 8.0.0-beta.1 and are cross-checked against the shipped schema
+-- before this surface ships in a release.
+local function posture(snapshot)
+	if type(snapshot) ~= "table" then
+		return nil
+	end
+	local raw = snapshot.posture or snapshot.autonomy
+	if type(raw) ~= "table" then
+		return nil
+	end
+	local out = {}
+	if type(raw.stall_budget) == "number" then
+		out.stall_budget = raw.stall_budget
+	elseif type(raw.stall_budget) == "string" and raw.stall_budget ~= "" then
+		out.stall_budget = raw.stall_budget
+	end
+	if raw.brain_may_act == true or raw.brain_may_act == false then
+		out.brain_may_act = raw.brain_may_act
+	end
+	if type(raw.promptable_scope) == "string" and raw.promptable_scope ~= "" then
+		out.promptable_scope = raw.promptable_scope
+	end
+	if next(out) == nil then
+		return nil
+	end
+	return out
 end
 
 -- The task happening right now: the started-but-not-completed task with
@@ -225,6 +270,21 @@ local function current_task(machine, snapshot, plan_path)
 	return last
 end
 
+-- The structured-blocker badge text (pack 8.0), or nil when the record
+-- carries neither field — a 7.x plan renders without a badge. Absent
+-- resolver means human (PLAN_024); the words carry the meaning, colour
+-- only follows.
+function M.blocker_badge(resolver, class)
+	if not resolver and not class then
+		return nil
+	end
+	local prefix = class and class .. " · " or ""
+	if resolver == "lead" then
+		return prefix .. "resolvable by: lead"
+	end
+	return prefix .. "needs: human"
+end
+
 -- Rich derivation for one plan path. Every field is safe to render
 -- directly: nil-free on the display path (counts may be nil only when
 -- the README has no checkboxes at all, rendered as 0/0 by callers).
@@ -233,7 +293,7 @@ function M.derive_rich(plan_path)
 	local vocab = VOCAB[machine] or VOCAB.unknown
 	local done, total = M.task_counts(plan_path .. "/README.md")
 	local snapshot = read_json(plan_path .. "/state.json")
-	local blocked, reason = blocked_signal(snapshot)
+	local blocked, reason, resolver, class = blocked_signal(snapshot)
 	local entry = {
 		machine = machine,
 		label = vocab.label,
@@ -244,6 +304,9 @@ function M.derive_rich(plan_path)
 		percent = (total and total > 0) and math.floor((done / total) * 100 + 0.5) or 0,
 		blocked = blocked,
 		blocker_reason = reason,
+		blocker_resolver = resolver,
+		blocker_class = class,
+		posture = posture(snapshot),
 		current_task = current_task(machine, snapshot, plan_path),
 		title = M.resolve_title(plan_path),
 	}
