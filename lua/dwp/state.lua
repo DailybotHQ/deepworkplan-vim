@@ -193,13 +193,20 @@ local function blocked_signal(snapshot)
 		if type(raw.class) == "string" and raw.class:match("^C[1-7]$") then
 			class = raw.class
 		end
+		-- plan-snapshot/v8 allows resolver "lead" only with C3, C4 or C7
+		-- (a lead never clears authority, consent, damage or terms); any
+		-- other class with "lead" is read as the human's.
+		if resolver == "lead" and class and not ({ C3 = true, C4 = true, C7 = true })[class] then
+			resolver = "human"
+		end
 	end
 	return true, reason, resolver, class
 end
 
 -- The autonomy posture (plan-contract/v8, spec/LOOP_ENGINEERING.md §2):
--- the optional, closed `autonomy` block of the plan's CONTRACT (reached
--- through the manifest pointer, like resolve_title), never state.json.
+-- the optional, closed `autonomy` block of the plan's live CONTRACT
+-- (the highest contracts/ revision, else the manifest's pointer), never
+-- state.json.
 -- Only a v8 contract has a posture; a v7 or older contract (or none)
 -- yields nil, so those plans render exactly as before. Inside a v8
 -- contract the consumer MUST apply each absent key's recorded default —
@@ -224,7 +231,28 @@ local function string_list(value)
 	return out
 end
 
-local function posture(plan_path)
+-- The live contract (V6_LIFECYCLE §5): the highest revision under
+-- contracts/ (contract.rN.json; staged .pending files are invisible),
+-- else the manifest's pointer (provenance, the contract as first
+-- written). nil when neither exists.
+local function live_contract(plan_path)
+	local best, best_n = nil, 0
+	local dir = (vim.uv or vim.loop).fs_scandir(plan_path .. "/contracts")
+	if dir then
+		while true do
+			local name, kind = (vim.uv or vim.loop).fs_scandir_next(dir)
+			if not name then
+				break
+			end
+			local n = tonumber(name:match("^contract%.r(%d+)%.json$"))
+			if n and kind == "file" and n > best_n then
+				best, best_n = name, n
+			end
+		end
+	end
+	if best then
+		return read_json(plan_path .. "/contracts/" .. best)
+	end
 	local manifest = read_json(plan_path .. "/manifest.json")
 	if type(manifest) ~= "table" or type(manifest.contract) ~= "table" then
 		return nil
@@ -233,7 +261,17 @@ local function posture(plan_path)
 	if type(rel) ~= "string" or rel == "" or rel:find("..", 1, true) then
 		return nil
 	end
-	local contract = read_json(plan_path .. "/" .. rel)
+	return read_json(plan_path .. "/" .. rel)
+end
+
+--- The plan's autonomy posture, or nil (see above). Computed on demand
+--- by the reader only — never during a plans scan, so the sidebar,
+--- statusline and greeter pay no contract reads for it.
+function M.posture(plan_path)
+	if type(plan_path) ~= "string" then
+		return nil
+	end
+	local contract = live_contract(plan_path)
 	if type(contract) ~= "table" or contract.schema ~= M.CONTRACT_V8 then
 		return nil
 	end
@@ -337,7 +375,6 @@ function M.derive_rich(plan_path)
 		blocker_reason = reason,
 		blocker_resolver = resolver,
 		blocker_class = class,
-		posture = posture(plan_path),
 		current_task = current_task(machine, snapshot, plan_path),
 		title = M.resolve_title(plan_path),
 	}

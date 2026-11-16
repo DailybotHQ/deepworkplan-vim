@@ -35,11 +35,10 @@ local VALID_QUEUE = vim.json.encode({
 	schema = "dwp-queue-v1",
 	updated_at = "2026-11-16T00:00:00Z",
 	items = {
-		{ plan = "PLAN_990_first", after = vim.NIL, state = "done", lead = vim.NIL, start = vim.NIL },
-		{ plan = "PLAN_991_second", after = "PLAN_990_first", state = "started", lead = "wP:p2", start = "prompt-lead" },
+		{ plan = "PLAN_990_first", after = vim.NIL, state = "done", lead = vim.NIL, start = "prompt-lead" },
+		{ plan = "PLAN_991_second", after = "PLAN_990_first", state = "started", lead = "local:wP:p2", start = "prompt-lead" },
 		{ plan = "PLAN_992_third", after = "PLAN_991_second", state = "queued", lead = vim.NIL, start = "launch" },
 	},
-	parallel = vim.NIL,
 })
 
 -- ---------------------------------------------------------- reader unit --
@@ -71,20 +70,54 @@ write(root .. "/.dwp/future.json", '{"schema":"dwp-queue-v2","items":[]}')
 ok(queue.read(root .. "/.dwp/future.json") == nil, "a future schema is not guessed at")
 write(root .. "/.dwp/noitems.json", '{"schema":"dwp-queue-v1","updated_at":"x"}')
 ok(queue.read(root .. "/.dwp/noitems.json") == nil, "a document without items reads as no queue")
-write(queue_path, vim.json.encode({
+-- Validation is all-or-nothing, exactly like the pack's valid_doc: any
+-- bad item rejects the whole document, so no hand-edited value (a
+-- newline in a state, say) ever reaches a buffer.
+local function item(over)
+	local base = { plan = "PLAN_990_first", after = vim.NIL, state = "queued", lead = vim.NIL, start = "prompt-lead" }
+	for k, v in pairs(over or {}) do
+		base[k] = v
+	end
+	return base
+end
+local function rejects(items, msg, extra)
+	local doc = { schema = "dwp-queue-v1", updated_at = "2026-11-16T00:00:00Z", items = items }
+	for k, v in pairs(extra or {}) do
+		doc[k] = v
+	end
+	write(root .. "/.dwp/strict.json", vim.json.encode(doc))
+	ok(queue.read(root .. "/.dwp/strict.json") == nil, msg)
+end
+rejects({ item({ state = "x\ny" }) }, "a state with a newline rejects the document")
+rejects({ item({ state = "weird" }) }, "an unknown state rejects the document")
+rejects({ item({ start = "later" }) }, "an unknown start rejects the document")
+rejects({ { plan = "PLAN_990_first", state = "queued", start = "prompt-lead" } }, "an item missing a base key rejects the document")
+rejects({ item({ extra = 1 }) }, "an unknown item key rejects the document")
+rejects({ item({ state = "started" }) }, "a started item without a lead rejects the document")
+rejects({ item({ state = "started", lead = "wP:p2" }) }, "a lead that is not a full pane address rejects the document")
+rejects({ item({ plan = "-bad" }) }, "a plan id outside the pack's form rejects the document")
+rejects({ item(), item() }, "a duplicate plan rejects the document")
+rejects({ item({ note = "   " }) }, "a blank note rejects the document")
+rejects({ item() }, "a non-boolean parallel rejects the document", { parallel = "yes" })
+rejects({ item() }, "an unknown document key rejects the document", { owner = "me" })
+local many = {}
+for n = 1, 65 do
+	many[n] = item({ plan = "PLAN_" .. n })
+end
+rejects(many, "more than 64 items rejects the document")
+write(root .. "/.dwp/noted.json", vim.json.encode({
 	schema = "dwp-queue-v1",
 	updated_at = "2026-11-16T00:00:00Z",
-	items = {
-		{ plan = "PLAN_990_first", state = "queued", start = "prompt-lead" },
-		{ plan = "PLAN_991_second", state = "weird", lead = "wP:p9" },
-		{ plan = "PLAN_992_third" },
-	},
+	items = { item({ state = "skipped", note = "superseded by PLAN_992" }) },
+	parallel = true,
 }))
-q = queue.read(queue_path)
-ok(q ~= nil and #q.items == 3, "tolerant items: every plan stays visible")
-ok(q and q.items[1].after == nil and q.items[1].start == "prompt-lead", "optional fields default to nil")
-ok(q and q.items[2].state == "weird", "an unknown state surfaces verbatim, never hidden")
-ok(q and q.items[3].state == "queued" and q.items[3].start == nil, "a bare item defaults its state")
+q = queue.read(root .. "/.dwp/noted.json")
+ok(q and #q.items == 1 and q.items[1].state == "skipped" and q.parallel == true, "a skipped item with a note and parallel=true read")
+write(root .. "/.dwp/huge.json", '{"schema":"dwp-queue-v1","items":[],"updated_at":"' .. string.rep("x", 70000) .. '"}')
+ok(queue.read(root .. "/.dwp/huge.json") == nil, "a file above 64 KiB reads as no queue")
+write(queue_path, VALID_QUEUE)
+vim.uv.fs_symlink(queue_path, root .. "/.dwp/link.json")
+ok(queue.read(root .. "/.dwp/link.json") == nil, "a symlinked queue file is not followed")
 ok(queue.find_for_roots({ plans_root }) ~= nil, "find_for_roots locates the queue beside a plans root")
 ok(queue.find_for_roots({ root .. "/elsewhere/plans" }) == nil, "a root without a queue finds none")
 
@@ -119,7 +152,7 @@ plan_dir("PLAN_990_first", vim.json.encode({
 }))
 plan_dir("PLAN_991_second", vim.json.encode({
 	tasks = { { id = "t1", title = "waiting task", status = "in_progress", started_seq = 1 } },
-	blocker = { reason = "waiting on the design review", class = "C2", resolver = "lead" },
+	blocker = { reason = "waiting on the design review", class = "C3", resolver = "lead" },
 }), true)
 -- The posture lives in the plan's v8 contract (plan-contract/v8 autonomy
 -- block), reached through the manifest pointer — never in state.json.
@@ -142,13 +175,15 @@ for _, rec in ipairs(plans.scan({ plans_root })) do
 end
 ok(records["PLAN_991_second"] ~= nil, "the 8.0-shaped plan scans")
 ok(records["PLAN_991_second"] and records["PLAN_991_second"].blocker_resolver == "lead", "the resolver is derived")
-ok(records["PLAN_991_second"] and records["PLAN_991_second"].blocker_class == "C2", "the class is derived")
+ok(records["PLAN_991_second"] and records["PLAN_991_second"].blocker_class == "C3", "the class is derived")
 ok(
-	records["PLAN_991_second"] and records["PLAN_991_second"].posture ~= nil
-		and records["PLAN_991_second"].posture.brain == false
-		and records["PLAN_991_second"].posture.stall_budget == 5,
+	records["PLAN_991_second"] and state.posture(records["PLAN_991_second"].path) ~= nil
+		and state.posture(records["PLAN_991_second"].path).brain == false
+		and state.posture(records["PLAN_991_second"].path).stall_budget == 5,
 	"the posture is derived from the v8 contract's autonomy block"
 )
+ok(records["PLAN_991_second"] and records["PLAN_991_second"].posture == nil,
+	"a plans scan pays no contract read: the posture is the reader's, on demand")
 ok(
 	records["PLAN_993_legacy"] and records["PLAN_993_legacy"].blocked == true
 		and records["PLAN_993_legacy"].blocker_resolver == nil,
@@ -226,8 +261,8 @@ for _, r in ipairs(plans.scan({ plans_root })) do
 	records[r.name] = r
 end
 rec = records["PLAN_991_second"]
-ok(rec.posture ~= nil and rec.posture.stall_budget == 3 and rec.posture.brain == false
-	and rec.posture.promptable == nil and rec.posture.notify == nil and rec.posture.queue == "none",
+ok(state.posture(rec.path) ~= nil and state.posture(rec.path).stall_budget == 3 and state.posture(rec.path).brain == false
+	and state.posture(rec.path).promptable == nil and state.posture(rec.path).notify == nil and state.posture(rec.path).queue == "none",
 	"an absent autonomy block on a v8 contract means all five defaults")
 -- Out-of-range and wrong-shape keys fall back to their own defaults.
 contract("PLAN_991_second", {
@@ -239,8 +274,8 @@ for _, r in ipairs(plans.scan({ plans_root })) do
 	records[r.name] = r
 end
 rec = records["PLAN_991_second"]
-ok(rec.posture and rec.posture.stall_budget == 3 and rec.posture.brain == false
-	and rec.posture.promptable == nil and rec.posture.queue == "none",
+ok(state.posture(rec.path) and state.posture(rec.path).stall_budget == 3 and state.posture(rec.path).brain == false
+	and state.posture(rec.path).promptable == nil and state.posture(rec.path).queue == "none",
 	"malformed keys fall back to their defaults")
 -- A v7 contract has no posture: the plan renders exactly as before.
 contract("PLAN_991_second", {
@@ -252,7 +287,45 @@ for _, r in ipairs(plans.scan({ plans_root })) do
 	records[r.name] = r
 end
 rec = records["PLAN_991_second"]
-ok(rec.posture == nil, "a v7 contract derives no posture, even with a stray autonomy key")
+ok(state.posture(rec.path) == nil, "a v7 contract derives no posture, even with a stray autonomy key")
+-- After an amendment the live contract is the highest contracts/ revision
+-- (V6_LIFECYCLE section 5), never the manifest's first-written pointer.
+contract("PLAN_991_second", {
+	schema = "https://deepworkplan.com/schema/plan-contract/v8.json",
+	autonomy = { stall_budget = 2 },
+})
+write(plans_root .. "/PLAN_991_second/contracts/contract.r1.json", vim.json.encode({
+	schema = "https://deepworkplan.com/schema/plan-contract/v8.json",
+	autonomy = { stall_budget = 2 },
+}))
+write(plans_root .. "/PLAN_991_second/contracts/contract.r2.json", vim.json.encode({
+	schema = "https://deepworkplan.com/schema/plan-contract/v8.json",
+	autonomy = { stall_budget = 7 },
+}))
+write(plans_root .. "/PLAN_991_second/contracts/.contract.r3.json.pending", vim.json.encode({
+	schema = "https://deepworkplan.com/schema/plan-contract/v8.json",
+	autonomy = { stall_budget = 9 },
+}))
+ok(state.posture(rec.path) and state.posture(rec.path).stall_budget == 7,
+	"the posture follows the highest contracts/ revision, ignoring a staged .pending")
+vim.fn.delete(plans_root .. "/PLAN_991_second/contracts", "rf")
+contract("PLAN_991_second", {
+	schema = "https://deepworkplan.com/schema/plan-contract/v7.json",
+})
+-- A lead resolver with a class a lead may not clear (C1) is the human's.
+write(plans_root .. "/PLAN_991_second/state.json", vim.json.encode({
+	tasks = { { id = "t1", title = "waiting task", status = "in_progress", started_seq = 1 } },
+	blocker = { reason = "needs an approval", class = "C1", resolver = "lead" },
+}))
+for _, r in ipairs(plans.scan({ plans_root })) do
+	if r.name == "PLAN_991_second" then
+		ok(r.blocker_resolver == "human" and r.blocker_class == "C1", "lead with a class outside C3/C4/C7 reads as human")
+	end
+end
+write(plans_root .. "/PLAN_991_second/state.json", vim.json.encode({
+	tasks = { { id = "t1", title = "waiting task", status = "in_progress", started_seq = 1 } },
+	blocker = { reason = "waiting on the design review" },
+}))
 sidebar.open({ plans_root })
 text = table.concat(vim.api.nvim_buf_get_lines((function()
 	for _, b in ipairs(vim.api.nvim_list_bufs()) do

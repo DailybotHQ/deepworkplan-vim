@@ -18,14 +18,52 @@ M.SCHEMA = "dwp-queue-v1"
 
 local STATES = { queued = true, started = true, done = true, skipped = true }
 local STARTS = { ["prompt-lead"] = true, launch = true }
+local MAX_BYTES = 64 * 1024
+local MAX_ITEMS = 64
+local NOTE_MAX = 200
+local DOC_KEYS = { schema = true, updated_at = true, items = true, parallel = true }
+local ITEM_KEYS = { plan = true, after = true, state = true, lead = true, start = true, note = true }
+local REQUIRED = { "plan", "after", "state", "lead", "start" }
 
+-- The pack's PLAN_ID: ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$
+local function plan_id(value)
+	return type(value) == "string" and #value <= 128 and value:match("^[%w][%w._-]*$") ~= nil
+end
+
+-- herdr-peers' pane address:
+-- ^(?:local|[A-Za-z0-9][A-Za-z0-9._-]{0,63}):[A-Za-z0-9]{1,32}:[A-Za-z0-9]{1,32}$
+local function pane_address(value)
+	if type(value) ~= "string" then
+		return false
+	end
+	local machine, workspace, pane = value:match("^([^:]+):([^:]+):([^:]+)$")
+	if not machine then
+		return false
+	end
+	local machine_ok = machine == "local" or (#machine <= 64 and machine:match("^[%w][%w._-]*$") ~= nil)
+	return machine_ok
+		and #workspace <= 32
+		and workspace:match("^%w+$") ~= nil
+		and #pane <= 32
+		and pane:match("^%w+$") ~= nil
+end
+
+-- A regular file (never a symlink) of at most 64 KiB, decoded; nil
+-- otherwise. The same ceilings the pack's writer and the daemon apply.
 local function read_json(path)
+	local stat = (vim.uv or vim.loop).fs_lstat(path)
+	if not stat or stat.type ~= "file" or stat.size > MAX_BYTES then
+		return nil
+	end
 	local handle = io.open(path, "r")
 	if not handle then
 		return nil
 	end
-	local content = handle:read("*a")
+	local content = handle:read(MAX_BYTES + 1)
 	handle:close()
+	if type(content) ~= "string" or #content > MAX_BYTES then
+		return nil
+	end
 	local ok, decoded = pcall(vim.json.decode, content)
 	if not ok then
 		return nil
@@ -33,41 +71,83 @@ local function read_json(path)
 	return decoded
 end
 
+-- One item, validated exactly like the pack's valid_doc: every base key
+-- present (null allowed only where the schema allows it), nothing
+-- unknown. Returns the display item or nil.
+local function valid_item(raw)
+	if type(raw) ~= "table" then
+		return nil
+	end
+	for key in pairs(raw) do
+		if not ITEM_KEYS[key] then
+			return nil
+		end
+	end
+	for _, key in ipairs(REQUIRED) do
+		if raw[key] == nil then
+			return nil
+		end
+	end
+	if not plan_id(raw.plan) then
+		return nil
+	end
+	local after = raw.after
+	if after == vim.NIL then
+		after = nil
+	elseif not plan_id(after) then
+		return nil
+	end
+	if not STATES[raw.state] or not STARTS[raw.start] then
+		return nil
+	end
+	local lead = raw.lead
+	if lead == vim.NIL then
+		lead = nil
+	elseif not pane_address(lead) then
+		return nil
+	end
+	if raw.state == "started" and lead == nil then
+		return nil
+	end
+	if raw.note ~= nil then
+		if type(raw.note) ~= "string" or raw.note:match("^%s*$") or #raw.note > NOTE_MAX then
+			return nil
+		end
+	end
+	return { plan = raw.plan, after = after, state = raw.state, lead = lead, start = raw.start }
+end
+
 --- Read and validate one queue file. Returns the queue table (items in
 --- file order, each { plan, after, state, lead, start }) or nil when
---- the file is absent, unparsable, or not a dwp-queue-v1 document.
---- The schema id gates everything: a future schema is not guessed at.
---- Items are kept individually tolerant — an item with an unknown
---- state or start value still surfaces (with its raw values) instead
---- of hiding the plan from the queue view; only the document-level
---- shape is enforced.
+--- the file is absent, not a regular file of at most 64 KiB, unparsable,
+--- or not a valid dwp-queue-v1 document. Validation matches the pack's
+--- writer (shared/queue.py valid_doc) and is all-or-nothing: one bad
+--- item, a duplicate plan or more than 64 items rejects the document,
+--- so no hand-edited value ever reaches a buffer.
 function M.read(path)
 	local doc = read_json(path)
 	if type(doc) ~= "table" or doc.schema ~= M.SCHEMA then
 		return nil
 	end
-	if type(doc.items) ~= "table" then
+	for key in pairs(doc) do
+		if not DOC_KEYS[key] then
+			return nil
+		end
+	end
+	if type(doc.items) ~= "table" or #doc.items > MAX_ITEMS then
 		return nil
 	end
-	local items = {}
+	if doc.parallel ~= nil and type(doc.parallel) ~= "boolean" then
+		return nil
+	end
+	local items, seen = {}, {}
 	for _, raw in ipairs(doc.items) do
-		if type(raw) == "table" and type(raw.plan) == "string" and raw.plan ~= "" then
-			local state = raw.state
-			if type(state) ~= "string" or not STATES[state] then
-				state = type(state) == "string" and state or "queued"
-			end
-			local start = raw.start
-			if type(start) ~= "string" or not STARTS[start] then
-				start = nil
-			end
-			items[#items + 1] = {
-				plan = raw.plan,
-				after = type(raw.after) == "string" and raw.after ~= "" and raw.after or nil,
-				state = state,
-				lead = type(raw.lead) == "string" and raw.lead ~= "" and raw.lead or nil,
-				start = start,
-			}
+		local item = valid_item(raw)
+		if not item or seen[item.plan] then
+			return nil
 		end
+		seen[item.plan] = true
+		items[#items + 1] = item
 	end
 	return {
 		items = items,

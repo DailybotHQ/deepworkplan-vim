@@ -89,7 +89,6 @@ function M.scan(roots)
 					blocker_reason = rich.blocker_reason,
 					blocker_resolver = rich.blocker_resolver,
 					blocker_class = rich.blocker_class,
-					posture = rich.posture,
 					current_task = rich.current_task,
 					title = rich.title,
 				}

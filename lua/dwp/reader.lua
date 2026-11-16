@@ -294,7 +294,7 @@ end
 local function posture_lines(record, width)
 	local view = queue_view(record)
 	local facts = {}
-	local p = record.posture
+	local p = state.posture(record.path)
 	if p then
 		facts[#facts + 1] = "stall budget: " .. tostring(p.stall_budget)
 		facts[#facts + 1] = "brain may act: " .. (p.brain and "yes" or "no")
