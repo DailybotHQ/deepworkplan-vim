@@ -156,7 +156,7 @@ succeeded; it is the one check branch protection requires
 ## DWP harness layer
 
 `.agents/` carries the vendored skills (deepworkplan 7.10.1, ai-diff-reviewer 3.3.16,
-dailybot 3.23.17, herdr-peers 1.2.1), the thin `dwp-*` command delegators, agent personas, and the
+dailybot 3.23.17, herdr-peers 1.3.0), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
 (DWP v7 CONFIG §1); scratch in gitignored `tmp/`.
@@ -164,7 +164,7 @@ catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 ### Vendored provenance
 
 The 2026-10-25 dogfood upgrade — refreshed 2026-11-15 (pack v7.10.1,
-herdr-peers v1.2.1) — uses the pack's tree-URL install and all-addons
+herdr-peers v1.3.0) — uses the pack's tree-URL install and all-addons
 planner. `skills-lock.json` records each release ref and the installer's computed
 content hash. Installed skill trees must match the tagged sources byte for byte;
 local adaptations are inspected before replacement.
@@ -174,7 +174,7 @@ local adaptations are inspected before replacement.
 | deepworkplan | v7.10.1 | `ceb53b8dd793d7a3095d653345095aa2109cf3dc` |
 | ai-diff-reviewer | v3.3.16 | `0083490ebc3a6e3dc87922c1ee711578c196e2d6` |
 | dailybot | v3.23.17 | `0ccf31329d638915e5c282c91d4f3ab6547140b4` |
-| herdr-peers | v1.2.1 | `6c493ec462c6f71744df028bdf66c6b29f86a1b2` |
+| herdr-peers | v1.3.0 | `645d02860e8d07a065598f21245b3aab71f2ff95` |
 
 The pack's release `SHA256SUMS` digest is
 `80be3b01a54dc6d78465a62584dfea07d60187217ddd35153b4940ff23d094ee`;
@@ -183,7 +183,7 @@ the reviewer's (its release archives) is
 and its installed tree is checked against the tag.
 Dailybot ships no checksum manifest; its tag commit and installed bytes are
 verified instead. herdr-peers (installed repo-locally, refreshed 2026-11-15) is
-checked file by file against its release `SHA256SUMS` (all 32 skill files). `.review/extension.md` and the existing Dailybot hooks stay
+checked file by file against its release `SHA256SUMS` (all 34 skill files). `.review/extension.md` and the existing Dailybot hooks stay
 repository-owned. No authentication material belongs in the vendored trees.
 
 ### Orchestra lanes
