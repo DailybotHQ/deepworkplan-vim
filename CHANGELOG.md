@@ -10,6 +10,18 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Harness:** the vendored DeepWorkPlan pack moves to the 8.0.0-beta.1
+  pre-release, all 188 files verified against its release `SHA256SUMS`. It
+  brings the v8 contract generation (`plan-contract/v8` with the optional
+  `autonomy` block), `plan-snapshot/v8` structured blockers, the
+  `dwp-queue-v1` plan-queue writer and `spec/LOOP_ENGINEERING.md`. Existing
+  plans keep their recorded generation. Together with it, the vendored
+  herdr-peers skill moves to v2.1.0 (all 37 files verified), the release
+  the beta's herdr descriptor pins: fleet UI views, denial of permission
+  prompts the daemon cannot accept, and the v8 blocker classes. The herdr
+  addon registry entry pins `v2.1.0`. No editor surface changes in this
+  entry.
+
 - **Harness:** the vendored DeepWorkPlan pack moves to 7.12.2, all 182 files
   verified against the release `SHA256SUMS`. The patch makes the herdr addon
   accept herdr-peers protocol 1 and 2 and pins v2.0.0, so the vendored pack
