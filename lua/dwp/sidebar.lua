@@ -11,6 +11,8 @@
 -- command callbacks (mapping/navigation.lua), never at boot.
 
 local plans = require("dwp.plans")
+local state = require("dwp.state")
+local queue_mod = require("dwp.queue")
 
 local S = {}
 
@@ -327,7 +329,32 @@ local function plan_row(record, cap)
 	}
 end
 
-local function build_rows(records, cap)
+-- Info lines that ride under a plan row (never inside the frozen row
+-- format): the 8.0 structured-blocker badge and the plan's place in the
+-- pack's queue. Both render only when their data exists, so a 7.x
+-- repository renders byte-identically to before.
+local function plan_info_rows(record, queue)
+	local rows = {}
+	if record.blocked then
+		local badge = state.blocker_badge(record.blocker_resolver, record.blocker_class)
+		if badge then
+			local lead_resolvable = record.blocker_resolver == "lead"
+			rows[#rows + 1] = {
+				text = "  " .. badge,
+				hl = lead_resolvable and "Comment" or "WarningMsg",
+				kind = "info",
+			}
+		end
+	end
+	local view = queue and queue_mod.for_plan(queue, record.name) or nil
+	local line = queue_mod.line(view)
+	if line then
+		rows[#rows + 1] = { text = "  " .. line, hl = "DwpPlansDim", kind = "info" }
+	end
+	return rows
+end
+
+local function build_rows(records, cap, queue)
 	local by_section = {}
 	for _, record in ipairs(records) do
 		local label = record.label or "Unknown"
@@ -387,6 +414,9 @@ local function build_rows(records, cap)
 			if not collapsed then
 				for _, record in ipairs(group) do
 					rows[#rows + 1] = plan_row(record, cap)
+					for _, info in ipairs(plan_info_rows(record, queue)) do
+						rows[#rows + 1] = info
+					end
 					-- An unreadable plan explains itself instead of
 					-- sitting mute under "Unknown" (UX_AUDIT F-05).
 					if record.state == "unknown" then
@@ -485,7 +515,7 @@ function S.refresh()
 		return
 	end
 	local records = plans.scan(st.roots)
-	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
+	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)), queue_mod.find_for_roots(st.roots))
 	render()
 end
 
@@ -560,7 +590,7 @@ function S.open(roots)
 
 	setup_highlights()
 	local records = plans.scan(st.roots)
-	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)))
+	st.rows = build_rows(records, title_cap(vim.api.nvim_win_get_width(st.win)), queue_mod.find_for_roots(st.roots))
 	render()
 	set_keys()
 	settle_cursor(true) -- land on the first plan, not on the title
