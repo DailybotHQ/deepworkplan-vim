@@ -2,7 +2,7 @@
 
 Public Neovim configuration. Language: English. Conventional commits. GPL-3.0.
 
-DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13, 2026-10-25 and 2026-11-15; skill 7.10.1, vendored 2026-11-15; herdr-peers skill v1.2.1 vendored 2026-11-15)
+DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13, 2026-10-25 and 2026-11-15; skill 7.10.1, vendored 2026-11-15; herdr-peers skill v1.3.0 vendored 2026-11-15)
 
 ## Product
 
@@ -139,12 +139,14 @@ Gates are selected from the touched surface, with the full set above as the fall
 - **Design system (accepted, cli-output)** — [docs/DESIGN.md](docs/DESIGN.md)
   records the existing Neovim TUI source, highlight roles and layout guards.
 - **Herdr (accepted, repo-local)** — vendored skill at
-  `.agents/skills/herdr-peers/` (v1.2.1, tag-pinned in `skills-lock.json`):
+  `.agents/skills/herdr-peers/` (v1.3.0, tag-pinned in `skills-lock.json`):
   the delegation transport for plans that hand work to another pane or
-  machine, plus native debates; v1.2.1 adds `autopilot`, an optional daemon
-  **only a human starts** — never a message, peer or plan. When `herdr-peers`
-  is not on `PATH`, call `.agents/skills/herdr-peers/scripts/herdr-peers`.
-  Herdr itself stays machine-level; never required.
+  machine, plus native debates; `autopilot` is an optional daemon **only a
+  human starts** — never a message, peer or plan — and v1.3.0 gives it
+  `--loop` (keeps every open plan running to its end) and `--notify`, plus
+  read-only `plans`/`fleet` verbs with a fleet UI. When `herdr-peers` is not
+  on `PATH`, call `.agents/skills/herdr-peers/scripts/herdr-peers`. Herdr
+  itself stays machine-level; never required.
 - **Machine offers unaccepted for this round** — the host AgentKit,
   Vim install and dck migration are not enabled by this harness upgrade. The
   custom contributor container remains maintained; no host editor is replaced.
