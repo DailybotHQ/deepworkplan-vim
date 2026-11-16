@@ -27,7 +27,7 @@ local REQUIRED = { "plan", "after", "state", "lead", "start" }
 
 -- The pack's PLAN_ID: ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$
 local function plan_id(value)
-	return type(value) == "string" and #value <= 128 and value:match("^[%w][%w._-]*$") ~= nil
+	return type(value) == "string" and #value <= 128 and value:match("^[A-Za-z0-9][A-Za-z0-9._-]*$") ~= nil
 end
 
 -- herdr-peers' pane address:
@@ -40,12 +40,12 @@ local function pane_address(value)
 	if not machine then
 		return false
 	end
-	local machine_ok = machine == "local" or (#machine <= 64 and machine:match("^[%w][%w._-]*$") ~= nil)
+	local machine_ok = machine == "local" or (#machine <= 64 and machine:match("^[A-Za-z0-9][A-Za-z0-9._-]*$") ~= nil)
 	return machine_ok
 		and #workspace <= 32
-		and workspace:match("^%w+$") ~= nil
+		and workspace:match("^[A-Za-z0-9]+$") ~= nil
 		and #pane <= 32
-		and pane:match("^%w+$") ~= nil
+		and pane:match("^[A-Za-z0-9]+$") ~= nil
 end
 
 -- A regular file (never a symlink) of at most 64 KiB, decoded; nil

@@ -245,7 +245,7 @@ local function live_contract(plan_path)
 				break
 			end
 			local n = tonumber(name:match("^contract%.r(%d+)%.json$"))
-			if n and kind == "file" and n > best_n then
+			if n and (kind == nil or kind == "file") and n > best_n then
 				best, best_n = name, n
 			end
 		end
