@@ -120,8 +120,17 @@ plan_dir("PLAN_990_first", vim.json.encode({
 plan_dir("PLAN_991_second", vim.json.encode({
 	tasks = { { id = "t1", title = "waiting task", status = "in_progress", started_seq = 1 } },
 	blocker = { reason = "waiting on the design review", blocker_class = "C2", resolver = "lead" },
-	posture = { stall_budget = 90, brain_may_act = false, promptable_scope = "lead-only" },
 }), true)
+-- The posture lives in the plan's v8 contract (plan-contract/v8 autonomy
+-- block), reached through the manifest pointer — never in state.json.
+local function contract(name, doc)
+	write(plans_root .. "/" .. name .. "/manifest.json", '{"plan":"' .. name .. '","contract":{"path":"contract.json"}}')
+	write(plans_root .. "/" .. name .. "/contract.json", vim.json.encode(doc))
+end
+contract("PLAN_991_second", {
+	schema = "https://deepworkplan.com/schema/plan-contract/v8.json",
+	autonomy = { stall_budget = 5, brain = false, promptable = { "local:w1:p2" }, notify = { "dailybot" }, queue = "prompt-lead" },
+})
 plan_dir("PLAN_993_legacy", vim.json.encode({
 	tasks = { { id = "t1", title = "legacy task", status = "in_progress", started_seq = 1 } },
 	blocker = "waiting for a human decision",
@@ -136,8 +145,9 @@ ok(records["PLAN_991_second"] and records["PLAN_991_second"].blocker_resolver ==
 ok(records["PLAN_991_second"] and records["PLAN_991_second"].blocker_class == "C2", "the class is derived")
 ok(
 	records["PLAN_991_second"] and records["PLAN_991_second"].posture ~= nil
-		and records["PLAN_991_second"].posture.brain_may_act == false,
-	"the posture is derived from the snapshot"
+		and records["PLAN_991_second"].posture.brain == false
+		and records["PLAN_991_second"].posture.stall_budget == 5,
+	"the posture is derived from the v8 contract's autonomy block"
 )
 ok(
 	records["PLAN_993_legacy"] and records["PLAN_993_legacy"].blocked == true
@@ -172,9 +182,11 @@ for _, b in ipairs(vim.api.nvim_list_bufs()) do
 end
 local rtext = rbuf and table.concat(vim.api.nvim_buf_get_lines(rbuf, 0, -1, false), "\n") or ""
 ok(rtext:find("Autonomy posture", 1, true) ~= nil, "the reader renders the posture block beside the goal")
-ok(rtext:find("stall budget: 90", 1, true) ~= nil, "present posture facts render")
+ok(rtext:find("stall budget: 5", 1, true) ~= nil, "present posture facts render")
 ok(rtext:find("brain may act: no", 1, true) ~= nil, "brain-may-act renders its truth, not idle")
-ok(rtext:find("promptable: lead-only", 1, true) ~= nil, "the promptable scope renders")
+ok(rtext:find("promptable: local:w1:p2", 1, true) ~= nil, "the promptable panes render")
+ok(rtext:find("notify: dailybot", 1, true) ~= nil, "the notify targets render")
+ok(rtext:find("queue start: prompt-lead", 1, true) ~= nil, "the queue start mode renders")
 ok(rtext:find("queue: started · #2 of 3", 1, true) ~= nil, "the reader carries the queue line too")
 ok(rtext:find("resolvable by: lead", 1, true) ~= nil, "the reader renders the badge under the warning")
 reader.close()
@@ -193,7 +205,40 @@ for _, r in ipairs(plans.scan({ plans_root })) do
 end
 rec = records["PLAN_991_second"]
 ok(rec.blocker_resolver == nil and rec.blocker_class == nil, "a blocker without structure derives no badge fields")
-ok(rec.posture == nil, "a snapshot without a posture derives none")
+-- A v8 contract with no autonomy block: every recorded default applies.
+contract("PLAN_991_second", { schema = "https://deepworkplan.com/schema/plan-contract/v8.json" })
+records = {}
+for _, r in ipairs(plans.scan({ plans_root })) do
+	records[r.name] = r
+end
+rec = records["PLAN_991_second"]
+ok(rec.posture ~= nil and rec.posture.stall_budget == 3 and rec.posture.brain == false
+	and rec.posture.promptable == nil and rec.posture.notify == nil and rec.posture.queue == "none",
+	"an absent autonomy block on a v8 contract means all five defaults")
+-- Out-of-range and wrong-shape keys fall back to their own defaults.
+contract("PLAN_991_second", {
+	schema = "https://deepworkplan.com/schema/plan-contract/v8.json",
+	autonomy = { stall_budget = 99, brain = "yes", promptable = {}, queue = "sometimes" },
+})
+records = {}
+for _, r in ipairs(plans.scan({ plans_root })) do
+	records[r.name] = r
+end
+rec = records["PLAN_991_second"]
+ok(rec.posture and rec.posture.stall_budget == 3 and rec.posture.brain == false
+	and rec.posture.promptable == nil and rec.posture.queue == "none",
+	"malformed keys fall back to their defaults")
+-- A v7 contract has no posture: the plan renders exactly as before.
+contract("PLAN_991_second", {
+	schema = "https://deepworkplan.com/schema/plan-contract/v7.json",
+	autonomy = { stall_budget = 5 },
+})
+records = {}
+for _, r in ipairs(plans.scan({ plans_root })) do
+	records[r.name] = r
+end
+rec = records["PLAN_991_second"]
+ok(rec.posture == nil, "a v7 contract derives no posture, even with a stray autonomy key")
 sidebar.open({ plans_root })
 text = table.concat(vim.api.nvim_buf_get_lines((function()
 	for _, b in ipairs(vim.api.nvim_list_bufs()) do

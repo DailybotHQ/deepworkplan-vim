@@ -287,28 +287,27 @@ local function queue_view(record)
 	return queue_mod.for_plan(queue, record.name)
 end
 
--- The autonomy-posture lines (pack 8.0): the facts the ledger carries
--- (stall budget, brain-may-act, promptable scope) plus the plan's
--- place in the pack's queue. Only present facts render; nil when
--- there is nothing to say, so a 7.x plan keeps its header exactly.
+-- The autonomy-posture lines (plan-contract/v8): the contract's autonomy
+-- block with its defaults applied (stall budget, brain, promptable panes,
+-- notify targets, queue start) plus the plan's place in the pack's queue.
+-- nil when there is nothing to say, so a v7 plan keeps its header exactly.
 local function posture_lines(record, width)
 	local view = queue_view(record)
 	local facts = {}
-	if record.posture then
-		if record.posture.stall_budget ~= nil then
-			facts[#facts + 1] = "stall budget: " .. tostring(record.posture.stall_budget)
-		end
-		if record.posture.brain_may_act ~= nil then
-			facts[#facts + 1] = "brain may act: " .. (record.posture.brain_may_act and "yes" or "no")
-		end
-		if record.posture.promptable_scope ~= nil then
-			facts[#facts + 1] = "promptable: " .. record.posture.promptable_scope
-		end
+	local p = record.posture
+	if p then
+		facts[#facts + 1] = "stall budget: " .. tostring(p.stall_budget)
+		facts[#facts + 1] = "brain may act: " .. (p.brain and "yes" or "no")
+		facts[#facts + 1] = "promptable: " .. (p.promptable and table.concat(p.promptable, ", ") or "lead only")
+		facts[#facts + 1] = "notify: " .. (p.notify and table.concat(p.notify, ", ") or "none")
+		facts[#facts + 1] = "queue start: " .. p.queue
 	end
 	local rows = {}
 	if #facts > 0 then
-		for _, line in ipairs(wrap_text("  " .. table.concat(facts, " · "), width, "  ")) do
-			rows[#rows + 1] = { text = line, hl = "Comment", kind = "info" }
+		for _, fact in ipairs(facts) do
+			for _, line in ipairs(wrap_text("  " .. fact, width, "    ")) do
+				rows[#rows + 1] = { text = line, hl = "Comment", kind = "info" }
+			end
 		end
 	end
 	local qline = queue_mod.line(view)

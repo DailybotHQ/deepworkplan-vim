@@ -14,10 +14,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
   reader render the pack's plan queue (`dwp/queue.lua` reading
   `.dwp/queue.json`, schema `dwp-queue-v1`: per-plan place and state),
   structured-blocker badges (blocker class C1–C7 + `resolver: lead|human`,
-  absent resolver meaning human), and the autonomy posture (stall budget,
-  brain-may-act, promptable scope) beside the goal. Everything renders only
-  when the data exists — a 7.x repository renders byte-identically to
-  before — and the editor never writes plan state. New `queue` smoke section.
+  absent resolver meaning human), and the autonomy posture beside the goal:
+  the `autonomy` block of a `plan-contract/v8` contract (stall budget, brain,
+  promptable panes, notify targets, queue start), with the spec's recorded
+  default applied to every absent key. Everything renders only when the data
+  exists — a v7 plan renders byte-identically to before — and the editor
+  never writes plan state. New `queue` smoke section.
 - **Harness:** the vendored DeepWorkPlan pack moves to 7.12.2, all 182 files
   verified against the release `SHA256SUMS`. The patch makes the herdr addon
   accept herdr-peers protocol 1 and 2 and pins v2.0.0, so the vendored pack

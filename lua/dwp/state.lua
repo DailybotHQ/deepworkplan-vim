@@ -193,37 +193,64 @@ local function blocked_signal(snapshot)
 	return true, reason, resolver, class
 end
 
--- The autonomy posture (pack 8.0): stall budget, brain-may-act,
--- promptable scope — the ledger may carry them at snapshot.posture or
--- snapshot.autonomy; both spellings are probed, only present keys are
--- reported, and anything else is ignored. Queue position is NOT read
--- here: it lives in the pack's queue (dwp.queue), not the plan's
--- snapshot. nil when the snapshot carries no posture at all, so a 7.x
--- plan renders exactly as before. The authoritative field paths land
--- with 8.0.0-beta.1 and are cross-checked against the shipped schema
--- before this surface ships in a release.
-local function posture(snapshot)
-	if type(snapshot) ~= "table" then
-		return nil
-	end
-	local raw = snapshot.posture or snapshot.autonomy
-	if type(raw) ~= "table" then
+-- The autonomy posture (plan-contract/v8, spec/LOOP_ENGINEERING.md §2):
+-- the optional, closed `autonomy` block of the plan's CONTRACT (reached
+-- through the manifest pointer, like resolve_title), never state.json.
+-- Only a v8 contract has a posture; a v7 or older contract (or none)
+-- yields nil, so those plans render exactly as before. Inside a v8
+-- contract the consumer MUST apply each absent key's recorded default —
+-- an absent block means all five defaults: stall_budget 3, promptable =
+-- the lead only, notify = no target, brain = false, queue = none. A key
+-- of the wrong shape falls back to its default; a non-table block says
+-- nothing. Queue position is NOT read here: it lives in the pack's queue
+-- (dwp.queue), not the contract.
+M.CONTRACT_V8 = "https://deepworkplan.com/schema/plan-contract/v8.json"
+
+local function string_list(value)
+	if type(value) ~= "table" or #value == 0 then
 		return nil
 	end
 	local out = {}
-	if type(raw.stall_budget) == "number" then
-		out.stall_budget = raw.stall_budget
-	elseif type(raw.stall_budget) == "string" and raw.stall_budget ~= "" then
-		out.stall_budget = raw.stall_budget
+	for _, item in ipairs(value) do
+		if type(item) ~= "string" or item == "" then
+			return nil
+		end
+		out[#out + 1] = item
 	end
-	if raw.brain_may_act == true or raw.brain_may_act == false then
-		out.brain_may_act = raw.brain_may_act
-	end
-	if type(raw.promptable_scope) == "string" and raw.promptable_scope ~= "" then
-		out.promptable_scope = raw.promptable_scope
-	end
-	if next(out) == nil then
+	return out
+end
+
+local function posture(plan_path)
+	local manifest = read_json(plan_path .. "/manifest.json")
+	if type(manifest) ~= "table" or type(manifest.contract) ~= "table" then
 		return nil
+	end
+	local rel = manifest.contract.path
+	if type(rel) ~= "string" or rel == "" or rel:find("..", 1, true) then
+		return nil
+	end
+	local contract = read_json(plan_path .. "/" .. rel)
+	if type(contract) ~= "table" or contract.schema ~= M.CONTRACT_V8 then
+		return nil
+	end
+	local raw = contract.autonomy
+	if raw == nil then
+		raw = {}
+	elseif type(raw) ~= "table" then
+		return nil
+	end
+	local out = { stall_budget = 3, promptable = nil, notify = nil, brain = false, queue = "none" }
+	local budget = raw.stall_budget
+	if type(budget) == "number" and budget % 1 == 0 and budget >= 1 and budget <= 10 then
+		out.stall_budget = budget
+	end
+	out.promptable = string_list(raw.promptable)
+	out.notify = string_list(raw.notify)
+	if raw.brain == true then
+		out.brain = true
+	end
+	if raw.queue == "prompt-lead" or raw.queue == "launch" or raw.queue == "none" then
+		out.queue = raw.queue
 	end
 	return out
 end
@@ -306,7 +333,7 @@ function M.derive_rich(plan_path)
 		blocker_reason = reason,
 		blocker_resolver = resolver,
 		blocker_class = class,
-		posture = posture(snapshot),
+		posture = posture(plan_path),
 		current_task = current_task(machine, snapshot, plan_path),
 		title = M.resolve_title(plan_path),
 	}

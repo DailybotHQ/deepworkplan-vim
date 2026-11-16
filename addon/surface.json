@@ -151,7 +151,7 @@
         "DwpPlans"
       ],
       "since": "v0.4.0",
-      "summary": "Sidebar of every Deep Work Plan grouped by status with progress; Enter opens a plain-language reader; a clickable statusline segment and a dashboard overview show the active plans. Pack-8.0 reads, all read-only and additive: the plan queue (.dwp/queue.json, dwp-queue-v1) as per-plan position lines, structured-blocker badges (blocker class + lead/human resolver), and the autonomy posture beside the goal."
+      "summary": "Sidebar of every Deep Work Plan grouped by status with progress; Enter opens a plain-language reader; a clickable statusline segment and a dashboard overview show the active plans. Pack-8.0 reads, all read-only and additive: the plan queue (.dwp/queue.json, dwp-queue-v1) as per-plan position lines, structured-blocker badges (blocker class + lead/human resolver), and the autonomy posture (the plan-contract/v8 autonomy block, defaults applied) beside the goal."
     },
     {
       "id": "markdown_viewer",
