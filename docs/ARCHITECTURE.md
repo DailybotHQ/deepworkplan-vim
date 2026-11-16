@@ -155,35 +155,35 @@ succeeded; it is the one check branch protection requires
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 7.10.1, ai-diff-reviewer 3.3.16,
-dailybot 3.23.17, herdr-peers 1.3.0), the thin `dwp-*` command delegators, agent personas, and the
+`.agents/` carries the vendored skills (deepworkplan 7.12.0, ai-diff-reviewer 3.3.16,
+dailybot 3.23.17, herdr-peers 1.3.1), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
 (DWP v7 CONFIG §1); scratch in gitignored `tmp/`.
 
 ### Vendored provenance
 
-The 2026-10-25 dogfood upgrade — refreshed 2026-11-15 (pack v7.10.1,
-herdr-peers v1.3.0) — uses the pack's tree-URL install and all-addons
+The 2026-10-25 dogfood upgrade — refreshed 2026-11-15 (pack v7.12.0,
+herdr-peers v1.3.1) — uses the pack's tree-URL install and all-addons
 planner. `skills-lock.json` records each release ref and the installer's computed
 content hash. Installed skill trees must match the tagged sources byte for byte;
 local adaptations are inspected before replacement.
 
 | Skill | Tag | Verified commit |
 | --- | --- | --- |
-| deepworkplan | v7.10.1 | `ceb53b8dd793d7a3095d653345095aa2109cf3dc` |
+| deepworkplan | v7.12.0 | `251b352996377a036fe7bbbf11e0df71fe577d3f` |
 | ai-diff-reviewer | v3.3.16 | `0083490ebc3a6e3dc87922c1ee711578c196e2d6` |
 | dailybot | v3.23.17 | `0ccf31329d638915e5c282c91d4f3ab6547140b4` |
-| herdr-peers | v1.3.0 | `645d02860e8d07a065598f21245b3aab71f2ff95` |
+| herdr-peers | v1.3.1 | `b6ffe529442469463a88810997b902b27f565c09` |
 
 The pack's release `SHA256SUMS` digest is
-`80be3b01a54dc6d78465a62584dfea07d60187217ddd35153b4940ff23d094ee`;
+`388cf53a16d913f4523af1444a74965f6bc248f35f17f10e5f7014df7b3dd782`;
 the reviewer's (its release archives) is
 `af29e32655378c3f4efc7f05fa3b92c87040e3ba45a8f980e1179a7f6c1bc398`,
 and its installed tree is checked against the tag.
 Dailybot ships no checksum manifest; its tag commit and installed bytes are
 verified instead. herdr-peers (installed repo-locally, refreshed 2026-11-15) is
-checked file by file against its release `SHA256SUMS` (all 34 skill files). `.review/extension.md` and the existing Dailybot hooks stay
+checked file by file against its release `SHA256SUMS` (all 36 skill files). `.review/extension.md` and the existing Dailybot hooks stay
 repository-owned. No authentication material belongs in the vendored trees.
 
 ### Orchestra lanes
