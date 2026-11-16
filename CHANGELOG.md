@@ -10,6 +10,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Harness:** the vendored DeepWorkPlan pack moves to 7.12.2, all 182 files
+  verified against the release `SHA256SUMS`. The patch makes the herdr addon
+  accept herdr-peers protocol 1 and 2 and pins v2.0.0, so the vendored pack
+  and the vendored herdr-peers skill agree again (7.12.1 rejected protocol 2
+  and silently dropped the addon's abilities). No editor surface changes.
+
 - **Harness:** the vendored herdr-peers skill moves to v2.0.0 (protocol 2:
   lead appointment, the opt-in fail-closed autopilot brain, the plan-queue
   consumer for the pack's `.dwp/queue.json`; the editor keeps consuming its
