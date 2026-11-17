@@ -156,37 +156,37 @@ succeeded; it is the one check branch protection requires
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 8.0.2, ai-diff-reviewer 3.3.16,
-dailybot 3.23.20, herdr-peers 2.2.0), the thin `dwp-*` command delegators, agent personas, and the
+`.agents/` carries the vendored skills (deepworkplan 8.0.3, ai-diff-reviewer 3.3.16,
+dailybot 3.23.20, herdr-peers 2.2.1), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
 (DWP v7 CONFIG §1); scratch in gitignored `tmp/`.
 
 ### Vendored provenance
 
-The 2026-10-25 dogfood upgrade — refreshed 2026-11-17 (pack v8.0.2,
-herdr-peers v2.2.0, dailybot v3.23.20) — uses the pack's tree-URL install and all-addons
+The 2026-10-25 dogfood upgrade — refreshed 2026-11-17 (pack v8.0.3,
+herdr-peers v2.2.1, dailybot v3.23.20) — uses the pack's tree-URL install and all-addons
 planner. `skills-lock.json` records each release ref and the installer's computed
 content hash. Installed skill trees must match the tagged sources byte for byte;
 local adaptations are inspected before replacement.
 
 | Skill | Tag | Verified commit |
 | --- | --- | --- |
-| deepworkplan | v8.0.2 | `4d3e2f6c433e40b446a8940339a8d5c4f8a02b6b` |
+| deepworkplan | v8.0.3 | `10335581d160012166fdc70ba1f90d9bf20795f2` |
 | ai-diff-reviewer | v3.3.16 | `0083490ebc3a6e3dc87922c1ee711578c196e2d6` |
 | dailybot | v3.23.20 | `a74fa055fcae006798744e8ea4c7fb17ae9b0a06` |
-| herdr-peers | v2.2.0 | `fc19e77ea748c46e87adf68d176fd79aa7bf781c` |
+| herdr-peers | v2.2.1 | `6b9f17d8ebffe54ecde68c3bc7c768032be60e92` |
 
 The pack's release `SHA256SUMS` digest is
-`332e8f9a51fe818f5e78839f99f92b60fce2b6eed8383d5e90b91c994ca019f5`
+`f40ebde7c45654b316703bf7a2435dd645e39eebca4327529489ca82dcc2c1e3`
 (188 entries; DWP standard 8.0.0, the v8 schemas unchanged since they were frozen at v8.0.0);
 the reviewer's (its release archives) is
 `af29e32655378c3f4efc7f05fa3b92c87040e3ba45a8f980e1179a7f6c1bc398`,
 and its installed tree is checked against the tag.
 Dailybot ships no checksum manifest; its tag commit and installed bytes are
-verified instead. herdr-peers (installed repo-locally, refreshed 2026-11-17 to v2.2.0) is
+verified instead. herdr-peers (installed repo-locally, refreshed 2026-11-17 to v2.2.1) is
 checked file by file against its release `SHA256SUMS` (all 37 skill files;
-digest `694766b8ee39ee57b0ce39e8d31a64ca018830159aec7989226f1d094a4c8c2c`). `.review/extension.md` and the existing Dailybot hooks stay
+digest `9855c62532381915b7f562fcec5649787bc5345d59243ac692051662469f5d93`). `.review/extension.md` and the existing Dailybot hooks stay
 repository-owned. No authentication material belongs in the vendored trees.
 
 ### Orchestra lanes

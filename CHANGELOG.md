@@ -10,6 +10,17 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Harness:** the vendored DeepWorkPlan pack moves to 8.0.3, all 188 files
+  verified against its release `SHA256SUMS`. The patch makes `queue.py`
+  refuse lifecycle transitions it does not name, requires the daemon's
+  `plan-event-v1` schema in the Dailybot notifier and pins devcontainer-kit
+  v1.4.2; the v8 schemas and the queue document format the editor reads are
+  unchanged. Together with it, the vendored herdr-peers skill moves to
+  v2.2.1 (all 37 skill files verified; protocol 2 and `lanes-v1` unchanged):
+  `autopilot --loop --revive` now refuses to start without coding-agents-kit
+  1.3.0 or later, like `--brain`. The herdr addon registry entry pins
+  `v2.2.1`. No editor surface changes.
+
 - **Harness:** the vendored DeepWorkPlan pack moves to 8.0.2 (DWP standard
   8.0.0, now the repo's recorded standard), all 188 files verified against
   its release `SHA256SUMS`; the v8 schemas the editor reads are unchanged
