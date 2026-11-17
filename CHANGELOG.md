@@ -10,6 +10,17 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Harness:** the vendored DeepWorkPlan pack moves to 8.0.2 (DWP standard
+  8.0.0, now the repo's recorded standard), all 188 files verified against
+  its release `SHA256SUMS`; the v8 schemas the editor reads are unchanged
+  and the queue file format is the same (8.0.2 only guards the plan id in
+  `queue.py set-state`). The vendored herdr-peers skill moves to v2.2.0
+  (revive: `autopilot --loop --revive`, still started only by a human;
+  protocol 2 and the `lanes-v1` snapshots the editor reads unchanged), all
+  37 skill files verified, and the vendored Dailybot skill to v3.23.20
+  (byte-identical to the tag). The addon registry pins herdr `v2.2.0` and
+  dailybot `v3.23.20`. No editor surface changes.
+
 ## [v1.1.0] - 2026-11-16
 
 - **Added (pack-8.0 surfaces, read-only and additive):** the plan browser and

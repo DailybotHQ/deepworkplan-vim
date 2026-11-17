@@ -6,7 +6,7 @@
     },
     "dailybot": {
       "enabled": true,
-      "version": "v3.23.17"
+      "version": "v3.23.20"
     },
     "dependency-upgrade": {
       "enabled": true
@@ -16,7 +16,7 @@
     },
     "herdr": {
       "enabled": true,
-      "version": "v2.1.0",
+      "version": "v2.2.0",
       "note": "repo-local install (.agents/skills/herdr-peers)"
     }
   },

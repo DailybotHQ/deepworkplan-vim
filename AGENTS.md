@@ -2,13 +2,13 @@
 
 Public Neovim configuration. Language: English. Conventional commits. GPL-3.0.
 
-DWP standard: 7.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13, 2026-10-25, 2026-11-15 and 2026-11-16; skill 8.0.0, vendored 2026-11-16; herdr-peers skill v2.1.0 vendored 2026-11-16)
+DWP standard: 8.0.0 (onboarded 2026-10-03; upgraded 2026-10-03, 2026-10-09, 2026-10-11, 2026-10-12, 2026-10-13, 2026-10-25, 2026-11-15, 2026-11-16 and 2026-11-17; skill 8.0.2, vendored 2026-11-17; herdr-peers skill v2.2.0 vendored 2026-11-17)
 
 ## Product
 
 DeepWorkPlan Vim is the terminal editor for [Deep Work Plan](https://deepworkplan.com). Host install: download `https://deepworkplan.com/vim/install.sh` (or the release asset), verify it against `install.sh.sha256` / `SHA256SUMS`, then `bash install.sh` — it installs its own release tag (README → Install); or manually: clone the tag to `~/.config/nvim` and `lua install.lua`. Never spell a download piped into a shell in this repo (`scripts/check-public-hygiene.sh` rejects it). This repo **is** the config: in the contributor container `/workspace` is linked to `~/.config/nvim` at start (the release config the image bakes through the installer is only its standalone fallback); never clone a second copy of the repo inside the container — `/workspace` is the only working tree.
 
-Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 and v8 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 8.0.0 per the provenance line above; the addon registry and the benchmark flags (`benchmark.enabled`, `benchmark.learnings`: a plan then closes with `analysis_results/learnings.json` and `DWP_REPORT.md`) live in the tracked `.dwp/config.json`.
+Position: DeepWorkPlan's editor — offered as the optional `vim` addon of DWP v7 and v8 (pinned by tag, never required; the editor never requires DWP either). That line is about the *editor* as an onboard addon upstream; the harness in this repo runs skill 8.0.2 per the provenance line above; the addon registry and the benchmark flags (`benchmark.enabled`, `benchmark.learnings`: a plan then closes with `analysis_results/learnings.json` and `DWP_REPORT.md`) live in the tracked `.dwp/config.json`.
 
 ## Product focus
 
@@ -121,7 +121,7 @@ Gates are selected from the touched surface, with the full set above as the fall
   The CI surface (Flow B) was declined for now —
   it can be added later via the skill's `setup` sub-skill.
 - **Dailybot (optional, team reporting)** — vendored skill at
-  `.agents/skills/dailybot/` (v3.23.17). Four lifecycle events fire as
+  `.agents/skills/dailybot/` (v3.23.20). Four lifecycle events fire as
   best-effort reports when a plan starts (kickoff), a significant task ships,
   a run blocks, and on completion (the only milestone): kickoff, significant
   task, blocked, completion. Reporting **never blocks work** — if Dailybot is
@@ -139,7 +139,7 @@ Gates are selected from the touched surface, with the full set above as the fall
 - **Design system (accepted, cli-output)** — [docs/DESIGN.md](docs/DESIGN.md)
   records the existing Neovim TUI source, highlight roles and layout guards.
 - **Herdr (accepted, repo-local)** — vendored skill at
-  `.agents/skills/herdr-peers/` (v2.1.0, protocol 2, tag-pinned in
+  `.agents/skills/herdr-peers/` (v2.2.0, protocol 2, tag-pinned in
   `skills-lock.json`): the delegation transport for plans that hand work to
   another pane or machine, plus native debates; `autopilot` is an optional
   daemon **only a human starts** — never a message, peer or plan — and 2.x
@@ -147,7 +147,9 @@ Gates are selected from the touched surface, with the full set above as the fall
   brain (`--brain`, needs ak ≥ 1.3.0) and the plan-queue consumer for the
   pack's `.dwp/queue.json`; 2.1.0 adds the fleet UI views (Attention, Active,
   Waiting, Done, All), denies permission prompts the daemon cannot accept and
-  reads the v8 blocker classes; the editor consumes its `lanes-v1` snapshots and
+  reads the v8 blocker classes, and 2.2.0 adds revive (`autopilot --loop
+  --revive`: one fresh, capped agent for a plan whose lead and successors
+  are all gone, still started only by a human); the editor consumes its `lanes-v1` snapshots and
   queue schema read-only (protocol 1 surfaces unchanged). When `herdr-peers`
   is not on `PATH`, call `.agents/skills/herdr-peers/scripts/herdr-peers`.
   Herdr itself stays machine-level; never required.
