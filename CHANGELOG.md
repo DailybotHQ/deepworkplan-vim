@@ -10,6 +10,18 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+## [v1.1.1] - 2026-11-19
+
+- **Harness:** the vendored DeepWorkPlan pack moves to 8.0.6, all 188 files
+  verified against its release `SHA256SUMS`. The patch moves the pack's
+  devcontainer addon to devcontainer-kit v1.4.4 (with coding-agents-kit
+  v1.5.1 and herdr-peers v2.2.1); `queue.py` and the v8 schemas the editor
+  reads are unchanged.
+- **Contributor container:** Herdr moves from 0.9.3 to 0.9.5 (both Linux
+  binaries pinned by the sha256 that `herdr.dev/latest.json` and the GitHub
+  release publish). The collaboration guide now says the herdr-peers skill
+  is vendored (v2.2.1) rather than absent.
+
 - **Harness:** the vendored DeepWorkPlan pack moves to 8.0.5, all 188 files
   verified against its release `SHA256SUMS`. Together with 8.0.4 it only
   moves the pack's addon descriptors and docs to coding-agents-kit v1.5.1,
@@ -559,7 +571,8 @@ only until this tag.
   and the contributor container with the Herdr mesh. Derived from
   [mu-vim](https://github.com/AndresMpa/mu-vim) by Andrés M Prieto; GPL-3.0.
 
-[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.1.1...HEAD
+[v1.1.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.0.1...v1.1.0
 [v1.0.1]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/DailybotHQ/deepworkplan-vim/compare/v0.7.0...v1.0.0

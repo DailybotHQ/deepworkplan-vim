@@ -156,7 +156,7 @@ succeeded; it is the one check branch protection requires
 
 ## DWP harness layer
 
-`.agents/` carries the vendored skills (deepworkplan 8.0.5, ai-diff-reviewer 3.3.16,
+`.agents/` carries the vendored skills (deepworkplan 8.0.6, ai-diff-reviewer 3.3.16,
 dailybot 3.23.20, herdr-peers 2.2.1), the thin `dwp-*` command delegators, agent personas, and the
 catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 `.dwp/`, gitignored except the tracked addon registry `.dwp/config.json`
@@ -164,7 +164,7 @@ catalog; `.claude`/`.cursor` are symlinks to it. Plan output lives in
 
 ### Vendored provenance
 
-The 2026-10-25 dogfood upgrade — refreshed 2026-11-19 (pack v8.0.5,
+The 2026-10-25 dogfood upgrade — refreshed 2026-11-19 (pack v8.0.6,
 herdr-peers v2.2.1, dailybot v3.23.20) — uses the pack's tree-URL install and all-addons
 planner. `skills-lock.json` records each release ref and the installer's computed
 content hash. Installed skill trees must match the tagged sources byte for byte;
@@ -172,13 +172,13 @@ local adaptations are inspected before replacement.
 
 | Skill | Tag | Verified commit |
 | --- | --- | --- |
-| deepworkplan | v8.0.5 | `edf089613ad2bfe598db520637d5444495e47831` |
+| deepworkplan | v8.0.6 | `8b348b909435cdaab356731f821736be77ef984b` |
 | ai-diff-reviewer | v3.3.16 | `0083490ebc3a6e3dc87922c1ee711578c196e2d6` |
 | dailybot | v3.23.20 | `a74fa055fcae006798744e8ea4c7fb17ae9b0a06` |
 | herdr-peers | v2.2.1 | `6b9f17d8ebffe54ecde68c3bc7c768032be60e92` |
 
 The pack's release `SHA256SUMS` digest is
-`5d22f6c5468e8ac53e9f906815e9b1cd3aa01ed19e0ba041c93b5339cd3d402d`
+`1f807e4c9241f445de6be9c2aea8b711e696c86862aa0201d5378707afe531ee`
 (188 entries; DWP standard 8.0.0, the v8 schemas unchanged since they were frozen at v8.0.0);
 the reviewer's (its release archives) is
 `af29e32655378c3f4efc7f05fa3b92c87040e3ba45a8f980e1179a7f6c1bc398`,
