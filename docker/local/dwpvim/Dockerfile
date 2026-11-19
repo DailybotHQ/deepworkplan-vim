@@ -200,9 +200,9 @@ RUN set -eu; \
 
 # Herdr (always): GitHub release binary, sha256 from herdr.dev/latest.json
 # for this version.
-ARG HERDR_VERSION=0.9.3
-ARG HERDR_SHA256_X86_64=18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7
-ARG HERDR_SHA256_AARCH64=4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0
+ARG HERDR_VERSION=0.9.5
+ARG HERDR_SHA256_X86_64=14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d
+ARG HERDR_SHA256_AARCH64=17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c
 RUN set -eu; \
     case "$(dpkg --print-architecture)" in \
       amd64) arch=x86_64; sum="$HERDR_SHA256_X86_64" ;; \

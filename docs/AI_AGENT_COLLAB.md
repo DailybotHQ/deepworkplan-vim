@@ -34,9 +34,10 @@ other.
 - This mesh is the repo-local transport of `dev.sh` (`[herdr-mesh]` stamp, one
   reply grant). It is **not** the [herdr-peers](https://github.com/DailybotHQ/herdr-peers)
   protocol (`[herdr-peers] protocol=1` stamps built by a helper, depth and
-  fan-out limits, a delegation record), and the herdr-peers skill is not
-  vendored here. Herdr 0.9.3 in the image meets herdr-peers v0.1.0's
-  requirement (Herdr >= 0.9.1), so adopting it is an additive change.
+  fan-out limits, a delegation record). The herdr-peers skill is vendored
+  separately at `.agents/skills/herdr-peers/` (v2.2.1, see
+  [AGENTS.md](../AGENTS.md#installed-dwp-addons)); both run on the Herdr
+  0.9.5 the image installs.
 
 ## Progress reporting (Dailybot, best-effort)
 

@@ -2,7 +2,7 @@
 
 See the root `README.md` and `AGENTS.md`.
 
-- Image: Debian Trixie (pinned by digest), user `dev`, the editor via the DeepWorkPlan Vim installer v0.5.0 (Neovim 0.12.5), Herdr 0.9.3 — every tool pinned and verified (see below)
+- Image: Debian Trixie (pinned by digest), user `dev`, the editor via the DeepWorkPlan Vim installer v0.5.0 (Neovim 0.12.5), Herdr 0.9.5 — every tool pinned and verified (see below)
 - Repo mount: `/workspace` → `~/.config/nvim`
 - SSH: `127.0.0.1:22035`
 - Copy `dwpvim/.env.example` to `dwpvim/.env` before `bash dev.sh up`
@@ -22,7 +22,7 @@ install script is piped to a shell.**
 | gh | `2.83.2` | GitHub release tarball | sha256 from `gh_<v>_checksums.txt` |
 | DeepWorkPlan Vim installer | `DWP_VIM_VERSION=0.5.0` | `https://vim.deepworkplan.com/install.sh` (an alias of `https://deepworkplan.com/vim/install.sh`); the release's own `install.sh` when the website already serves a newer release | sha256 = the release's `install.sh.sha256` (GitHub, second origin) — the build always runs the pinned bytes |
 | Neovim | `NVIM_VERSION=0.12.5` | GitHub release tarball, installed by the installer's `--nvim` into `~/.local/opt/nvim-v0.12.5` | sha256 = the release asset digest (the installer refuses a mismatch or a missing digest) |
-| Herdr (always) | `0.9.3` | GitHub release binary | sha256 from `herdr.dev/latest.json` |
+| Herdr (always) | `0.9.5` | GitHub release binary | sha256 from `herdr.dev/latest.json` |
 | pnpm | `10.34.6` | npm registry | npm integrity hash |
 | Biome | `2.5.15` | npm (`pnpm add -g`) | registry integrity hash |
 | Claude Code (`INSTALL_CLAUDE_CLI`) | `2.1.286` | native binary, `downloads.claude.ai/claude-code-releases/<v>/` | sha256 from that version's `manifest.json`; `DISABLE_AUTOUPDATER=1` keeps it pinned |
