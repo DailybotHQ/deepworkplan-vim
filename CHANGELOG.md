@@ -10,6 +10,12 @@ section below, and its assets ship with `SHA256SUMS`. Pin by tag.
 
 ## [Unreleased]
 
+- **Harness:** the vendored DeepWorkPlan pack moves to 8.0.5, all 188 files
+  verified against its release `SHA256SUMS`. Together with 8.0.4 it only
+  moves the pack's addon descriptors and docs to coding-agents-kit v1.5.1,
+  devcontainer-kit v1.4.3 and herdr-peers v2.2.1; `queue.py` and the v8
+  schemas the editor reads are unchanged. No editor surface changes.
+
 - **Harness:** the vendored DeepWorkPlan pack moves to 8.0.3, all 188 files
   verified against its release `SHA256SUMS`. The patch makes `queue.py`
   refuse lifecycle transitions it does not name, requires the daemon's
